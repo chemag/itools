@@ -68,6 +68,19 @@ Figure 4 shows the original image after being passed through the `noise` filter.
 
 This filter gets the difference between 2x frames.
 
+The diff algo works as follows: We convert both frames to grayscale (luma-only), and then diff the actual value of each pixel. We calculate the absolute value of the per-pixel difference (`abs[i,j]`), and then set each pixel in the output file (the "diff image" or "diff frame") as 255 minus the absolute value.
+
+The full algo is:
+
+```
+# start with in1[i, j] and in2[i, j]
+abs[i,j] = abs(in1[i, j], in2[i, j])
+out[i,j] = 255 - abs[i,j]
+```
+
+Note that the parts where both input file are different is shown in black, while the parts where they are the same are shown in white.
+
+
 Example
 ```
 $ ./python/itools-filter.py --filter diff -i docs/lena.noise.jpeg docs/lena.jpeg docs/lena.diff.jpeg
