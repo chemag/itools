@@ -114,6 +114,7 @@ def compose_images(infile1, infile2, xloc, yloc, outfile, debug):
 
     elif inimg2.shape[2] == 4:
         outimg = inimg1.astype(np.int16)
+        # TODO(chema): replace this loop with alpha-channel line
         for (x2, y2) in itertools.product(range(width2), range(height2)):
             x1 = xloc + x2
             y1 = yloc + y2
@@ -141,9 +142,12 @@ def match_images(infile1, infile2, outfile, debug):
     elif inimg2.shape[2] == 4:
         # alpha channel: add noise to the non-alpha channel parts
         # https://stackoverflow.com/a/20461136
+        # TODO(chema): replace random-composed luma with alpha-channel-based
+        # matchTemplate() function.
         luma2rand = np.random.randint(256, size=luma2.shape).astype(np.int16)
         width2, height2 = luma2.shape
         alpha_channel2 = inimg2[:, :, 3]
+        # TODO(chema): replace this loop with alpha-channel line
         for (x2, y2) in itertools.product(range(width2), range(height2)):
             alpha_value = alpha_channel2[y2][x2] / 256
             luma2rand[y2][x2] = np.rint(
