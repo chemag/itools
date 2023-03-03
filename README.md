@@ -16,6 +16,7 @@ This tool provides some image filters, including:
 * `diff`: get the diff of 2x images.
 * `compose`: compose 2x images.
 * `match`: match 2x images (template matching).
+* `affine`: performs an affine transform in the input image.
 
 
 ![Figure 1](docs/lena.jpeg)
@@ -124,6 +125,28 @@ x0 = 10 y0 = 30
 
 Figure 7 shows the original image after being composed with the needle image.
 
+
+
+## 2.7. `affine` filter
+
+This filter performs an affine transformation on the input image. The affine transformation is defined using 2x matrices, $A$ and $B$.
+
+```
+A = [[a00, a01], [a10, a11]]
+B = [[b00], [b10]]
+Output = A * input + B
+```
+
+Function also allows defining the output size (using parameters "`width`" and "`height`").
+
+Example
+```
+$ ./python/itools-filter.py --filter affine --height 700 --a00 0.98 --a01 0.14 --a10 1.1 --a11 -0.3 --b00 1 --b10 10 -d docs/lena.jpeg docs/lena.affine.jpeg
+```
+
+![Figure 8](docs/lena.affine.jpeg)
+
+Figure 8 shows the output of the affine transformation using the matrices $A=[[0.98, 0.14], [1.1, -0.3])$ and $B=[1, 10]$.
 
 
 # 3. Requirements

@@ -26,6 +26,7 @@ FILTER_CHOICES = {
     "diff": "diff 2 frames",
     "compose": "compose 2 frames",
     "match": "match 2 frames (needle and haystack problem -- only shift)",
+    "affine": "run an affine transformation (defined as 2x matrices A and B) on the input",
 }
 
 default_values = {
@@ -35,6 +36,14 @@ default_values = {
     "noise_level": DEFAULT_NOISE_LEVEL,
     "x": 10,
     "y": 20,
+    "width": 0,
+    "height": 0,
+    "a00": 1,
+    "a01": 0,
+    "a10": 0,
+    "a11": 1,
+    "b00": 0,
+    "b10": 0,
     "infile": None,
     "infile2": None,
     "outfile": None,
@@ -182,6 +191,24 @@ def match_images(infile1, infile2, outfile, debug):
     cv2.imwrite(outfile, outimg)
 
 
+def affine_transformation_matrix(
+    infile, outfile, width, height, a00, a01, a10, a11, b00, b10, debug
+):
+    # load the input image
+    inimg = cv2.imread(cv2.samples.findFile(infile))
+    # process the image
+    m0 = [a00, a01, b00]
+    m1 = [a10, a11, b10]
+    transform_matrix = np.array([m0, m1]).astype(np.float32)
+    if debug > 0:
+        print(f"{transform_matrix = }")
+    width = width if width != 0 else inimg.shape[1]
+    height = height if height != 0 else inimg.shape[0]
+    outimg = cv2.warpAffine(inimg, transform_matrix, (width, height))
+    # store the output image
+    cv2.imwrite(outfile, outimg)
+
+
 def get_options(argv):
     """Generic option parser.
 
@@ -250,6 +277,76 @@ def get_options(argv):
         dest="y",
         default=default_values["y"],
         help="Composition Y Coordinate",
+    )
+    parser.add_argument(
+        "--width",
+        action="store",
+        type=int,
+        dest="width",
+        default=default_values["width"],
+        help="Output Width",
+    )
+    parser.add_argument(
+        "--height",
+        action="store",
+        type=int,
+        dest="height",
+        default=default_values["height"],
+        help="Output height",
+    )
+    parser.add_argument(
+        "--a00",
+        action="store",
+        type=float,
+        dest="a00",
+        default=default_values["a00"],
+        metavar="a00",
+        help=("a00 (default: %i)" % default_values["a00"]),
+    )
+    parser.add_argument(
+        "--a01",
+        action="store",
+        type=float,
+        dest="a01",
+        default=default_values["a01"],
+        metavar="a01",
+        help=("a01 (default: %i)" % default_values["a01"]),
+    )
+    parser.add_argument(
+        "--a10",
+        action="store",
+        type=float,
+        dest="a10",
+        default=default_values["a10"],
+        metavar="a10",
+        help=("a10 (default: %i)" % default_values["a10"]),
+    )
+    parser.add_argument(
+        "--a11",
+        action="store",
+        type=float,
+        dest="a11",
+        default=default_values["a11"],
+        metavar="a11",
+        help=("a11 (default: %i)" % default_values["a11"]),
+    )
+    parser.add_argument(
+        "--b00",
+        action="store",
+        type=float,
+        dest="b00",
+        default=default_values["b00"],
+        metavar="b00",
+        help=("b00 (default: %i)" % default_values["b00"]),
+    )
+    parser.add_argument(
+        "--b10",
+        action="store",
+        type=float,
+        dest="b10",
+        default=default_values["b10"],
+        metavar="b10",
+        help=("b10 (default: %i)" % default_values["b10"]),
     )
     parser.add_argument(
         "--filter",
@@ -343,6 +440,21 @@ def main(argv):
 
     elif options.filter == "noise":
         add_noise(options.infile, options.outfile, options.noise_level, options.debug)
+
+    elif options.filter == "affine":
+        affine_transformation_matrix(
+            options.infile,
+            options.outfile,
+            options.width,
+            options.height,
+            options.a00,
+            options.a01,
+            options.a10,
+            options.a11,
+            options.b00,
+            options.b10,
+            options.debug,
+        )
 
 
 if __name__ == "__main__":
