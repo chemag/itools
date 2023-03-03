@@ -9,6 +9,7 @@ Runs generic image transformation on input images.
 
 import argparse
 import cv2
+import itertools
 import numpy as np
 import os
 import sys
@@ -23,6 +24,7 @@ FILTER_CHOICES = {
     "xchroma": "swap chromas",
     "noise": "add noise",
     "diff": "diff 2 frames",
+    "compose": "compose 2 frames",
 }
 
 default_values = {
@@ -30,6 +32,8 @@ default_values = {
     "dry_run": False,
     "filter": "help",
     "noise_level": DEFAULT_NOISE_LEVEL,
+    "x": 10,
+    "y": 20,
     "infile": None,
     "infile2": None,
     "outfile": None,
@@ -90,6 +94,38 @@ def diff_images(infile1, infile2, outfile, debug):
     cv2.imwrite(outfile, outimg)
 
 
+# composes infile2 on top of infile1, at (xloc, yloc)
+# uses alpha
+def compose_images(infile1, infile2, xloc, yloc, outfile, debug):
+    # load the input images
+    inimg1 = cv2.imread(cv2.samples.findFile(infile1))
+    inimg2 = cv2.imread(cv2.samples.findFile(infile2), cv2.IMREAD_UNCHANGED)
+    # compose them
+    width1, height1, _ = inimg1.shape
+    width2, height2, _ = inimg2.shape
+    assert xloc + width2 < width1
+    assert yloc + height2 < height1
+    if inimg2.shape[2] == 3:
+        # no alpha channel: just use 50% ((im1 + im2) / 2)
+        outimg = inimg1.astype(np.int16)
+        outimg[yloc : yloc + height2, xloc : xloc + width2] += inimg2
+        outimg[yloc : yloc + height2, xloc : xloc + width2] /= 2
+
+    elif inimg2.shape[2] == 4:
+        outimg = inimg1.astype(np.int16)
+        for (x2, y2) in itertools.product(range(width2), range(height2)):
+            x1 = xloc + x2
+            y1 = yloc + y2
+            alpha_value = inimg2[y2][x2][3] / 256
+            outimg[y1][x1] = np.rint(
+                outimg[y1][x1] * (1 - alpha_value) + inimg2[y2][x2][:3] * alpha_value
+            )
+
+    # store the output image
+    outimg = outimg.astype(np.uint8)
+    cv2.imwrite(outfile, outimg)
+
+
 def get_options(argv):
     """Generic option parser.
 
@@ -142,6 +178,22 @@ def get_options(argv):
         dest="noise_level",
         default=default_values["noise_level"],
         help="Noise Level",
+    )
+    parser.add_argument(
+        "-x",
+        action="store",
+        type=int,
+        dest="x",
+        default=default_values["x"],
+        help="Composition X Coordinate",
+    )
+    parser.add_argument(
+        "-y",
+        action="store",
+        type=int,
+        dest="y",
+        default=default_values["y"],
+        help="Composition Y Coordinate",
     )
     parser.add_argument(
         "--filter",
@@ -210,6 +262,16 @@ def main(argv):
     if options.filter == "diff":
         outimg = diff_images(
             options.infile, options.infile2, options.outfile, options.debug
+        )
+
+    elif options.filter == "compose":
+        outimg = compose_images(
+            options.infile,
+            options.infile2,
+            options.x,
+            options.y,
+            options.outfile,
+            options.debug,
         )
 
     elif options.filter == "gray":

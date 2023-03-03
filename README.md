@@ -14,6 +14,7 @@ This tool provides some image filters, including:
 * `xchroma`: swap chromas (Cb and Cr) in the image.
 * `noise`: add noise to the image.
 * `diff`: get the diff of 2x images.
+* `compose`: compose 2x images.
 
 
 ![Figure 1](docs/lena.jpeg)
@@ -89,6 +90,21 @@ $ ./python/itools-filter.py --filter diff -i docs/lena.noise.jpeg docs/lena.jpeg
 ![Figure 5](docs/lena.diff.jpeg)
 
 Figure 5 shows the diff between the original image and the output of the `noise` filter.
+
+
+## 2.5. `compose` filter
+
+This filter composes 2x images, a background image and a needle image. It uses the needle image's alpha channel if it has one. The parameters "`-x`" and "`-y`" can be used to decide the exact location ((0,0) being the top-left point in the destination image).
+
+Example
+```
+$ ./python/itools-filter.py --filter compose -i docs/needle.png -x 10 -y 30 docs/lena.jpeg docs/lena.compose.jpeg
+```
+
+![Figure 6](docs/lena.compose.jpeg)
+
+Figure 6 shows the original image after being composed with the needle image.
+
 
 
 # 3. Requirements
