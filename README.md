@@ -15,6 +15,7 @@ This tool provides some image filters, including:
 * `noise`: add noise to the image.
 * `diff`: get the diff of 2x images.
 * `compose`: compose 2x images.
+* `match`: match 2x images (template matching).
 
 
 ![Figure 1](docs/lena.jpeg)
@@ -104,6 +105,24 @@ $ ./python/itools-filter.py --filter compose -i docs/needle.png -x 10 -y 30 docs
 ![Figure 6](docs/lena.compose.jpeg)
 
 Figure 6 shows the original image after being composed with the needle image.
+
+
+## 2.6. `match` filter
+
+This filter performs template matching in 2x images, a haystack image and a needle image. It will produce a copy of the haystack image with a rectangle marking the actual location where it finds the needle in the haystack.
+
+Note that, if the needle has alpha channel, we use randomness to deal with needles with alpha channel (see [here](https://stackoverflow.com/questions/4761940/) for a discussion). This means that, in that case, the results of successive runs may be slightly different.
+
+
+Example
+```
+$ ./python/itools-filter.py --filter match -d -i docs/needle.png docs/lena.compose.jpeg docs/lena.match.jpeg
+x0 = 10 y0 = 30
+```
+
+![Figure 7](docs/lena.match.jpeg)
+
+Figure 7 shows the original image after being composed with the needle image.
 
 
 

@@ -25,6 +25,7 @@ FILTER_CHOICES = {
     "noise": "add noise",
     "diff": "diff 2 frames",
     "compose": "compose 2 frames",
+    "match": "match 2 frames (needle and haystack problem -- only shift)",
 }
 
 default_values = {
@@ -123,6 +124,57 @@ def compose_images(infile1, infile2, xloc, yloc, outfile, debug):
 
     # store the output image
     outimg = outimg.astype(np.uint8)
+    cv2.imwrite(outfile, outimg)
+
+
+def match_images(infile1, infile2, outfile, debug):
+    # load the input images
+    inimg1 = cv2.imread(cv2.samples.findFile(infile1))
+    inimg2 = cv2.imread(cv2.samples.findFile(infile2), cv2.IMREAD_UNCHANGED)
+    # we will do gray correlation image matching: Use only the lumas
+    luma1 = cv2.cvtColor(inimg1, cv2.COLOR_BGR2GRAY)
+    luma2 = cv2.cvtColor(inimg2, cv2.COLOR_BGR2GRAY)
+    # support needles with alpha channels
+    if inimg2.shape[2] == 3:
+        # no alpha channel: just use the luma for the search
+        pass
+    elif inimg2.shape[2] == 4:
+        # alpha channel: add noise to the non-alpha channel parts
+        # https://stackoverflow.com/a/20461136
+        luma2rand = np.random.randint(256, size=luma2.shape).astype(np.int16)
+        width2, height2 = luma2.shape
+        alpha_channel2 = inimg2[:, :, 3]
+        for (x2, y2) in itertools.product(range(width2), range(height2)):
+            alpha_value = alpha_channel2[y2][x2] / 256
+            luma2rand[y2][x2] = np.rint(
+                luma2rand[y2][x2] * (1 - alpha_value) + luma2[y2][x2] * alpha_value
+            )
+        luma2 = luma2rand.astype(np.uint8)
+    # match infile2 (template, needle) in infile1 (image, haystack)
+    # Note that matchTemplate() does not support rotation or scaling
+    # https://docs.opencv.org/4.x/d4/dc6/tutorial_py_template_matching.html
+    match = cv2.matchTemplate(luma1, luma2, cv2.TM_CCOEFF_NORMED)
+    # get the location for the highest match[] value
+    y0, x0 = np.unravel_index(match.argsort(axis=None)[-1], match.shape)
+    if debug > 0:
+        print(f"{x0 = } {y0 = }")
+    # prepare the output
+    outimg = inimg1.astype(np.int16)
+    xwidth, ywidth, _ = inimg2.shape
+    x1, y1 = x0 + xwidth, y0 + ywidth
+    # substract the needle from the haystack
+    # this replaces black with black: Not very useful
+    # outimg[y0:y1, x0:x1] -= inimg2[:,:,:3]
+    # add an X in the origin (0,0) point
+    # cv2.line(outimg, (0, 0), (2, 2), color=(0,0,0), thickness=1)
+    # add an X in the (x0, y0) point
+    # cv2.line(outimg, (x0 - 2, y0 - 2), (x0 + 2, y0 + 2), color=(0, 0, 0), thickness=1)
+    # cv2.line(outimg, (x0 + 2, y0 - 2), (x0 - 2, y0 + 2), color=(0, 0, 0), thickness=1)
+    # add a square in the full needle location
+    cv2.rectangle(outimg, (x0, y0), (x1, y1), color=(0, 0, 0), thickness=1)
+
+    # store the output image
+    outimg = np.absolute(outimg).astype(np.uint8)
     cv2.imwrite(outfile, outimg)
 
 
@@ -272,6 +324,11 @@ def main(argv):
             options.y,
             options.outfile,
             options.debug,
+        )
+
+    elif options.filter == "match":
+        outimg = match_images(
+            options.infile, options.infile2, options.outfile, options.debug
         )
 
     elif options.filter == "gray":
