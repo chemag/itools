@@ -27,6 +27,7 @@ FILTER_CHOICES = {
     "compose": "compose 2 frames",
     "match": "match 2 frames (needle and haystack problem -- only shift)",
     "affine": "run an affine transformation (defined as 2x matrices A and B) on the input",
+    "affine-points": "run an affine transformation (defined as 2x set of 3x points) on the input",
 }
 
 default_values = {
@@ -44,6 +45,18 @@ default_values = {
     "a11": 1,
     "b00": 0,
     "b10": 0,
+    "s0x": 0,
+    "s0y": 0,
+    "s1x": 0,
+    "s1y": 100,
+    "s2x": 100,
+    "s2y": 0,
+    "d0x": 0,
+    "d0y": 0,
+    "d1x": 0,
+    "d1y": 100,
+    "d2x": 100,
+    "d2y": 0,
     "infile": None,
     "infile2": None,
     "outfile": None,
@@ -209,6 +222,46 @@ def affine_transformation_matrix(
     cv2.imwrite(outfile, outimg)
 
 
+def affine_transformation_points(
+    infile,
+    outfile,
+    width,
+    height,
+    s0x,
+    s0y,
+    s1x,
+    s1y,
+    s2x,
+    s2y,
+    d0x,
+    d0y,
+    d1x,
+    d1y,
+    d2x,
+    d2y,
+    debug,
+):
+    # load the input image
+    inimg = cv2.imread(cv2.samples.findFile(infile))
+    # process the image
+    s0 = [s0x, s0y]
+    s1 = [s1x, s1y]
+    s2 = [s2x, s2y]
+    src_trio = np.array([s0, s1, s2]).astype(np.float32)
+    d0 = [d0x, d0y]
+    d1 = [d1x, d1y]
+    d2 = [d2x, d2y]
+    dst_trio = np.array([d0, d1, d2]).astype(np.float32)
+    transform_matrix = cv2.getAffineTransform(src_trio, dst_trio)
+    if debug > 0:
+        print(f"{transform_matrix = }")
+    width = width if width != 0 else inimg.shape[1]
+    height = height if height != 0 else inimg.shape[0]
+    outimg = cv2.warpAffine(inimg, transform_matrix, (width, height))
+    # store the output image
+    cv2.imwrite(outfile, outimg)
+
+
 def get_options(argv):
     """Generic option parser.
 
@@ -348,6 +401,115 @@ def get_options(argv):
         metavar="b10",
         help=("b10 (default: %i)" % default_values["b10"]),
     )
+    # affine transformation parameters
+    parser.add_argument(
+        "--s0x",
+        action="store",
+        type=float,
+        dest="s0x",
+        default=default_values["s0x"],
+        metavar="s0.x",
+        help=("s0x (default: %i)" % default_values["s0x"]),
+    )
+    parser.add_argument(
+        "--s0y",
+        action="store",
+        type=float,
+        dest="s0y",
+        default=default_values["s0y"],
+        metavar="s0.y",
+        help=("s0y (default: %i)" % default_values["s0y"]),
+    )
+    parser.add_argument(
+        "--s1x",
+        action="store",
+        type=float,
+        dest="s1x",
+        default=default_values["s1x"],
+        metavar="s1.x",
+        help=("s1x (default: %i)" % default_values["s1x"]),
+    )
+    parser.add_argument(
+        "--s1y",
+        action="store",
+        type=float,
+        dest="s1y",
+        default=default_values["s1y"],
+        metavar="s1.y",
+        help=("s1y (default: %i)" % default_values["s1y"]),
+    )
+    parser.add_argument(
+        "--s2x",
+        action="store",
+        type=float,
+        dest="s2x",
+        default=default_values["s2x"],
+        metavar="s2.x",
+        help=("s2x (default: %i)" % default_values["s2x"]),
+    )
+    parser.add_argument(
+        "--s2y",
+        action="store",
+        type=float,
+        dest="s2y",
+        default=default_values["s2y"],
+        metavar="s2.y",
+        help=("s2y (default: %i)" % default_values["s2y"]),
+    )
+    parser.add_argument(
+        "--d0x",
+        action="store",
+        type=float,
+        dest="d0x",
+        default=default_values["d0x"],
+        metavar="d0.x",
+        help=("d0x (default: %i)" % default_values["d0x"]),
+    )
+    parser.add_argument(
+        "--d0y",
+        action="store",
+        type=float,
+        dest="d0y",
+        default=default_values["d0y"],
+        metavar="d0.y",
+        help=("d0y (default: %i)" % default_values["d0y"]),
+    )
+    parser.add_argument(
+        "--d1x",
+        action="store",
+        type=float,
+        dest="d1x",
+        default=default_values["d1x"],
+        metavar="d1.x",
+        help=("d1x (default: %i)" % default_values["d1x"]),
+    )
+    parser.add_argument(
+        "--d1y",
+        action="store",
+        type=float,
+        dest="d1y",
+        default=default_values["d1y"],
+        metavar="d1.y",
+        help=("d1y (default: %i)" % default_values["d1y"]),
+    )
+    parser.add_argument(
+        "--d2x",
+        action="store",
+        type=float,
+        dest="d2x",
+        default=default_values["d2x"],
+        metavar="d2.x",
+        help=("d2x (default: %i)" % default_values["d2x"]),
+    )
+    parser.add_argument(
+        "--d2y",
+        action="store",
+        type=float,
+        dest="d2y",
+        default=default_values["d2y"],
+        metavar="d2.y",
+        help=("d2y (default: %i)" % default_values["d2y"]),
+    )
     parser.add_argument(
         "--filter",
         action="store",
@@ -453,6 +615,27 @@ def main(argv):
             options.a11,
             options.b00,
             options.b10,
+            options.debug,
+        )
+
+    elif options.filter == "affine-points":
+        affine_transformation_points(
+            options.infile,
+            options.outfile,
+            options.width,
+            options.height,
+            options.s0x,
+            options.s0y,
+            options.s1x,
+            options.s1y,
+            options.s2x,
+            options.s2y,
+            options.d0x,
+            options.d0y,
+            options.d1x,
+            options.d1y,
+            options.d2x,
+            options.d2y,
             options.debug,
         )
 

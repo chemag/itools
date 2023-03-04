@@ -149,6 +149,32 @@ $ ./python/itools-filter.py --filter affine --height 700 --a00 0.98 --a01 0.14 -
 Figure 8 shows the output of the affine transformation using the matrices $A=[[0.98, 0.14], [1.1, -0.3])$ and $B=[1, 10]$.
 
 
+## 2.8. `affine-points` filter
+
+This filter performs an affine transformation on the input image. The affine transformation is defined using 2x set of points, $s$ and $d$. Transformation matrix is calculated such that
+
+```
+(s0x, s0y) -> (d0x, d0y)
+(s1x, s1y) -> (d1x, d1y)
+(s2x, s2y) -> (d2x, d2y)
+```
+
+Function also allows defining the output size (using parameters "`width`" and "`height`").
+
+Example
+```
+$ ./python/itools-filter.py --filter affine-points --height 700 --d0x 5 --d0y -2 --d1x -4 --d1y 105 --d2x 96 --d2y -4 -d docs/lena.jpeg docs/lena.affine-points.jpeg
+...
+transform_matrix = array([[ 0.91, -0.09,  5.  ],
+       [-0.02,  1.07, -2.  ]])
+...
+```
+
+![Figure 9](docs/lena.affine-points.jpeg)
+
+Figure 9 shows the output of the affine transformation using the points in the above command.
+
+
 # 3. Requirements
 
 * opencv2
