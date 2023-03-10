@@ -575,12 +575,16 @@ def main(argv):
         print(options)
 
     if options.filter == "diff":
-        outimg = diff_images(
-            options.infile, options.infile2, options.outfile, options.debug
+        diff_images(
+            options.infile,
+            options.infile2,
+            options.outfile,
+            options.diff_factor,
+            options.debug,
         )
 
     elif options.filter == "compose":
-        outimg = compose_images(
+        compose_images(
             options.infile,
             options.infile2,
             options.x,
@@ -590,9 +594,7 @@ def main(argv):
         )
 
     elif options.filter == "match":
-        outimg = match_images(
-            options.infile, options.infile2, options.outfile, options.debug
-        )
+        match_images(options.infile, options.infile2, options.outfile, options.debug)
 
     elif options.filter == "gray":
         image_to_gray(options.infile, options.outfile, options.debug)
