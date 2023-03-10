@@ -24,6 +24,7 @@ FILTER_CHOICES = {
     "xchroma": "swap chromas",
     "noise": "add noise",
     "diff": "diff 2 frames",
+    "mse": "get the MSE of a frame",
     "compose": "compose 2 frames",
     "match": "match 2 frames (needle and haystack problem -- only shift)",
     "affine": "run an affine transformation (defined as 2x matrices A and B) on the input",
@@ -115,6 +116,18 @@ def diff_images(infile1, infile2, outfile, debug):
     outimg = 255 - outimg
     # store the output image
     cv2.imwrite(outfile, outimg)
+
+
+def mse_image(infile, debug):
+    # load the input image
+    inimg = cv2.imread(cv2.samples.findFile(infile))
+    # careful with number ranges
+    yuvimg = cv2.cvtColor(inimg, cv2.COLOR_BGR2YCrCb).astype(np.int32)
+    # calculate the (1 - luma) mse
+    luma = yuvimg[:, :, 0]
+    width, height = luma.shape
+    mse = ((255 - luma) ** 2).mean() / (width * height)
+    return mse
 
 
 # composes infile2 on top of infile1, at (xloc, yloc)
@@ -582,6 +595,10 @@ def main(argv):
             options.diff_factor,
             options.debug,
         )
+
+    elif options.filter == "mse":
+        mse = mse_image(options.infile, options.debug)
+        print(f"{mse = }")
 
     elif options.filter == "compose":
         compose_images(
