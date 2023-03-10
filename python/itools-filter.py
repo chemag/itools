@@ -36,6 +36,7 @@ default_values = {
     "dry_run": False,
     "filter": "help",
     "noise_level": DEFAULT_NOISE_LEVEL,
+    "diff_factor": 1,
     "x": 10,
     "y": 20,
     "width": 0,
@@ -100,7 +101,7 @@ def add_noise(infile, outfile, noise_level, debug):
     cv2.imwrite(outfile, outimg)
 
 
-def diff_images(infile1, infile2, outfile, debug):
+def diff_images(infile1, infile2, outfile, diff_factor, debug):
     # load the input images
     inimg1 = cv2.imread(cv2.samples.findFile(infile1))
     inimg2 = cv2.imread(cv2.samples.findFile(infile2))
@@ -108,13 +109,16 @@ def diff_images(infile1, infile2, outfile, debug):
     diffimg = np.absolute(inimg1.astype(np.int16) - inimg2.astype(np.int16)).astype(
         np.uint8
     )
-    # diff them
     # remove the color components
-    tmpimg = cv2.cvtColor(diffimg, cv2.COLOR_BGR2GRAY)
-    outimg = cv2.cvtColor(tmpimg, cv2.COLOR_GRAY2BGR)
-    # reverse the colors, so darker means more change
-    outimg = 255 - outimg
+    luma = cv2.cvtColor(diffimg, cv2.COLOR_BGR2GRAY)
+    # apply the diff factor
+    luma = luma * diff_factor
+    # clip the output
+    luma = np.clip(luma, 0, 255).astype(np.uint8)
     # store the output image
+    # reverse the luma, so darker means more change
+    luma = 255 - luma
+    outimg = cv2.cvtColor(luma, cv2.COLOR_GRAY2BGR)
     cv2.imwrite(outfile, outimg)
 
 
@@ -327,6 +331,14 @@ def get_options(argv):
         dest="noise_level",
         default=default_values["noise_level"],
         help="Noise Level",
+    )
+    parser.add_argument(
+        "--diff-factor",
+        action="store",
+        type=float,
+        dest="diff_factor",
+        default=default_values["diff_factor"],
+        help="Diff Multiplication Factor",
     )
     parser.add_argument(
         "-x",
