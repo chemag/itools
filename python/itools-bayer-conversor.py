@@ -18,11 +18,16 @@ __version__ = "0.1"
 COLOR_ORDER = ["RGGB", "BGGR", "GRBG", "GBRG"]
 
 
-# read functions
+# read/write functions
 
 # 2 bytes -> 2 components
 def rfun_8(data):
     return data[0], data[1]
+
+
+# 2 bytes -> 2 components
+def wfun_8(c0, c1):
+    return c0.to_bytes(1, "big") + c1.to_bytes(1, "big")
 
 
 # 4 bytes -> 2 components
@@ -124,12 +129,6 @@ def rfun_16be(data):
         (data[3] << 0) | (data[2] << 8),
     )
 
-
-# write functions
-
-# 2 bytes -> 2 components
-def wfun_8(c0, c1):
-    return c0.to_bytes(1, "big") + c1.to_bytes(1, "big")
 
 
 # 4 bytes -> 2 components
