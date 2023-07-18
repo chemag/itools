@@ -128,7 +128,7 @@ def wfun_16be(c0, c1):
 INPUT_FORMATS = {
     # 8-bit Bayer formats
     "RGGB": {
-        "alias": "SRGGB8",
+        "alias": ("SRGGB8",),
         # byte length
         "blen": 2,
         # component length
@@ -141,7 +141,7 @@ INPUT_FORMATS = {
         "order": "RGGB",
     },
     "GRBG": {
-        "alias": "SGRBG8",
+        "alias": ("SGRBG8",),
         "blen": 2,
         "clen": 2,
         "cdepth": 8,
@@ -149,7 +149,7 @@ INPUT_FORMATS = {
         "order": "GRBG",
     },
     "GBRG": {
-        "alias": "SGBRG8",
+        "alias": ("SGBRG8",),
         "blen": 2,
         "clen": 2,
         "cdepth": 8,
@@ -157,7 +157,7 @@ INPUT_FORMATS = {
         "order": "GBRG",
     },
     "BA81": {
-        "alias": "SBGGR8",
+        "alias": ("SBGGR8",),
         "blen": 2,
         "clen": 2,
         "cdepth": 8,
@@ -166,7 +166,7 @@ INPUT_FORMATS = {
     },
     # 10-bit Bayer formats expanded to 16 bits
     "RG10": {
-        "alias": "SRGGB10",
+        "alias": ("SRGGB10",),
         "blen": 4,
         "clen": 2,
         "cdepth": 16,
@@ -174,7 +174,7 @@ INPUT_FORMATS = {
         "order": "RGGB",
     },
     "BA10": {
-        "alias": "SGRBG10",
+        "alias": ("SGRBG10",),
         "blen": 4,
         "clen": 2,
         "cdepth": 16,
@@ -182,7 +182,7 @@ INPUT_FORMATS = {
         "order": "GRBG",
     },
     "GB10": {
-        "alias": "SGBRG10",
+        "alias": ("SGBRG10",),
         "blen": 4,
         "clen": 2,
         "cdepth": 16,
@@ -190,7 +190,7 @@ INPUT_FORMATS = {
         "order": "GBRG",
     },
     "BG10": {
-        "alias": "SBGGR10",
+        "alias": ("SBGGR10",),
         "blen": 4,
         "clen": 2,
         "cdepth": 16,
@@ -199,7 +199,7 @@ INPUT_FORMATS = {
     },
     # 10-bit Bayer formats (packed)
     "pRAA": {
-        "alias": "SRGGB10P",
+        "alias": ("SRGGB10P",),
         "blen": 5,
         "clen": 4,
         "cdepth": 16,
@@ -207,7 +207,7 @@ INPUT_FORMATS = {
         "order": "RGGB",
     },
     "pgAA": {
-        "alias": "SGRBG10P",
+        "alias": ("SGRBG10P",),
         "blen": 5,
         "clen": 4,
         "cdepth": 16,
@@ -215,7 +215,7 @@ INPUT_FORMATS = {
         "order": "GRBG",
     },
     "pGAA": {
-        "alias": "SGBRG10P",
+        "alias": ("SGBRG10P",),
         "blen": 5,
         "clen": 4,
         "cdepth": 16,
@@ -223,7 +223,7 @@ INPUT_FORMATS = {
         "order": "GBRG",
     },
     "pBAA": {
-        "alias": "SBGGR10P",
+        "alias": ("SBGGR10P",),
         "blen": 5,
         "clen": 4,
         "cdepth": 16,
@@ -232,7 +232,7 @@ INPUT_FORMATS = {
     },
     # 10-bit Bayer formats compressed to 8 bits using a-law
     "aRA8": {
-        "alias": "SRGGB10ALAW8",
+        "alias": ("SRGGB10ALAW8",),
         "blen": 2,
         "clen": 2,
         "cdepth": 16,
@@ -240,7 +240,7 @@ INPUT_FORMATS = {
         "order": "RGGB",
     },
     "aBA8": {
-        "alias": "SBGGR10ALAW8",
+        "alias": ("SBGGR10ALAW8",),
         "blen": 2,
         "clen": 2,
         "cdepth": 16,
@@ -248,7 +248,7 @@ INPUT_FORMATS = {
         "order": "BGGR",
     },
     "aGA8": {
-        "alias": "SGBRG10ALAW8",
+        "alias": ("SGBRG10ALAW8",),
         "blen": 2,
         "clen": 2,
         "cdepth": 16,
@@ -256,7 +256,7 @@ INPUT_FORMATS = {
         "order": "GBRG",
     },
     "agA8": {
-        "alias": "SGRBG10ALAW8",
+        "alias": ("SGRBG10ALAW8",),
         "blen": 2,
         "clen": 2,
         "cdepth": 16,
@@ -265,7 +265,7 @@ INPUT_FORMATS = {
     },
     # 10-bit Bayer formats compressed to 8 bits using dpcm
     "bRA8": {
-        "alias": "SRGGB10DPCM8",
+        "alias": ("SRGGB10DPCM8",),
         "blen": 2,
         "clen": 2,
         "cdepth": 16,
@@ -273,7 +273,7 @@ INPUT_FORMATS = {
         "order": "RGGB",
     },
     "bBA8": {
-        "alias": "SBGGR10DPCM8",
+        "alias": ("SBGGR10DPCM8",),
         "blen": 2,
         "clen": 2,
         "cdepth": 16,
@@ -281,7 +281,7 @@ INPUT_FORMATS = {
         "order": "BGGR",
     },
     "bGA8": {
-        "alias": "SGBRG10DPCM8",
+        "alias": ("SGBRG10DPCM8",),
         "blen": 2,
         "clen": 2,
         "cdepth": 16,
@@ -289,7 +289,7 @@ INPUT_FORMATS = {
         "order": "GBRG",
     },
     "BD10": {
-        "alias": "SGRBG10DPCM8",
+        "alias": ("SGRBG10DPCM8",),
         "blen": 2,
         "clen": 2,
         "cdepth": 16,
@@ -298,7 +298,7 @@ INPUT_FORMATS = {
     },
     # 10-bit Bayer formats compressed a la Intel IPU3 driver
     "ip3r": {
-        "alias": "IPU3_SRGGB10",
+        "alias": ("IPU3_SRGGB10",),
         "blen": 32,
         "clen": 25,
         "cdepth": 16,
@@ -306,7 +306,7 @@ INPUT_FORMATS = {
         "order": "RGGB",
     },
     "ip3b": {
-        "alias": "IPU3_SBGGR10",
+        "alias": ("IPU3_SBGGR10",),
         "blen": 32,
         "clen": 25,
         "cdepth": 16,
@@ -314,7 +314,7 @@ INPUT_FORMATS = {
         "order": "BGGR",
     },
     "ip3g": {
-        "alias": "IPU3_SGBRG10",
+        "alias": ("IPU3_SGBRG10",),
         "blen": 32,
         "clen": 25,
         "cdepth": 16,
@@ -322,7 +322,7 @@ INPUT_FORMATS = {
         "order": "GBRG",
     },
     "ip3G": {
-        "alias": "IPU3_SGRBG10",
+        "alias": ("IPU3_SGRBG10",),
         "blen": 32,
         "clen": 25,
         "cdepth": 16,
@@ -331,7 +331,7 @@ INPUT_FORMATS = {
     },
     # 12-bit Bayer formats expanded to 16 bits
     "RG12": {
-        "alias": "SRGGB12",
+        "alias": ("SRGGB12",),
         "blen": 4,
         "clen": 2,
         "cdepth": 16,
@@ -339,7 +339,7 @@ INPUT_FORMATS = {
         "order": "RGGB",
     },
     "BA12": {
-        "alias": "SGRBG12",
+        "alias": ("SGRBG12",),
         "blen": 4,
         "clen": 2,
         "cdepth": 16,
@@ -347,7 +347,7 @@ INPUT_FORMATS = {
         "order": "GRBG",
     },
     "GB12": {
-        "alias": "SGBRG12",
+        "alias": ("SGBRG12",),
         "blen": 4,
         "clen": 2,
         "cdepth": 16,
@@ -355,7 +355,7 @@ INPUT_FORMATS = {
         "order": "GBRG",
     },
     "BG12": {
-        "alias": "SBGGR12",
+        "alias": ("SBGGR12",),
         "blen": 4,
         "clen": 2,
         "cdepth": 16,
@@ -364,7 +364,7 @@ INPUT_FORMATS = {
     },
     # 12-bit Bayer formats (packed)
     "pRCC": {
-        "alias": "SRGGB12P",
+        "alias": ("SRGGB12P",),
         "blen": 3,
         "clen": 2,
         "cdepth": 16,
@@ -372,7 +372,7 @@ INPUT_FORMATS = {
         "order": "RGGB",
     },
     "pgCC": {
-        "alias": "SGRBG12P",
+        "alias": ("SGRBG12P",),
         "blen": 3,
         "clen": 2,
         "cdepth": 16,
@@ -380,7 +380,7 @@ INPUT_FORMATS = {
         "order": "GRBG",
     },
     "pGCC": {
-        "alias": "SGBRG12P",
+        "alias": ("SGBRG12P",),
         "blen": 3,
         "clen": 2,
         "cdepth": 16,
@@ -388,7 +388,7 @@ INPUT_FORMATS = {
         "order": "GBRG",
     },
     "pBCC": {
-        "alias": "SBGGR12P",
+        "alias": ("SBGGR12P",),
         "blen": 3,
         "clen": 2,
         "cdepth": 16,
@@ -397,7 +397,7 @@ INPUT_FORMATS = {
     },
     # 14-bit Bayer formats expanded to 16 bits
     "RG14": {
-        "alias": "SRGGB14",
+        "alias": ("SRGGB14",),
         "blen": 4,
         "clen": 2,
         "cdepth": 16,
@@ -405,7 +405,7 @@ INPUT_FORMATS = {
         "order": "RGGB",
     },
     "GR14": {
-        "alias": "SGRBG14",
+        "alias": ("SGRBG14",),
         "blen": 4,
         "clen": 2,
         "cdepth": 16,
@@ -413,7 +413,7 @@ INPUT_FORMATS = {
         "order": "GRBG",
     },
     "GB14": {
-        "alias": "SGBRG14",
+        "alias": ("SGBRG14",),
         "blen": 4,
         "clen": 2,
         "cdepth": 16,
@@ -421,7 +421,7 @@ INPUT_FORMATS = {
         "order": "GBRG",
     },
     "BG14": {
-        "alias": "SBGGR14",
+        "alias": ("SBGGR14",),
         "blen": 4,
         "clen": 2,
         "cdepth": 16,
@@ -430,7 +430,7 @@ INPUT_FORMATS = {
     },
     # 14-bit Bayer formats (packed)
     "pREE": {
-        "alias": "SRGGB14P",
+        "alias": ("SRGGB14P",),
         "blen": 7,
         "clen": 4,
         "cdepth": 16,
@@ -438,7 +438,7 @@ INPUT_FORMATS = {
         "order": "RGGB",
     },
     "pgEE": {
-        "alias": "SGRBG14P",
+        "alias": ("SGRBG14P",),
         "blen": 7,
         "clen": 4,
         "cdepth": 16,
@@ -446,7 +446,7 @@ INPUT_FORMATS = {
         "order": "GRBG",
     },
     "pGEE": {
-        "alias": "SGBRG14P",
+        "alias": ("SGBRG14P",),
         "blen": 7,
         "clen": 4,
         "cdepth": 16,
@@ -454,7 +454,7 @@ INPUT_FORMATS = {
         "order": "GBRG",
     },
     "pBEE": {
-        "alias": "SBGGR14P",
+        "alias": ("SBGGR14P",),
         "blen": 7,
         "clen": 4,
         "cdepth": 16,
@@ -463,7 +463,7 @@ INPUT_FORMATS = {
     },
     # 16-bit Bayer formats
     "RG16": {
-        "alias": "SRGGB16",
+        "alias": ("SRGGB16",),
         "blen": 4,
         "clen": 2,
         "cdepth": 16,
@@ -471,7 +471,7 @@ INPUT_FORMATS = {
         "order": "RGGB",
     },
     "GR16": {
-        "alias": "SGRBG16",
+        "alias": ("SGRBG16",),
         "blen": 4,
         "clen": 2,
         "cdepth": 16,
@@ -479,7 +479,7 @@ INPUT_FORMATS = {
         "order": "GRBG",
     },
     "GB16": {
-        "alias": "SGBRG16",
+        "alias": ("SGBRG16",),
         "blen": 4,
         "clen": 2,
         "cdepth": 16,
@@ -487,7 +487,7 @@ INPUT_FORMATS = {
         "order": "GBRG",
     },
     "BA82": {
-        "alias": "SBGGR16",
+        "alias": ("SBGGR16",),
         "blen": 4,
         "clen": 2,
         "cdepth": 16,
@@ -495,7 +495,7 @@ INPUT_FORMATS = {
         "order": "BGGR",
     },
     "BYR2": {
-        "alias": "SBGGR16",
+        "alias": ("SBGGR16",),
         "blen": 4,
         "clen": 2,
         "cdepth": 16,
@@ -503,6 +503,8 @@ INPUT_FORMATS = {
         "order": "BGGR",
     },
 }
+CANONICAL_LIST = list(INPUT_FORMATS.keys())
+ALIAS_LIST = list(alias for v in INPUT_FORMATS.values() for alias in v["alias"])
 
 
 OUTPUT_FORMATS = {
@@ -581,11 +583,15 @@ default_values = {
 # for Bayer pixel formats, only the width is important
 def rfun_image_file(infile, i_pix_fmt, width, height, outfile, o_pix_fmt, debug):
     # convert alias input pixel formats to the canonical names
-    if i_pix_fmt in (v["alias"] for v in INPUT_FORMATS.values()):
+    if i_pix_fmt in CANONICAL_LIST:
+        pass
+    elif i_pix_fmt in ALIAS_LIST:
         # find the canonical name
         for canonical, v in INPUT_FORMATS.items():
-            if i_pix_fmt == v["alias"]:
+            if i_pix_fmt in v["alias"]:
                 i_pix_fmt = canonical
+    else:
+        raise AssertionError(f"error: unknown input pix_fmt: {i_pix_fmt}")
 
     # check which output pixel format is recommended
     # * size: all conversions are valid (including those that do 10+ -> 8 bits)
@@ -675,18 +681,15 @@ def get_options(argv):
         const=-1,
         help="Zero verbosity",
     )
-    input_choices = list(INPUT_FORMATS.keys()) + list(INPUT_FORMATS.values())
-    input_choices_str = " | ".join(
-        f'{k} ({v["alias"]})'
-        for k, v in zip(INPUT_FORMATS.keys(), INPUT_FORMATS.values())
-    )
+    I_PIX_FMT_LIST = CANONICAL_LIST + ALIAS_LIST
+    input_choices_str = " | ".join(I_PIX_FMT_LIST)
     parser.add_argument(
         "--i_pix_fmt",
         action="store",
         type=str,
         dest="i_pix_fmt",
         default=default_values["i_pix_fmt"],
-        choices=input_choices,
+        choices=I_PIX_FMT_LIST,
         metavar=f"[{input_choices_str}]",
         help="input pixel format",
     )
