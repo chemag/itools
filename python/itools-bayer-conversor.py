@@ -123,8 +123,7 @@ def rfun_16be(data):
 
 # 2 bytes -> 2 components
 def wfun_8(c0, c1):
-    raise AssertionError("wfun_8: unimplemented")
-    return c0.to_bytes(1, "big") + c1.to_bytes(2, "big")
+    return c0.to_bytes(1, "big") + c1.to_bytes(1, "big")
 
 
 # 4 bytes -> 2 components
@@ -724,11 +723,6 @@ def check_output_pix_fmt(o_pix_fmt, i_pix_fmt):
     oorder = OUTPUT_FORMATS[o_pix_fmt]["order"]
     assert iorder == oorder, f"error: {i_pix_fmt = } and {o_pix_fmt = } use different component order: {iorder = } != {oorder = }"
 
-    # enforce same component read depth
-    irdepth = INPUT_FORMATS[i_pix_fmt]["rdepth"]
-    ordepth = OUTPUT_FORMATS[o_pix_fmt]["rdepth"]
-    assert irdepth == ordepth, f"error: {i_pix_fmt = } and {o_pix_fmt = } use different rdepth: {irdepth = } != {ordepth = }"
-
     return o_pix_fmt
 
 
@@ -740,11 +734,14 @@ def rfun_image_file(infile, i_pix_fmt, width, height, outfile, o_pix_fmt, debug)
     # check the output pixel format
     o_pix_fmt = check_output_pix_fmt(o_pix_fmt, i_pix_fmt)
 
+    # get depths
+    irdepth = INPUT_FORMATS[i_pix_fmt]["rdepth"]
+    ordepth = OUTPUT_FORMATS[o_pix_fmt]["rdepth"]
+
     # ifmt = INPUT_FORMATS[i_pix_fmt]  # XXX
     # ofmt = OUTPUT_FORMATS[o_pix_fmt]  # XXX
 
     # TODO(chema): fix conversion limitation
-    # * rdepth: all conversions should be valid (including those that do 10+ -> 8 bits)
     # * order: we enforce the same component order to make the code simpler
 
     # open infile and outfile
@@ -756,6 +753,11 @@ def rfun_image_file(infile, i_pix_fmt, width, height, outfile, o_pix_fmt, debug)
             if not idata:
                 break
             components = INPUT_FORMATS[i_pix_fmt]["rfun"](idata)
+            # convert component depth
+            if irdepth > ordepth:
+                components = list(c >> (irdepth - ordepth) for c in components)
+            elif irdepth < ordepth:
+                components = list(c << (ordepth - irdepth) for c in components)
             c_index = 0
             while c_index < len(components):
                 clen = OUTPUT_FORMATS[o_pix_fmt]["clen"]
