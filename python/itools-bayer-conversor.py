@@ -137,8 +137,10 @@ def wfun_16le(c0, c1):
 
 BAYER_FORMATS = {
     # 8-bit Bayer formats
-    "RGGB": {
-        "alias": ("SRGGB8",),
+    "bayer_bggr8": {
+        "alias": ("BA81", "SBGGR8",),
+        # component order
+        "order": "BGGR",
         # byte length
         "blen": 2,
         # component length
@@ -149,36 +151,40 @@ BAYER_FORMATS = {
         "rdepth": 8,
         # read function
         "rfun": rfun_8,
-        # component order
+        # write function
+        "wfun": wfun_8,
+    },
+    "bayer_rggb8": {
+        "alias": ("RGGB", "SRGGB8",),
         "order": "RGGB",
-    },
-    "GRBG": {
-        "alias": ("SGRBG8",),
         "blen": 2,
         "clen": 2,
         "cdepth": 8,
         "rdepth": 8,
         "rfun": rfun_8,
-        "order": "GRBG",
+        "wfun": wfun_8,
     },
-    "GBRG": {
-        "alias": ("SGBRG8",),
-        "blen": 2,
-        "clen": 2,
-        "cdepth": 8,
-        "rdepth": 8,
-        "rfun": rfun_8,
+    "bayer_gbrg8": {
+        "alias": ("GBRG", "SGBRG8",),
         "order": "GBRG",
-    },
-    "BA81": {
-        "alias": ("SBGGR8",),
         "blen": 2,
         "clen": 2,
         "cdepth": 8,
         "rdepth": 8,
         "rfun": rfun_8,
-        "order": "BGGR",
+        "wfun": wfun_8,
     },
+    "bayer_grbg8": {
+        "alias": ("GRBG", "SGRBG8",),
+        "order": "GRBG",
+        "blen": 2,
+        "clen": 2,
+        "cdepth": 8,
+        "rdepth": 8,
+        "rfun": rfun_8,
+        "wfun": wfun_8,
+    },
+
     # 10-bit Bayer formats expanded to 16 bits
     "RG10": {
         "alias": ("SRGGB10",),
@@ -514,88 +520,45 @@ BAYER_FORMATS = {
         "order": "BGGR",
     },
     # 16-bit Bayer formats
-    "RG16": {
-        "alias": ("SRGGB16",),
+    "bayer_bggr16le": {
+        "alias": ("BA82", "BYR2", "SBGGR16",),
+        "order": "BGGR",
         "blen": 4,
         "clen": 2,
         "cdepth": 16,
         "rdepth": 16,
         "rfun": rfun_16le,
+        "wfun": wfun_16le,
+    },
+    "bayer_rggb16le": {
         "order": "RGGB",
-    },
-    "GR16": {
-        "alias": ("SGRBG16",),
+        "alias": ("RG16", "SRGGB16",),
         "blen": 4,
         "clen": 2,
         "cdepth": 16,
         "rdepth": 16,
         "rfun": rfun_16le,
-        "order": "GRBG",
+        "wfun": wfun_16le,
     },
-    "GB16": {
-        "alias": ("SGBRG16",),
-        "blen": 4,
-        "clen": 2,
-        "cdepth": 16,
-        "rdepth": 16,
-        "rfun": rfun_16le,
+    "bayer_gbrg16le": {
+        "alias": ("GB16", "SGBRG16",),
         "order": "GBRG",
-    },
-    "BA82": {
-        "alias": ("SBGGR16",),
         "blen": 4,
         "clen": 2,
         "cdepth": 16,
         "rdepth": 16,
         "rfun": rfun_16le,
-        "order": "BGGR",
+        "wfun": wfun_16le,
     },
-    "BYR2": {
-        "alias": ("SBGGR16",),
-        "blen": 4,
-        "clen": 2,
-        "cdepth": 16,
-        "rdepth": 16,
-        "rfun": rfun_16le,
-        "order": "BGGR",
-    },
-    # ffmpeg bayer formats
-    "bayer_bggr8": {
-        "order": "BGGR",
-        "blen": 2,
-        "clen": 2,
-        "cdepth": 8,
-        "rdepth": 8,
-        "rfun": rfun_8,
-        # write function
-        "wfun": wfun_8,
-    },
-    "bayer_rggb8": {
-        "order": "RGGB",
-        "blen": 2,
-        "clen": 2,
-        "cdepth": 8,
-        "rdepth": 8,
-        "rfun": rfun_8,
-        "wfun": wfun_8,
-    },
-    "bayer_gbrg8": {
-        "order": "GBRG",
-        "blen": 2,
-        "clen": 2,
-        "cdepth": 8,
-        "rdepth": 8,
-        "rfun": rfun_8,
-        "wfun": wfun_8,
-    },
-    "bayer_grbg8": {
+    "bayer_grbg16le": {
+        "alias": ("GR16", "SGRBG16",),
         "order": "GRBG",
-        "blen": 2,
+        "blen": 4,
         "clen": 2,
-        "cdepth": 8,
-        "rdepth": 8,
-        "rfun": rfun_8,
-        "wfun": wfun_8,
+        "cdepth": 16,
+        "rdepth": 16,
+        "rfun": rfun_16le,
+        "wfun": wfun_16le,
     },
     "bayer_bggr16be": {
         "order": "BGGR",
@@ -632,42 +595,6 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_16be,
         "wfun": wfun_16be,
-    },
-    "bayer_bggr16le": {
-        "order": "BGGR",
-        "blen": 4,
-        "clen": 2,
-        "cdepth": 16,
-        "rdepth": 16,
-        "rfun": rfun_16le,
-        "wfun": wfun_16le,
-    },
-    "bayer_rggb16le": {
-        "order": "RGGB",
-        "blen": 4,
-        "clen": 2,
-        "cdepth": 16,
-        "rdepth": 16,
-        "rfun": rfun_16le,
-        "wfun": wfun_16le,
-    },
-    "bayer_gbrg16le": {
-        "order": "GBRG",
-        "blen": 4,
-        "clen": 2,
-        "cdepth": 16,
-        "rdepth": 16,
-        "rfun": rfun_16le,
-        "wfun": wfun_16le,
-    },
-    "bayer_grbg16le": {
-        "order": "GRBG",
-        "blen": 4,
-        "clen": 2,
-        "cdepth": 16,
-        "rdepth": 16,
-        "rfun": rfun_16le,
-        "wfun": wfun_16le,
     },
 }
 
