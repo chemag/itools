@@ -596,6 +596,7 @@ def rfun_image_file(infile, i_pix_fmt, width, height, outfile, o_pix_fmt, debug)
     # check which output pixel format is recommended
     # * size: all conversions are valid (including those that do 10+ -> 8 bits)
     # * order: we enforce the same component order to make the code simpler
+    # TODO(chema): fix order limitation
     cdepth = INPUT_FORMATS[i_pix_fmt]["cdepth"]
     iorder = INPUT_FORMATS[i_pix_fmt]["order"]
     for pix_fmt, v in OUTPUT_FORMATS.items():
