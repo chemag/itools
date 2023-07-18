@@ -35,6 +35,12 @@ def rfun_10_expanded_to_16(data):
         (data[2] << 6) | ((data[3] & 0x03) << 14),
     )
 
+# 2 bytes -> 2 components
+def wfun_10_expanded_to_16(c0, c1):
+    c0 >>= 6
+    c1 >>= 6
+    return c0.to_bytes(2, "little") + c1.to_bytes(2, "little")
+
 
 # 5 bytes -> 4 components
 def rfun_10_packed_expanded_to_16(data):
@@ -194,6 +200,7 @@ BAYER_FORMATS = {
         "cdepth": 10,
         "rdepth": 16,
         "rfun": rfun_10_expanded_to_16,
+        "wfun": wfun_10_expanded_to_16,
         "order": "RGGB",
     },
     "BA10": {
@@ -203,6 +210,7 @@ BAYER_FORMATS = {
         "cdepth": 10,
         "rdepth": 16,
         "rfun": rfun_10_expanded_to_16,
+        "wfun": wfun_10_expanded_to_16,
         "order": "GRBG",
     },
     "GB10": {
@@ -212,6 +220,7 @@ BAYER_FORMATS = {
         "cdepth": 10,
         "rdepth": 16,
         "rfun": rfun_10_expanded_to_16,
+        "wfun": wfun_10_expanded_to_16,
         "order": "GBRG",
     },
     "BG10": {
@@ -221,6 +230,7 @@ BAYER_FORMATS = {
         "cdepth": 10,
         "rdepth": 16,
         "rfun": rfun_10_expanded_to_16,
+        "wfun": wfun_10_expanded_to_16,
         "order": "BGGR",
     },
     # 10-bit Bayer formats (packed)
