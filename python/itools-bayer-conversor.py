@@ -49,17 +49,17 @@ def rfun_10_packed(data):
 
 # 2 bytes -> 2 components
 def rfun_10_alaw(data):
-    raise AssertionError("rfun_10_alaw: unimplented")
+    raise AssertionError("rfun_10_alaw: unimplemented")
 
 
 # 2 bytes -> 2 components
 def rfun_10_dpcm(data):
-    raise AssertionError("rfun_10_dpcm: unimplented")
+    raise AssertionError("rfun_10_dpcm: unimplemented")
 
 
 # 32 bytes -> 25 components
 def rfun_10_ipu3(data):
-    raise AssertionError("rfun_10_ipu3: unimplented")
+    raise AssertionError("rfun_10_ipu3: unimplemented")
 
 
 # 4 bytes -> 2 components
@@ -116,7 +116,7 @@ def rfun_16(data):
 
 # 2 bytes -> 2 components
 def wfun_8(c0, c1):
-    raise AssertionError("wfun_8: unimplented")
+    raise AssertionError("wfun_8: unimplemented")
     return c0.to_bytes(1, "big") + c1.to_bytes(2, "big")
 
 
