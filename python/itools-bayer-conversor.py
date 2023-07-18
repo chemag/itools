@@ -578,6 +578,8 @@ INPUT_FORMATS = {k: v for (k, v) in BAYER_FORMATS.items() if "rfun" in v}
 OUTPUT_FORMATS = {k: v for (k, v) in BAYER_FORMATS.items() if "wfun" in v}
 INPUT_CANONICAL_LIST = list(INPUT_FORMATS.keys())
 INPUT_ALIAS_LIST = list(alias for v in INPUT_FORMATS.values() if "alias" in v for alias in v["alias"])
+OUTPUT_CANONICAL_LIST = list(OUTPUT_FORMATS.keys())
+OUTPUT_ALIAS_LIST = list(alias for v in OUTPUT_FORMATS.values() if "alias" in v for alias in v["alias"])
 
 
 default_values = {
@@ -592,42 +594,64 @@ default_values = {
 }
 
 
-# for Bayer pixel formats, only the width is important
-def rfun_image_file(infile, i_pix_fmt, width, height, outfile, o_pix_fmt, debug):
-    # convert alias input pixel formats to the canonical names
+def check_input_pix_fmt(i_pix_fmt):
+    # convert input pixel format to the canonical name
     if i_pix_fmt in INPUT_CANONICAL_LIST:
-        pass
+        return i_pix_fmt
     elif i_pix_fmt in INPUT_ALIAS_LIST:
         # find the canonical name
         for canonical, v in INPUT_FORMATS.items():
             if i_pix_fmt in v["alias"]:
-                i_pix_fmt = canonical
+                return canonical
     else:
         raise AssertionError(f"error: unknown input pix_fmt: {i_pix_fmt}")
 
-    # check which output pixel format is recommended
-    # * size: all conversions are valid (including those that do 10+ -> 8 bits)
-    # * order: we enforce the same component order to make the code simpler
-    # TODO(chema): fix order limitation
-    cdepth = INPUT_FORMATS[i_pix_fmt]["cdepth"]
+
+def check_output_pix_fmt(o_pix_fmt, i_pix_fmt):
+    # convert output pixel format to the canonical name
+    if o_pix_fmt in OUTPUT_CANONICAL_LIST:
+        o_pix_fmt = o_pix_fmt
+    elif o_pix_fmt in OUTPUT_ALIAS_LIST:
+        # find the canonical name
+        for canonical, v in OUTPUT_FORMATS.items():
+            if o_pix_fmt in v["alias"]:
+                o_pix_fmt = canonical
+                break
+    else:
+        raise AssertionError(f"error: unknown output pix_fmt: {o_pix_fmt}")
+
+    # get recommended output pixel format
+    icdepth = INPUT_FORMATS[i_pix_fmt]["cdepth"]
     iorder = INPUT_FORMATS[i_pix_fmt]["order"]
+    # find an output pix_fmt with the same cdepth and order
     for pix_fmt, v in OUTPUT_FORMATS.items():
-        if v["cdepth"] == cdepth and v["order"] == iorder:
+        if v["cdepth"] == icdepth and v["order"] == iorder:
             expected_o_pix_fmt = pix_fmt
             break
     else:
         raise AssertionError(f"error: no match for input pix_fmt: {i_pix_fmt}")
-    if o_pix_fmt is None:
-        o_pix_fmt = expected_o_pix_fmt
-        print(f"using {o_pix_fmt} as output pixel format")
-    else:
-        assert expected_o_pix_fmt == o_pix_fmt, (
-            f"error: {expected_o_pix_fmt} is preferred to {o_pix_fmt} as "
-            "output pixel format"
-        )
+
+    # enforce requested output pix_fmt is expected one
+    assert o_pix_fmt == expected_o_pix_fmt, (
+        f"error: {expected_o_pix_fmt} is preferred to {o_pix_fmt} as "
+        "output pixel format")
+    return o_pix_fmt
+
+
+# for Bayer pixel formats, only the width is important
+def rfun_image_file(infile, i_pix_fmt, width, height, outfile, o_pix_fmt, debug):
+    # check the input pixel format
+    i_pix_fmt = check_input_pix_fmt(i_pix_fmt)
+
+    # check the output pixel format
+    o_pix_fmt = check_output_pix_fmt(o_pix_fmt, i_pix_fmt)
 
     # ifmt = INPUT_FORMATS[i_pix_fmt]  # XXX
     # ofmt = OUTPUT_FORMATS[o_pix_fmt]  # XXX
+
+    # TODO(chema): fix conversion limitation
+    # * cdepth: all conversions should be valid (including those that do 10+ -> 8 bits)
+    # * order: we enforce the same component order to make the code simpler
 
     # open infile and outfile
     with open(infile, "rb") as fin, open(outfile, "wb") as fout:
@@ -706,19 +730,16 @@ def get_options(argv):
         metavar=f"[{input_choices_str}]",
         help="input pixel format",
     )
+    O_PIX_FMT_LIST = OUTPUT_CANONICAL_LIST + OUTPUT_ALIAS_LIST
+    output_choices_str = " | ".join(O_PIX_FMT_LIST)
     parser.add_argument(
         "--o_pix_fmt",
         action="store",
         type=str,
         dest="o_pix_fmt",
         default=default_values["o_pix_fmt"],
-        choices=OUTPUT_FORMATS.keys(),
-        metavar="[%s]"
-        % (
-            " | ".join(
-                OUTPUT_FORMATS.keys(),
-            )
-        ),
+        choices=O_PIX_FMT_LIST,
+        metavar=f"[{output_choices_str}]",
         help="output pixel format",
     )
     # 2-parameter setter using argparse.Action
