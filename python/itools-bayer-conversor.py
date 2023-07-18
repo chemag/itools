@@ -573,7 +573,7 @@ BAYER_FORMATS = {
 INPUT_FORMATS = {k: v for (k, v) in BAYER_FORMATS.items() if "rfun" in v}
 OUTPUT_FORMATS = {k: v for (k, v) in BAYER_FORMATS.items() if "wfun" in v}
 INPUT_CANONICAL_LIST = list(INPUT_FORMATS.keys())
-INPUT_ALIAS_LIST = list(alias for v in INPUT_FORMATS.values() for alias in v["alias"])
+INPUT_ALIAS_LIST = list(alias for v in INPUT_FORMATS.values() if "alias" in v for alias in v["alias"])
 
 
 default_values = {
