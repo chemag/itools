@@ -738,9 +738,6 @@ def rfun_image_file(infile, i_pix_fmt, width, height, outfile, o_pix_fmt, debug)
     irdepth = INPUT_FORMATS[i_pix_fmt]["rdepth"]
     ordepth = OUTPUT_FORMATS[o_pix_fmt]["rdepth"]
 
-    # ifmt = INPUT_FORMATS[i_pix_fmt]  # XXX
-    # ofmt = OUTPUT_FORMATS[o_pix_fmt]  # XXX
-
     # TODO(chema): fix conversion limitation
     # * order: we enforce the same component order to make the code simpler
 
