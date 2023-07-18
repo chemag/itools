@@ -132,6 +132,10 @@ def wfun_16be(c0, c1):
     return c0.to_bytes(2, "big") + c1.to_bytes(2, "big")
 
 
+def wfun_16le(c0, c1):
+    return c0.to_bytes(2, "little") + c1.to_bytes(2, "little")
+
+
 BAYER_FORMATS = {
     # 8-bit Bayer formats
     "RGGB": {
@@ -625,6 +629,42 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_16be,
         "wfun": wfun_16be,
+    },
+    "bayer_bggr16le": {
+        "order": "BGGR",
+        "blen": 4,
+        "clen": 2,
+        "cdepth": 16,
+        "rdepth": 16,
+        "rfun": rfun_16le,
+        "wfun": wfun_16le,
+    },
+    "bayer_rggb16le": {
+        "order": "RGGB",
+        "blen": 4,
+        "clen": 2,
+        "cdepth": 16,
+        "rdepth": 16,
+        "rfun": rfun_16le,
+        "wfun": wfun_16le,
+    },
+    "bayer_gbrg16le": {
+        "order": "GBRG",
+        "blen": 4,
+        "clen": 2,
+        "cdepth": 16,
+        "rdepth": 16,
+        "rfun": rfun_16le,
+        "wfun": wfun_16le,
+    },
+    "bayer_grbg16le": {
+        "order": "GRBG",
+        "blen": 4,
+        "clen": 2,
+        "cdepth": 16,
+        "rdepth": 16,
+        "rfun": rfun_16le,
+        "wfun": wfun_16le,
     },
 }
 
