@@ -199,7 +199,7 @@ INPUT_FORMATS = {
     },
     # 10-bit Bayer formats (packed)
     "pRAA": {
-        "alias": ("SRGGB10P",),
+        "alias": ("SRGGB10P", "MIPI-RAW10-RGGB"),
         "blen": 5,
         "clen": 4,
         "cdepth": 16,
@@ -207,7 +207,7 @@ INPUT_FORMATS = {
         "order": "RGGB",
     },
     "pgAA": {
-        "alias": ("SGRBG10P",),
+        "alias": ("SGRBG10P", "MIPI-RAW10-GRBG"),
         "blen": 5,
         "clen": 4,
         "cdepth": 16,
@@ -215,7 +215,7 @@ INPUT_FORMATS = {
         "order": "GRBG",
     },
     "pGAA": {
-        "alias": ("SGBRG10P",),
+        "alias": ("SGBRG10P", "MIPI-RAW10-GBRG"),
         "blen": 5,
         "clen": 4,
         "cdepth": 16,
@@ -223,7 +223,7 @@ INPUT_FORMATS = {
         "order": "GBRG",
     },
     "pBAA": {
-        "alias": ("SBGGR10P",),
+        "alias": ("SBGGR10P", "MIPI-RAW10-BGGR"),
         "blen": 5,
         "clen": 4,
         "cdepth": 16,
