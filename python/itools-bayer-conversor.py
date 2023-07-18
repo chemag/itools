@@ -567,6 +567,7 @@ BAYER_FORMATS = {
         "clen": 2,
         "cdepth": 8,
         "rdepth": 8,
+        "rfun": rfun_8,
         # write function
         "wfun": wfun_8,
     },
@@ -576,6 +577,7 @@ BAYER_FORMATS = {
         "clen": 2,
         "cdepth": 8,
         "rdepth": 8,
+        "rfun": rfun_8,
         "wfun": wfun_8,
     },
     "bayer_gbrg8": {
@@ -584,6 +586,7 @@ BAYER_FORMATS = {
         "clen": 2,
         "cdepth": 8,
         "rdepth": 8,
+        "rfun": rfun_8,
         "wfun": wfun_8,
     },
     "bayer_grbg8": {
@@ -592,6 +595,7 @@ BAYER_FORMATS = {
         "clen": 2,
         "cdepth": 8,
         "rdepth": 8,
+        "rfun": rfun_8,
         "wfun": wfun_8,
     },
     "bayer_bggr16be": {
