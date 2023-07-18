@@ -125,7 +125,7 @@ def wfun_16be(c0, c1):
     return c0.to_bytes(2, "big") + c1.to_bytes(2, "big")
 
 
-INPUT_FORMATS = {
+BAYER_FORMATS = {
     # 8-bit Bayer formats
     "RGGB": {
         "alias": ("SRGGB8",),
@@ -502,12 +502,7 @@ INPUT_FORMATS = {
         "rfun": rfun_16,
         "order": "BGGR",
     },
-}
-CANONICAL_LIST = list(INPUT_FORMATS.keys())
-ALIAS_LIST = list(alias for v in INPUT_FORMATS.values() for alias in v["alias"])
-
-
-OUTPUT_FORMATS = {
+    # ffmpeg bayer formats
     "bayer_bggr8": {
         "order": "BGGR",
         "blen": 2,
@@ -567,6 +562,12 @@ OUTPUT_FORMATS = {
     },
 }
 
+# calculate INPUT_FORMATS and OUTPUT_FORMATS
+INPUT_FORMATS = {k: v for (k, v) in BAYER_FORMATS.items() if "rfun" in v}
+OUTPUT_FORMATS = {k: v for (k, v) in BAYER_FORMATS.items() if "wfun" in v}
+INPUT_CANONICAL_LIST = list(INPUT_FORMATS.keys())
+INPUT_ALIAS_LIST = list(alias for v in INPUT_FORMATS.values() for alias in v["alias"])
+
 
 default_values = {
     "debug": 0,
@@ -583,9 +584,9 @@ default_values = {
 # for Bayer pixel formats, only the width is important
 def rfun_image_file(infile, i_pix_fmt, width, height, outfile, o_pix_fmt, debug):
     # convert alias input pixel formats to the canonical names
-    if i_pix_fmt in CANONICAL_LIST:
+    if i_pix_fmt in INPUT_CANONICAL_LIST:
         pass
-    elif i_pix_fmt in ALIAS_LIST:
+    elif i_pix_fmt in INPUT_ALIAS_LIST:
         # find the canonical name
         for canonical, v in INPUT_FORMATS.items():
             if i_pix_fmt in v["alias"]:
@@ -630,7 +631,7 @@ def rfun_image_file(infile, i_pix_fmt, width, height, outfile, o_pix_fmt, debug)
             while c_index < len(components):
                 clen = OUTPUT_FORMATS[o_pix_fmt]["clen"]
                 odata = OUTPUT_FORMATS[o_pix_fmt]["wfun"](
-                    *components[c_index : c_index + clen]
+                    *components[c_index: c_index + clen]
                 )
                 fout.write(odata)
                 c_index += clen
@@ -682,7 +683,7 @@ def get_options(argv):
         const=-1,
         help="Zero verbosity",
     )
-    I_PIX_FMT_LIST = CANONICAL_LIST + ALIAS_LIST
+    I_PIX_FMT_LIST = INPUT_CANONICAL_LIST + INPUT_ALIAS_LIST
     input_choices_str = " | ".join(I_PIX_FMT_LIST)
     parser.add_argument(
         "--i_pix_fmt",
