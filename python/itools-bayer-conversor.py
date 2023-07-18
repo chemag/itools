@@ -112,6 +112,13 @@ def rfun_16le(data):
     )
 
 
+def rfun_16be(data):
+    return (
+        (data[1] << 0) | (data[0] << 8),
+        (data[3] << 0) | (data[2] << 8),
+    )
+
+
 # write functions
 
 # 2 bytes -> 2 components
