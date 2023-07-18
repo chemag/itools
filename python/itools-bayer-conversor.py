@@ -675,21 +675,16 @@ def check_output_pix_fmt(o_pix_fmt, i_pix_fmt):
     else:
         raise AssertionError(f"error: unknown output pix_fmt: {o_pix_fmt}")
 
-    # get recommended output pixel format
-    irdepth = INPUT_FORMATS[i_pix_fmt]["rdepth"]
+    # enforce same component order
     iorder = INPUT_FORMATS[i_pix_fmt]["order"]
-    # find an output pix_fmt with the same rdepth and order
-    for pix_fmt, v in OUTPUT_FORMATS.items():
-        if v["rdepth"] == irdepth and v["order"] == iorder:
-            expected_o_pix_fmt = pix_fmt
-            break
-    else:
-        raise AssertionError(f"error: no match for input pix_fmt: {i_pix_fmt}")
+    oorder = OUTPUT_FORMATS[o_pix_fmt]["order"]
+    assert iorder == oorder, f"error: {i_pix_fmt = } and {o_pix_fmt = } use different component order: {iorder = } != {oorder = }"
 
-    # enforce requested output pix_fmt is expected one
-    assert o_pix_fmt == expected_o_pix_fmt, (
-        f"error: {expected_o_pix_fmt} is preferred to {o_pix_fmt} as "
-        "output pixel format")
+    # enforce same component read depth
+    irdepth = INPUT_FORMATS[i_pix_fmt]["rdepth"]
+    ordepth = OUTPUT_FORMATS[o_pix_fmt]["rdepth"]
+    assert irdepth == ordepth, f"error: {i_pix_fmt = } and {o_pix_fmt = } use different rdepth: {irdepth = } != {ordepth = }"
+
     return o_pix_fmt
 
 
