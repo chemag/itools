@@ -544,6 +544,7 @@ BAYER_FORMATS = {
         "blen": 4,
         "clen": 2,
         "cdepth": 16,
+        "rfun": rfun_16be,
         "wfun": wfun_16be,
     },
     "bayer_rggb16be": {
@@ -551,6 +552,7 @@ BAYER_FORMATS = {
         "blen": 4,
         "clen": 2,
         "cdepth": 16,
+        "rfun": rfun_16be,
         "wfun": wfun_16be,
     },
     "bayer_gbrg16be": {
@@ -558,6 +560,7 @@ BAYER_FORMATS = {
         "blen": 4,
         "clen": 2,
         "cdepth": 16,
+        "rfun": rfun_16be,
         "wfun": wfun_16be,
     },
     "bayer_grbg16be": {
@@ -565,6 +568,7 @@ BAYER_FORMATS = {
         "blen": 4,
         "clen": 2,
         "cdepth": 16,
+        "rfun": rfun_16be,
         "wfun": wfun_16be,
     },
 }
