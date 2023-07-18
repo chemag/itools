@@ -40,6 +40,7 @@ def rfun_10_expanded_to_16(data):
         (data[2] << 6) | ((data[3] & 0x03) << 14),
     )
 
+
 # 2 bytes -> 2 components
 def wfun_10_expanded_to_16(c0, c1):
     c0 >>= 6
@@ -56,6 +57,18 @@ def rfun_10_packed_expanded_to_16(data):
         (data[2] << 8) | ((low & 0x30) << 2),
         (data[3] << 8) | ((low & 0xC0) << 0),
     )
+
+
+def wfun_10_packed_expanded_to_16(c0, c1, c2, c3):
+    main = (((c0 >> 8) << 24) |
+            ((c1 >> 8) << 16) |
+            ((c2 >> 8) << 8) |
+            ((c3 >> 8) << 0))
+    remaining = ((((c3 >> 6) & 0x03) << 6) |
+                 (((c2 >> 6) & 0x03) << 4) |
+                 (((c1 >> 6) & 0x03) << 2) |
+                 (((c0 >> 6) & 0x03) << 0))
+    return main.to_bytes(4, "big") + remaining.to_bytes(1, "big")
 
 
 # 2 bytes -> 2 components
@@ -128,7 +141,6 @@ def rfun_16be(data):
         (data[1] << 0) | (data[0] << 8),
         (data[3] << 0) | (data[2] << 8),
     )
-
 
 
 # 4 bytes -> 2 components
@@ -240,6 +252,7 @@ BAYER_FORMATS = {
         "cdepth": 10,
         "rdepth": 16,
         "rfun": rfun_10_packed_expanded_to_16,
+        "wfun": wfun_10_packed_expanded_to_16,
         "order": "RGGB",
     },
     "pgAA": {
@@ -249,6 +262,7 @@ BAYER_FORMATS = {
         "cdepth": 10,
         "rdepth": 16,
         "rfun": rfun_10_packed_expanded_to_16,
+        "wfun": wfun_10_packed_expanded_to_16,
         "order": "GRBG",
     },
     "pGAA": {
@@ -258,6 +272,7 @@ BAYER_FORMATS = {
         "cdepth": 10,
         "rdepth": 16,
         "rfun": rfun_10_packed_expanded_to_16,
+        "wfun": wfun_10_packed_expanded_to_16,
         "order": "GBRG",
     },
     "pBAA": {
@@ -267,6 +282,7 @@ BAYER_FORMATS = {
         "cdepth": 10,
         "rdepth": 16,
         "rfun": rfun_10_packed_expanded_to_16,
+        "wfun": wfun_10_packed_expanded_to_16,
         "order": "BGGR",
     },
     # 10-bit Bayer formats compressed to 8 bits using a-law
@@ -662,6 +678,17 @@ def check_output_pix_fmt(o_pix_fmt, i_pix_fmt):
     return o_pix_fmt
 
 
+def gcd(a, b):
+    if a == 0:
+        return b
+    # recursively calcule the gcd
+    return gcd(b % a, a)
+
+
+def lcm(a, b):
+    return (a // gcd(a, b)) * b
+
+
 # for Bayer pixel formats, only the width is important
 def rfun_image_file(infile, i_pix_fmt, width, height, outfile, o_pix_fmt, debug):
     # check the input pixel format
@@ -674,6 +701,12 @@ def rfun_image_file(infile, i_pix_fmt, width, height, outfile, o_pix_fmt, debug)
     irdepth = INPUT_FORMATS[i_pix_fmt]["rdepth"]
     ordepth = OUTPUT_FORMATS[o_pix_fmt]["rdepth"]
 
+    # get component length
+    iclen = INPUT_FORMATS[i_pix_fmt]["clen"]
+    oclen = OUTPUT_FORMATS[o_pix_fmt]["clen"]
+    # use the least common multiple
+    clen = lcm(iclen, oclen)
+
     # TODO(chema): fix conversion limitation
     # * order: we enforce the same component order to make the code simpler
 
@@ -681,27 +714,31 @@ def rfun_image_file(infile, i_pix_fmt, width, height, outfile, o_pix_fmt, debug)
     with open(infile, "rb") as fin, open(outfile, "wb") as fout:
         # process infile
         while True:
-            # row_index = 0
-            idata = fin.read(INPUT_FORMATS[i_pix_fmt]["blen"])
-            if not idata:
+            # 1. read components from the input
+            components = ()
+            while len(components) < clen:
+                idata = fin.read(INPUT_FORMATS[i_pix_fmt]["blen"])
+                if not idata:
+                    break
+                components += INPUT_FORMATS[i_pix_fmt]["rfun"](idata)
+            if len(components) < clen:
+                # end of input
                 break
-            components = INPUT_FORMATS[i_pix_fmt]["rfun"](idata)
-            # convert component depth
+            # 2. convert component depth
             if irdepth > ordepth:
                 components = list(c >> (irdepth - ordepth) for c in components)
             elif irdepth < ordepth:
                 components = list(c << (ordepth - irdepth) for c in components)
+            # 3. write components to the output
             c_index = 0
             while c_index < len(components):
-                clen = OUTPUT_FORMATS[o_pix_fmt]["clen"]
                 odata = OUTPUT_FORMATS[o_pix_fmt]["wfun"](
-                    *components[c_index: c_index + clen]
+                    *components[c_index: c_index + oclen]
                 )
                 fout.write(odata)
-                c_index += clen
+                c_index += oclen
 
             # TODO(chema): enforce input width (width % iclen == 0)
-            # row_index = 0
 
         print(
             f"ffmpeg -f rawvideo -pixel_format {o_pix_fmt} "
