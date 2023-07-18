@@ -37,7 +37,7 @@ def rfun_10_expanded_to_16(data):
 
 
 # 5 bytes -> 4 components
-def rfun_10_packed(data):
+def rfun_10_packed_expanded_to_16(data):
     low = data[4]
     return (
         (data[0] << 8) | ((low & 0x03) << 6),
@@ -48,18 +48,18 @@ def rfun_10_packed(data):
 
 
 # 2 bytes -> 2 components
-def rfun_10_alaw(data):
-    raise AssertionError("rfun_10_alaw: unimplemented")
+def rfun_10_alaw_expanded_to_16(data):
+    raise AssertionError("rfun_10_alaw_expanded_to_16: unimplemented")
 
 
 # 2 bytes -> 2 components
-def rfun_10_dpcm(data):
-    raise AssertionError("rfun_10_dpcm: unimplemented")
+def rfun_10_dpcm_expanded_to_16(data):
+    raise AssertionError("rfun_10_dpcm_expanded_to_16: unimplemented")
 
 
 # 32 bytes -> 25 components
-def rfun_10_ipu3(data):
-    raise AssertionError("rfun_10_ipu3: unimplemented")
+def rfun_10_ipu3_expanded_to_16(data):
+    raise AssertionError("rfun_10_ipu3_expanded_to_16: unimplemented")
 
 
 # 4 bytes -> 2 components
@@ -74,7 +74,7 @@ def rfun_12_expanded_to_16(data):
 
 
 # 3 bytes -> 2 components
-def rfun_12_packed(data):
+def rfun_12_packed_expanded_to_16(data):
     low = data[2]
     return (
         (data[0] << 8) | ((low & 0x0F) << 4),
@@ -94,7 +94,7 @@ def rfun_14_expanded_to_16(data):
 
 
 # 7 bytes -> 4 components
-def rfun_14_packed(data):
+def rfun_14_packed_expanded_to_16(data):
     low0, low1, low2 = data[4:6]
     return (
         (data[0] << 8) | ((low0 & 0x3F) << 2),
@@ -176,6 +176,7 @@ BAYER_FORMATS = {
         "alias": ("SRGGB10",),
         "blen": 4,
         "clen": 2,
+        # this is the depth of the rfun's output
         "cdepth": 16,
         "rfun": rfun_10_expanded_to_16,
         "order": "RGGB",
@@ -210,7 +211,7 @@ BAYER_FORMATS = {
         "blen": 5,
         "clen": 4,
         "cdepth": 16,
-        "rfun": rfun_10_packed,
+        "rfun": rfun_10_packed_expanded_to_16,
         "order": "RGGB",
     },
     "pgAA": {
@@ -218,7 +219,7 @@ BAYER_FORMATS = {
         "blen": 5,
         "clen": 4,
         "cdepth": 16,
-        "rfun": rfun_10_packed,
+        "rfun": rfun_10_packed_expanded_to_16,
         "order": "GRBG",
     },
     "pGAA": {
@@ -226,7 +227,7 @@ BAYER_FORMATS = {
         "blen": 5,
         "clen": 4,
         "cdepth": 16,
-        "rfun": rfun_10_packed,
+        "rfun": rfun_10_packed_expanded_to_16,
         "order": "GBRG",
     },
     "pBAA": {
@@ -234,7 +235,7 @@ BAYER_FORMATS = {
         "blen": 5,
         "clen": 4,
         "cdepth": 16,
-        "rfun": rfun_10_packed,
+        "rfun": rfun_10_packed_expanded_to_16,
         "order": "BGGR",
     },
     # 10-bit Bayer formats compressed to 8 bits using a-law
@@ -243,7 +244,7 @@ BAYER_FORMATS = {
         "blen": 2,
         "clen": 2,
         "cdepth": 16,
-        "rfun": rfun_10_alaw,
+        "rfun": rfun_10_alaw_expanded_to_16,
         "order": "RGGB",
     },
     "aBA8": {
@@ -251,7 +252,7 @@ BAYER_FORMATS = {
         "blen": 2,
         "clen": 2,
         "cdepth": 16,
-        "rfun": rfun_10_alaw,
+        "rfun": rfun_10_alaw_expanded_to_16,
         "order": "BGGR",
     },
     "aGA8": {
@@ -259,7 +260,7 @@ BAYER_FORMATS = {
         "blen": 2,
         "clen": 2,
         "cdepth": 16,
-        "rfun": rfun_10_alaw,
+        "rfun": rfun_10_alaw_expanded_to_16,
         "order": "GBRG",
     },
     "agA8": {
@@ -267,7 +268,7 @@ BAYER_FORMATS = {
         "blen": 2,
         "clen": 2,
         "cdepth": 16,
-        "rfun": rfun_10_alaw,
+        "rfun": rfun_10_alaw_expanded_to_16,
         "order": "GRBG",
     },
     # 10-bit Bayer formats compressed to 8 bits using dpcm
@@ -276,7 +277,7 @@ BAYER_FORMATS = {
         "blen": 2,
         "clen": 2,
         "cdepth": 16,
-        "rfun": rfun_10_dpcm,
+        "rfun": rfun_10_dpcm_expanded_to_16,
         "order": "RGGB",
     },
     "bBA8": {
@@ -284,7 +285,7 @@ BAYER_FORMATS = {
         "blen": 2,
         "clen": 2,
         "cdepth": 16,
-        "rfun": rfun_10_dpcm,
+        "rfun": rfun_10_dpcm_expanded_to_16,
         "order": "BGGR",
     },
     "bGA8": {
@@ -292,7 +293,7 @@ BAYER_FORMATS = {
         "blen": 2,
         "clen": 2,
         "cdepth": 16,
-        "rfun": rfun_10_dpcm,
+        "rfun": rfun_10_dpcm_expanded_to_16,
         "order": "GBRG",
     },
     "BD10": {
@@ -300,7 +301,7 @@ BAYER_FORMATS = {
         "blen": 2,
         "clen": 2,
         "cdepth": 16,
-        "rfun": rfun_10_dpcm,
+        "rfun": rfun_10_dpcm_expanded_to_16,
         "order": "GRBG",
     },
     # 10-bit Bayer formats compressed a la Intel IPU3 driver
@@ -309,7 +310,7 @@ BAYER_FORMATS = {
         "blen": 32,
         "clen": 25,
         "cdepth": 16,
-        "rfun": rfun_10_ipu3,
+        "rfun": rfun_10_ipu3_expanded_to_16,
         "order": "RGGB",
     },
     "ip3b": {
@@ -317,7 +318,7 @@ BAYER_FORMATS = {
         "blen": 32,
         "clen": 25,
         "cdepth": 16,
-        "rfun": rfun_10_ipu3,
+        "rfun": rfun_10_ipu3_expanded_to_16,
         "order": "BGGR",
     },
     "ip3g": {
@@ -325,7 +326,7 @@ BAYER_FORMATS = {
         "blen": 32,
         "clen": 25,
         "cdepth": 16,
-        "rfun": rfun_10_ipu3,
+        "rfun": rfun_10_ipu3_expanded_to_16,
         "order": "GBRG",
     },
     "ip3G": {
@@ -333,7 +334,7 @@ BAYER_FORMATS = {
         "blen": 32,
         "clen": 25,
         "cdepth": 16,
-        "rfun": rfun_10_ipu3,
+        "rfun": rfun_10_ipu3_expanded_to_16,
         "order": "GRBG",
     },
     # 12-bit Bayer formats expanded to 16 bits
@@ -375,7 +376,7 @@ BAYER_FORMATS = {
         "blen": 3,
         "clen": 2,
         "cdepth": 16,
-        "rfun": rfun_12_packed,
+        "rfun": rfun_12_packed_expanded_to_16,
         "order": "RGGB",
     },
     "pgCC": {
@@ -383,7 +384,7 @@ BAYER_FORMATS = {
         "blen": 3,
         "clen": 2,
         "cdepth": 16,
-        "rfun": rfun_12_packed,
+        "rfun": rfun_12_packed_expanded_to_16,
         "order": "GRBG",
     },
     "pGCC": {
@@ -391,7 +392,7 @@ BAYER_FORMATS = {
         "blen": 3,
         "clen": 2,
         "cdepth": 16,
-        "rfun": rfun_12_packed,
+        "rfun": rfun_12_packed_expanded_to_16,
         "order": "GBRG",
     },
     "pBCC": {
@@ -399,7 +400,7 @@ BAYER_FORMATS = {
         "blen": 3,
         "clen": 2,
         "cdepth": 16,
-        "rfun": rfun_12_packed,
+        "rfun": rfun_12_packed_expanded_to_16,
         "order": "BGGR",
     },
     # 14-bit Bayer formats expanded to 16 bits
@@ -441,7 +442,7 @@ BAYER_FORMATS = {
         "blen": 7,
         "clen": 4,
         "cdepth": 16,
-        "rfun": rfun_14_packed,
+        "rfun": rfun_14_packed_expanded_to_16,
         "order": "RGGB",
     },
     "pgEE": {
@@ -449,7 +450,7 @@ BAYER_FORMATS = {
         "blen": 7,
         "clen": 4,
         "cdepth": 16,
-        "rfun": rfun_14_packed,
+        "rfun": rfun_14_packed_expanded_to_16,
         "order": "GRBG",
     },
     "pGEE": {
@@ -457,7 +458,7 @@ BAYER_FORMATS = {
         "blen": 7,
         "clen": 4,
         "cdepth": 16,
-        "rfun": rfun_14_packed,
+        "rfun": rfun_14_packed_expanded_to_16,
         "order": "GBRG",
     },
     "pBEE": {
@@ -465,7 +466,7 @@ BAYER_FORMATS = {
         "blen": 7,
         "clen": 4,
         "cdepth": 16,
-        "rfun": rfun_14_packed,
+        "rfun": rfun_14_packed_expanded_to_16,
         "order": "BGGR",
     },
     # 16-bit Bayer formats
