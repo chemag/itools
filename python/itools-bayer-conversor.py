@@ -105,7 +105,7 @@ def rfun_14_packed(data):
 
 
 # 4 bytes -> 2 components
-def rfun_16(data):
+def rfun_16le(data):
     return (
         (data[0] << 0) | (data[1] << 8),
         (data[2] << 0) | (data[3] << 8),
@@ -467,7 +467,7 @@ BAYER_FORMATS = {
         "blen": 4,
         "clen": 2,
         "cdepth": 16,
-        "rfun": rfun_16,
+        "rfun": rfun_16le,
         "order": "RGGB",
     },
     "GR16": {
@@ -475,7 +475,7 @@ BAYER_FORMATS = {
         "blen": 4,
         "clen": 2,
         "cdepth": 16,
-        "rfun": rfun_16,
+        "rfun": rfun_16le,
         "order": "GRBG",
     },
     "GB16": {
@@ -483,7 +483,7 @@ BAYER_FORMATS = {
         "blen": 4,
         "clen": 2,
         "cdepth": 16,
-        "rfun": rfun_16,
+        "rfun": rfun_16le,
         "order": "GBRG",
     },
     "BA82": {
@@ -491,7 +491,7 @@ BAYER_FORMATS = {
         "blen": 4,
         "clen": 2,
         "cdepth": 16,
-        "rfun": rfun_16,
+        "rfun": rfun_16le,
         "order": "BGGR",
     },
     "BYR2": {
@@ -499,7 +499,7 @@ BAYER_FORMATS = {
         "blen": 4,
         "clen": 2,
         "cdepth": 16,
-        "rfun": rfun_16,
+        "rfun": rfun_16le,
         "order": "BGGR",
     },
     # ffmpeg bayer formats
