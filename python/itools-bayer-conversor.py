@@ -726,11 +726,6 @@ def check_output_pix_fmt(o_pix_fmt, i_pix_fmt):
     else:
         raise AssertionError(f"error: unknown output pix_fmt: {o_pix_fmt}")
 
-    # enforce same component order
-    iorder = INPUT_FORMATS[i_pix_fmt]["order"]
-    oorder = OUTPUT_FORMATS[o_pix_fmt]["order"]
-    assert iorder == oorder, f"error: {i_pix_fmt = } and {o_pix_fmt = } use different component order: {iorder = } != {oorder = }"
-
     return o_pix_fmt
 
 
@@ -743,6 +738,40 @@ def gcd(a, b):
 
 def lcm(a, b):
     return (a // gcd(a, b)) * b
+
+
+def sort_components(components, iorder, oorder):
+    c0, c1, c2, c3 = components
+    if iorder == oorder:
+        return c0, c1, c2, c3
+
+    elif iorder == "GRBG" and oorder == "GBRG":
+        return c0, c2, c1, c3
+    elif iorder == "GRBG" and oorder == "BGGR":
+        return c2, c0, c3, c1
+    elif iorder == "GRBG" and oorder == "RGGB":
+        return c1, c0, c3, c2
+
+    elif iorder == "GBRG" and oorder == "GRBG":
+        return c0, c2, c1, c3
+    elif iorder == "GBRG" and oorder == "BGGR":
+        return c1, c0, c3, c2
+    elif iorder == "GBRG" and oorder == "RGGB":
+        return c2, c0, c3, c1
+
+    elif iorder == "BGGR" and oorder == "RGGB":
+        return c3, c1, c2, c0
+    elif iorder == "BGGR" and oorder == "GRBG":
+        return c1, c3, c0, c1
+    elif iorder == "BGGR" and oorder == "GBRG":
+        return c1, c0, c3, c2
+
+    elif iorder == "RGGB" and oorder == "BGGR":
+        return c3, c1, c2, c0
+    elif iorder == "RGGB" and oorder == "GRBG":
+        return c1, c0, c3, c2
+    elif iorder == "RGGB" and oorder == "GBRG":
+        return c1, c3, c0, c2
 
 
 # for Bayer pixel formats, only the width is important
@@ -763,8 +792,12 @@ def rfun_image_file(infile, i_pix_fmt, width, height, outfile, o_pix_fmt, debug)
     # use the least common multiple
     clen = lcm(iclen, oclen)
 
-    # TODO(chema): fix conversion limitation
-    # * order: we enforce the same component order to make the code simpler
+    # get component order
+    iorder = INPUT_FORMATS[i_pix_fmt]["order"]
+    oorder = OUTPUT_FORMATS[o_pix_fmt]["order"]
+    if iorder != oorder:
+        # make sure we see at least 4 components
+        clen = lcm(clen, 4)
 
     # open infile and outfile
     with open(infile, "rb") as fin, open(outfile, "wb") as fout:
@@ -785,7 +818,15 @@ def rfun_image_file(infile, i_pix_fmt, width, height, outfile, o_pix_fmt, debug)
                 components = list(c >> (irdepth - ordepth) for c in components)
             elif irdepth < ordepth:
                 components = list(c << (ordepth - irdepth) for c in components)
-            # 3. write components to the output
+            # 3. convert component order
+            if iorder != oorder:
+                c_index = 0
+                new_components = ()
+                while c_index < len(components):
+                    new_components += sort_components(components[c_index: c_index + 4], iorder, oorder)
+                    c_index += 4
+                components = new_components
+            # 4. write components to the output
             c_index = 0
             while c_index < len(components):
                 odata = OUTPUT_FORMATS[o_pix_fmt]["wfun"](
