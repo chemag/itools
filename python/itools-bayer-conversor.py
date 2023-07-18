@@ -76,14 +76,26 @@ def rfun_10_alaw_expanded_to_16(data):
     raise AssertionError("rfun_10_alaw_expanded_to_16: unimplemented")
 
 
+def wfun_10_alaw_expanded_to_16(c0, c1):
+    raise AssertionError("wfun_10_alaw_expanded_to_16: unimplemented")
+
+
 # 2 bytes -> 2 components
 def rfun_10_dpcm_expanded_to_16(data):
     raise AssertionError("rfun_10_dpcm_expanded_to_16: unimplemented")
 
 
+def wfun_10_dpcm_expanded_to_16(c0, c1):
+    raise AssertionError("wfun_10_dpcm_expanded_to_16: unimplemented")
+
+
 # 32 bytes -> 25 components
 def rfun_10_ipu3_expanded_to_16(data):
     raise AssertionError("rfun_10_ipu3_expanded_to_16: unimplemented")
+
+
+def wfun_10_ipu3_expanded_to_16(carray):
+    raise AssertionError("wfun_10_ipu3_expanded_to_16: unimplemented")
 
 
 # 4 bytes -> 2 components
@@ -97,6 +109,10 @@ def rfun_12_expanded_to_16(data):
     )
 
 
+def wfun_12_expanded_to_16(c0, c1):
+    raise AssertionError("wfun_12_expanded_to_16: unimplemented")
+
+
 # 3 bytes -> 2 components
 def rfun_12_packed_expanded_to_16(data):
     low = data[2]
@@ -104,6 +120,10 @@ def rfun_12_packed_expanded_to_16(data):
         (data[0] << 8) | ((low & 0x0F) << 4),
         (data[1] << 8) | ((low & 0xF0) << 0),
     )
+
+
+def wfun_12_packed_expanded_to_16(c0, c1):
+    raise AssertionError("wfun_12_packed_expanded_to_16: unimplemented")
 
 
 # 4 bytes -> 2 components
@@ -117,6 +137,10 @@ def rfun_14_expanded_to_16(data):
     )
 
 
+def wfun_14_expanded_to_16(c0, c1):
+    raise AssertionError("wfun_14_expanded_to_16: unimplemented")
+
+
 # 7 bytes -> 4 components
 def rfun_14_packed_expanded_to_16(data):
     low0, low1, low2 = data[4:6]
@@ -126,6 +150,10 @@ def rfun_14_packed_expanded_to_16(data):
         (data[2] << 8) | ((low2 & 0x03) << 2) | ((low1 & 0xF0) << 0),
         (data[3] << 8) | ((low2 & 0xFC) << 0),
     )
+
+
+def wfun_14_packed_expanded_to_16(c0, c1, c2, c3):
+    raise AssertionError("wfun_14_packed_expanded_to_16: unimplemented")
 
 
 # 4 bytes -> 2 components
@@ -293,6 +321,7 @@ BAYER_FORMATS = {
         "cdepth": 10,
         "rdepth": 16,
         "rfun": rfun_10_alaw_expanded_to_16,
+        "wfun": wfun_10_alaw_expanded_to_16,
         "order": "RGGB",
     },
     "aBA8": {
@@ -302,6 +331,7 @@ BAYER_FORMATS = {
         "cdepth": 10,
         "rdepth": 16,
         "rfun": rfun_10_alaw_expanded_to_16,
+        "wfun": wfun_10_alaw_expanded_to_16,
         "order": "BGGR",
     },
     "aGA8": {
@@ -311,6 +341,7 @@ BAYER_FORMATS = {
         "cdepth": 10,
         "rdepth": 16,
         "rfun": rfun_10_alaw_expanded_to_16,
+        "wfun": wfun_10_alaw_expanded_to_16,
         "order": "GBRG",
     },
     "agA8": {
@@ -320,6 +351,7 @@ BAYER_FORMATS = {
         "cdepth": 10,
         "rdepth": 16,
         "rfun": rfun_10_alaw_expanded_to_16,
+        "wfun": wfun_10_alaw_expanded_to_16,
         "order": "GRBG",
     },
     # 10-bit Bayer formats compressed to 8 bits using dpcm
@@ -330,6 +362,7 @@ BAYER_FORMATS = {
         "cdepth": 10,
         "rdepth": 16,
         "rfun": rfun_10_dpcm_expanded_to_16,
+        "wfun": wfun_10_dpcm_expanded_to_16,
         "order": "RGGB",
     },
     "bBA8": {
@@ -339,6 +372,7 @@ BAYER_FORMATS = {
         "cdepth": 10,
         "rdepth": 16,
         "rfun": rfun_10_dpcm_expanded_to_16,
+        "wfun": wfun_10_dpcm_expanded_to_16,
         "order": "BGGR",
     },
     "bGA8": {
@@ -348,6 +382,7 @@ BAYER_FORMATS = {
         "cdepth": 10,
         "rdepth": 16,
         "rfun": rfun_10_dpcm_expanded_to_16,
+        "wfun": wfun_10_dpcm_expanded_to_16,
         "order": "GBRG",
     },
     "BD10": {
@@ -357,6 +392,7 @@ BAYER_FORMATS = {
         "cdepth": 10,
         "rdepth": 16,
         "rfun": rfun_10_dpcm_expanded_to_16,
+        "wfun": wfun_10_dpcm_expanded_to_16,
         "order": "GRBG",
     },
     # 10-bit Bayer formats compressed a la Intel IPU3 driver
@@ -367,6 +403,7 @@ BAYER_FORMATS = {
         "cdepth": 10,
         "rdepth": 16,
         "rfun": rfun_10_ipu3_expanded_to_16,
+        "wfun": wfun_10_ipu3_expanded_to_16,
         "order": "RGGB",
     },
     "ip3b": {
@@ -376,6 +413,7 @@ BAYER_FORMATS = {
         "cdepth": 10,
         "rdepth": 16,
         "rfun": rfun_10_ipu3_expanded_to_16,
+        "wfun": wfun_10_ipu3_expanded_to_16,
         "order": "BGGR",
     },
     "ip3g": {
@@ -385,6 +423,7 @@ BAYER_FORMATS = {
         "cdepth": 10,
         "rdepth": 16,
         "rfun": rfun_10_ipu3_expanded_to_16,
+        "wfun": wfun_10_ipu3_expanded_to_16,
         "order": "GBRG",
     },
     "ip3G": {
@@ -394,6 +433,7 @@ BAYER_FORMATS = {
         "cdepth": 10,
         "rdepth": 16,
         "rfun": rfun_10_ipu3_expanded_to_16,
+        "wfun": wfun_10_ipu3_expanded_to_16,
         "order": "GRBG",
     },
     # 12-bit Bayer formats expanded to 16 bits
@@ -404,6 +444,7 @@ BAYER_FORMATS = {
         "cdepth": 12,
         "rdepth": 16,
         "rfun": rfun_12_expanded_to_16,
+        "wfun": wfun_12_expanded_to_16,
         "order": "RGGB",
     },
     "BA12": {
@@ -413,6 +454,7 @@ BAYER_FORMATS = {
         "cdepth": 12,
         "rdepth": 16,
         "rfun": rfun_12_expanded_to_16,
+        "wfun": wfun_12_expanded_to_16,
         "order": "GRBG",
     },
     "GB12": {
@@ -422,6 +464,7 @@ BAYER_FORMATS = {
         "cdepth": 12,
         "rdepth": 16,
         "rfun": rfun_12_expanded_to_16,
+        "wfun": wfun_12_expanded_to_16,
         "order": "GBRG",
     },
     "BG12": {
@@ -431,6 +474,7 @@ BAYER_FORMATS = {
         "cdepth": 12,
         "rdepth": 16,
         "rfun": rfun_12_expanded_to_16,
+        "wfun": wfun_12_expanded_to_16,
         "order": "BGGR",
     },
     # 12-bit Bayer formats (packed)
@@ -441,6 +485,7 @@ BAYER_FORMATS = {
         "cdepth": 12,
         "rdepth": 16,
         "rfun": rfun_12_packed_expanded_to_16,
+        "wfun": wfun_12_packed_expanded_to_16,
         "order": "RGGB",
     },
     "pgCC": {
@@ -450,6 +495,7 @@ BAYER_FORMATS = {
         "cdepth": 12,
         "rdepth": 16,
         "rfun": rfun_12_packed_expanded_to_16,
+        "wfun": wfun_12_packed_expanded_to_16,
         "order": "GRBG",
     },
     "pGCC": {
@@ -459,6 +505,7 @@ BAYER_FORMATS = {
         "cdepth": 12,
         "rdepth": 16,
         "rfun": rfun_12_packed_expanded_to_16,
+        "wfun": wfun_12_packed_expanded_to_16,
         "order": "GBRG",
     },
     "pBCC": {
@@ -468,6 +515,7 @@ BAYER_FORMATS = {
         "cdepth": 12,
         "rdepth": 16,
         "rfun": rfun_12_packed_expanded_to_16,
+        "wfun": wfun_12_packed_expanded_to_16,
         "order": "BGGR",
     },
     # 14-bit Bayer formats expanded to 16 bits
@@ -478,6 +526,7 @@ BAYER_FORMATS = {
         "cdepth": 14,
         "rdepth": 16,
         "rfun": rfun_14_expanded_to_16,
+        "wfun": wfun_14_expanded_to_16,
         "order": "RGGB",
     },
     "GR14": {
@@ -487,6 +536,7 @@ BAYER_FORMATS = {
         "cdepth": 14,
         "rdepth": 16,
         "rfun": rfun_14_expanded_to_16,
+        "wfun": wfun_14_expanded_to_16,
         "order": "GRBG",
     },
     "GB14": {
@@ -496,6 +546,7 @@ BAYER_FORMATS = {
         "cdepth": 14,
         "rdepth": 16,
         "rfun": rfun_14_expanded_to_16,
+        "wfun": wfun_14_expanded_to_16,
         "order": "GBRG",
     },
     "BG14": {
@@ -505,6 +556,7 @@ BAYER_FORMATS = {
         "cdepth": 14,
         "rdepth": 16,
         "rfun": rfun_14_expanded_to_16,
+        "wfun": wfun_14_expanded_to_16,
         "order": "BGGR",
     },
     # 14-bit Bayer formats (packed)
@@ -515,6 +567,7 @@ BAYER_FORMATS = {
         "cdepth": 14,
         "rdepth": 16,
         "rfun": rfun_14_packed_expanded_to_16,
+        "wfun": wfun_14_packed_expanded_to_16,
         "order": "RGGB",
     },
     "pgEE": {
@@ -524,6 +577,7 @@ BAYER_FORMATS = {
         "cdepth": 14,
         "rdepth": 16,
         "rfun": rfun_14_packed_expanded_to_16,
+        "wfun": wfun_14_packed_expanded_to_16,
         "order": "GRBG",
     },
     "pGEE": {
@@ -533,6 +587,7 @@ BAYER_FORMATS = {
         "cdepth": 14,
         "rdepth": 16,
         "rfun": rfun_14_packed_expanded_to_16,
+        "wfun": wfun_14_packed_expanded_to_16,
         "order": "GBRG",
     },
     "pBEE": {
@@ -542,6 +597,7 @@ BAYER_FORMATS = {
         "cdepth": 14,
         "rdepth": 16,
         "rfun": rfun_14_packed_expanded_to_16,
+        "wfun": wfun_14_packed_expanded_to_16,
         "order": "BGGR",
     },
     # 16-bit Bayer formats
