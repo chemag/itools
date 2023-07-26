@@ -94,6 +94,45 @@ $ ./python/itools-filter.py --filter diff -i docs/lena.jpeg -j docs/lena.noise.j
 Figure 5 shows the diff between the original image and the output of the `noise` filter.
 
 
+The diff filter has a "color" mode, where instead of just using a grayscale to report the absolute value of the error, it encodes the actual sign of the luma difference in the chromas.
+
+An example is as follows:
+```
+$ ffmpeg -i docs/lena.jpeg -q:v 25 docs/lena.encoded.q25.jpeg
+$ ./python/itools-filter.py --filter diff -i docs/lena.jpeg -j docs/lena.encoded.q25.jpeg --diff-component y --diff-color --diff-color-factor 3 -o docs.lena.encoded.q25.diff.jpeg
+```
+
+![Figure 6](docs/lena.encoded.q25.jpeg)
+
+Figure 6 shows low-quality, encoded version of the original image (using a quality scale factor of 25).
+
+![Figure 7](docs/lena.encoded.q25.diff.jpeg)
+
+Figure 7 shows the color diff between the original image and its low-quality encoded version.
+
+
+The algo to add color works by replacing a grayscale chroma (U=128, V=128) with a set of values (U, V) as follows:
+* when the component difference gets close to the maximum (+255), i.e., when the luma of the first image is much larger than that of the second image, the U component (Cb, blue chrome) gets close to 255, and the V component (Cr, red chroma) gets close to 0). In this case, the error shows in blue tones.
+* when the component difference gets close to 0, the U (Cb, blue chrome) and V (Cr, red chroma) components are set to 128.
+* when the component difference gets close to the minimum (-255), i.e., when the luma of the first image is much smaller than that of the second image, the U component (Cb, blue chrome) gets close to 0, and the V component (Cr, red chroma) gets close to 255). In this case, the error shows in yellow and red tones.
+
+
+![Figure 8](docs/grayscale.down.png)
+
+Figure 8 shows an image with a down grayscale range, from lowest luma (black) to highest luma (white).
+
+
+![Figure 9](docs/grayscale.up.png)
+
+Figure 9 shows an image with an up grayscale range, from highest luma (white) to lowest luma (black).
+
+
+![Figure 10](docs/grayscale.diff.png)
+
+Figure 10 shows an image with a color diff of the down and up grayscale. Note that the diff at the top of the 2 grayscales is a negative number (the first image is black, meaning low luma values, while the second image is white, meaning high luma values). This means the error is shown in red and yellow tones. In a similar way, the diff at the top of the 2 grayscales is a positive number (the first image is white and the second image is black). This means the error is show in blue tones.
+
+
+
 ## 2.5. `compose` filter
 
 This filter composes 2x images, a background image and a needle image. It uses the needle image's alpha channel if it has one. The parameters "`-x`" and "`-y`" can be used to decide the exact location ((0,0) being the top-left point in the destination image).
@@ -103,9 +142,9 @@ Example
 $ ./python/itools-filter.py --filter compose -i docs/lena.jpeg -j docs/needle.png -x 10 -y 30 -o docs/lena.compose.jpeg
 ```
 
-![Figure 6](docs/lena.compose.jpeg)
+![Figure 11](docs/lena.compose.jpeg)
 
-Figure 6 shows the original image after being composed with the needle image.
+Figure 11 shows the original image after being composed with the needle image.
 
 
 ## 2.6. `match` filter
@@ -121,9 +160,9 @@ $ ./python/itools-filter.py --filter match -d -i docs/lena.compose.jpeg -j docs/
 x0 = 10 y0 = 30
 ```
 
-![Figure 7](docs/lena.match.jpeg)
+![Figure 12](docs/lena.match.jpeg)
 
-Figure 7 shows the original image after being composed with the needle image.
+Figure 12 shows the original image after being composed with the needle image.
 
 
 
@@ -144,9 +183,9 @@ Example
 $ ./python/itools-filter.py --filter affine --height 700 --a00 0.98 --a01 0.14 --a10 1.1 --a11 -0.3 --b00 1 --b10 10 -d -i docs/lena.jpeg -o docs/lena.affine.jpeg
 ```
 
-![Figure 8](docs/lena.affine.jpeg)
+![Figure 13](docs/lena.affine.jpeg)
 
-Figure 8 shows the output of the affine transformation using the matrices $A=[[0.98, 0.14], [1.1, -0.3])$ and $B=[1, 10]$.
+Figure 13 shows the output of the affine transformation using the matrices $A=[[0.98, 0.14], [1.1, -0.3])$ and $B=[1, 10]$.
 
 
 ## 2.8. `affine-points` filter
@@ -170,9 +209,9 @@ transform_matrix = array([[ 0.91, -0.09,  5.  ],
 ...
 ```
 
-![Figure 9](docs/lena.affine-points.jpeg)
+![Figure 14](docs/lena.affine-points.jpeg)
 
-Figure 9 shows the output of the affine transformation using the points in the above command.
+Figure 14 shows the output of the affine transformation using the points in the above command.
 
 
 ## 2.9. `rotate` filter
@@ -184,9 +223,9 @@ Example
 $ ./python/itools-filter.py --filter rotate -i docs/lena.jpeg --rotate-angle -90 -o docs/lena.rotate.png
 ```
 
-![Figure 10](docs/lena.rotate.png)
+![Figure 15](docs/lena.rotate.png)
 
-Figure 10 shows the original image after being passed through the `rotate` filter.
+Figure 15 shows the original image after being passed through the `rotate` filter.
 
 
 # 3. Requirements

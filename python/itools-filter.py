@@ -46,6 +46,8 @@ default_values = {
     "noise_level": DEFAULT_NOISE_LEVEL,
     "diff_factor": 1.0,
     "diff_component": "y",
+    "diff_color": False,
+    "diff_color_factor": 5,
     "rotate_angle": 90,
     "x": 10,
     "y": 20,
@@ -114,7 +116,19 @@ def add_noise(infile, outfile, noise_level, debug):
     cv2.imwrite(outfile, outimg)
 
 
-def diff_images(infile1, infile2, outfile, diff_factor, diff_component, debug):
+def force_range(val):
+    return val if (val <= 255 and val >= 0) else (0 if val <= 0 else 255)
+
+
+def diff_color_uval(ydiff):
+    return force_range(int(255 - ((DIFF_COLOR_FACTOR * ydiff + 255) / 2)))
+
+
+def diff_color_vval(ydiff):
+    return force_range(int(((DIFF_COLOR_FACTOR * ydiff + 255) / 2)))
+
+
+def diff_images(infile1, infile2, outfile, diff_factor, diff_component, diff_color, diff_color_factor, debug):
     # load the input images
     inimg1 = cv2.imread(cv2.samples.findFile(infile1))
     assert inimg1 is not None, f"error: cannot read {infile1}"
@@ -152,10 +166,20 @@ def diff_images(infile1, infile2, outfile, diff_factor, diff_component, debug):
     yd = yd_float.astype(np.uint8)
     # invert the luma values
     yd = 255 - yd
-    # use gray chromas for visualization
-    width, height = yd.shape
-    ud = np.full((width, height), 128, dtype=np.uint8)
-    vd = np.full((width, height), 128, dtype=np.uint8)
+    if not diff_color:
+        # use gray chromas for visualization
+        width, height = yd.shape
+        ud = np.full((width, height), 128, dtype=np.uint8)
+        vd = np.full((width, height), 128, dtype=np.uint8)
+    else:
+        # use color chromas for visualization
+        global DIFF_COLOR_FACTOR
+        DIFF_COLOR_FACTOR = diff_color_factor
+        apply_uval = np.vectorize(diff_color_uval)
+        apply_vval = np.vectorize(diff_color_vval)
+        ud = apply_uval(diff_yuv_sign).astype(np.uint8)[:, :, 0]
+        vd = apply_vval(diff_yuv_sign).astype(np.uint8)[:, :, 0]
+
     # combine the diff color components
     outyuv = np.stack((yd, ud, vd), axis=2)
     outimg = cv2.cvtColor(outyuv, cv2.COLOR_YCrCb2BGR)
@@ -413,6 +437,29 @@ def get_options(argv):
             )
         ),
         help="diff component arg",
+    )
+    parser.add_argument(
+        "--diff-color",
+        action="store_true",
+        dest="diff_color",
+        default=default_values["diff_color"],
+        help="Produce diff in color%s"
+        % (" [default]" if default_values["diff_color"] else ""),
+    )
+    parser.add_argument(
+        "--nodiff-color",
+        action="store_false",
+        dest="diff_color",
+        help="Produce diff in grayscale%s"
+        % (" [default]" if not default_values["diff_color"] else ""),
+    )
+    parser.add_argument(
+        "--diff-color-factor",
+        action="store",
+        type=float,
+        dest="diff_color_factor",
+        default=default_values["diff_color_factor"],
+        help="Diff Color Multiplication Factor",
     )
     parser.add_argument(
         "-x",
@@ -699,6 +746,8 @@ def main(argv):
             options.outfile,
             options.diff_factor,
             options.diff_component,
+            options.diff_color,
+            options.diff_color_factor,
             options.debug,
         )
 
