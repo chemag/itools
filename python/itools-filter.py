@@ -546,27 +546,31 @@ def get_options(argv):
         % (" | ".join("{}: {}".format(k, v) for k, v in FILTER_CHOICES.items())),
     )
     parser.add_argument(
-        "infile",
+        "-i",
+        "--infile",
+        action="store",
         type=str,
-        nargs="?",
+        dest="infile",
         default=default_values["infile"],
         metavar="input-file",
         help="input file",
     )
     parser.add_argument(
-        "-i",
+        "-j",
         "--infile2",
         action="store",
         type=str,
         dest="infile2",
         default=default_values["infile2"],
-        metavar="input-file2",
+        metavar="input-file-2",
         help="input file 2",
     )
     parser.add_argument(
-        "outfile",
+        "-o",
+        "--outfile",
+        action="store",
         type=str,
-        nargs="?",
+        dest="outfile",
         default=default_values["outfile"],
         metavar="output-file",
         help="output file",

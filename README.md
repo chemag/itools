@@ -30,7 +30,7 @@ This filter converts an image to grayscale.
 
 Example
 ```
-$ ./python/itools-filter.py --filter gray docs/lena.jpeg docs/lena.gray.jpeg
+$ ./python/itools-filter.py --filter gray -i docs/lena.jpeg -o docs/lena.gray.jpeg
 ```
 
 ![Figure 2](docs/lena.gray.jpeg)
@@ -44,7 +44,7 @@ This filter swaps the chromas (Cb and Cr) in the input image.
 
 Example
 ```
-$ ./python/itools-filter.py --filter xchroma docs/lena.jpeg docs/lena.xchroma.jpeg
+$ ./python/itools-filter.py --filter xchroma -i docs/lena.jpeg -o docs/lena.xchroma.jpeg
 ```
 
 ![Figure 3](docs/lena.xchroma.jpeg)
@@ -59,7 +59,7 @@ be used to add more or less noise.
 
 Example
 ```
-$ ./python/itools-filter.py --filter noise docs/lena.jpeg docs/lena.noise.jpeg
+$ ./python/itools-filter.py --filter noise -i docs/lena.jpeg -o docs/lena.noise.jpeg
 ```
 
 ![Figure 4](docs/lena.noise.jpeg)
@@ -86,7 +86,7 @@ Note that the parts where both input file are different is shown in black, while
 
 Example
 ```
-$ ./python/itools-filter.py --filter diff -i docs/lena.noise.jpeg docs/lena.jpeg docs/lena.diff.jpeg
+$ ./python/itools-filter.py --filter diff -i docs/lena.jpeg -j docs/lena.noise.jpeg -o docs/lena.diff.jpeg
 ```
 
 ![Figure 5](docs/lena.diff.jpeg)
@@ -100,7 +100,7 @@ This filter composes 2x images, a background image and a needle image. It uses t
 
 Example
 ```
-$ ./python/itools-filter.py --filter compose -i docs/needle.png -x 10 -y 30 docs/lena.jpeg docs/lena.compose.jpeg
+$ ./python/itools-filter.py --filter compose -i docs/lena.jpeg -j docs/needle.png -x 10 -y 30 -o docs/lena.compose.jpeg
 ```
 
 ![Figure 6](docs/lena.compose.jpeg)
@@ -117,7 +117,7 @@ Note that, if the needle has alpha channel, we use randomness to deal with needl
 
 Example
 ```
-$ ./python/itools-filter.py --filter match -d -i docs/needle.png docs/lena.compose.jpeg docs/lena.match.jpeg
+$ ./python/itools-filter.py --filter match -d -i docs/lena.compose.jpeg -j docs/needle.png -o docs/lena.match.jpeg
 x0 = 10 y0 = 30
 ```
 
@@ -141,7 +141,7 @@ Function also allows defining the output size (using parameters "`width`" and "`
 
 Example
 ```
-$ ./python/itools-filter.py --filter affine --height 700 --a00 0.98 --a01 0.14 --a10 1.1 --a11 -0.3 --b00 1 --b10 10 -d docs/lena.jpeg docs/lena.affine.jpeg
+$ ./python/itools-filter.py --filter affine --height 700 --a00 0.98 --a01 0.14 --a10 1.1 --a11 -0.3 --b00 1 --b10 10 -d -i docs/lena.jpeg -o docs/lena.affine.jpeg
 ```
 
 ![Figure 8](docs/lena.affine.jpeg)
@@ -163,7 +163,7 @@ Function also allows defining the output size (using parameters "`width`" and "`
 
 Example
 ```
-$ ./python/itools-filter.py --filter affine-points --height 700 --d0x 5 --d0y -2 --d1x -4 --d1y 105 --d2x 96 --d2y -4 -d docs/lena.jpeg docs/lena.affine-points.jpeg
+$ ./python/itools-filter.py --filter affine-points --height 700 --d0x 5 --d0y -2 --d1x -4 --d1y 105 --d2x 96 --d2y -4 -d -i docs/lena.jpeg -o docs/lena.affine-points.jpeg
 ...
 transform_matrix = array([[ 0.91, -0.09,  5.  ],
        [-0.02,  1.07, -2.  ]])
