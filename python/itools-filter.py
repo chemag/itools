@@ -11,7 +11,6 @@ import argparse
 import cv2
 import itertools
 import numpy as np
-import os
 import sys
 
 
@@ -148,8 +147,8 @@ def compose_images(infile1, infile2, xloc, yloc, outfile, debug):
     if inimg2.shape[2] == 3:
         # no alpha channel: just use 50% ((im1 + im2) / 2)
         outimg = inimg1.astype(np.int16)
-        outimg[yloc : yloc + height2, xloc : xloc + width2] += inimg2
-        outimg[yloc : yloc + height2, xloc : xloc + width2] /= 2
+        outimg[yloc: yloc + height2, xloc: xloc + width2] += inimg2
+        outimg[yloc: yloc + height2, xloc: xloc + width2] /= 2
 
     elif inimg2.shape[2] == 4:
         outimg = inimg1.astype(np.int16)
