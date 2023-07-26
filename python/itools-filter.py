@@ -22,6 +22,7 @@ ROTATE_ANGLE_LIST = {
     270: -1,
     -90: -1,
 }
+DIFF_COMPONENT_LIST = ("y", "u", "v")
 
 FILTER_CHOICES = {
     "help": "show help options",
@@ -43,7 +44,8 @@ default_values = {
     "dry_run": False,
     "filter": "help",
     "noise_level": DEFAULT_NOISE_LEVEL,
-    "diff_factor": 1,
+    "diff_factor": 1.0,
+    "diff_component": "y",
     "rotate_angle": 90,
     "x": 10,
     "y": 20,
@@ -112,7 +114,7 @@ def add_noise(infile, outfile, noise_level, debug):
     cv2.imwrite(outfile, outimg)
 
 
-def diff_images(infile1, infile2, outfile, diff_factor, debug):
+def diff_images(infile1, infile2, outfile, diff_factor, diff_component, debug):
     # load the input images
     inimg1 = cv2.imread(cv2.samples.findFile(infile1))
     assert inimg1 is not None, f"error: cannot read {infile1}"
@@ -122,16 +124,31 @@ def diff_images(infile1, infile2, outfile, diff_factor, debug):
     diffimg = np.absolute(inimg1.astype(np.int16) - inimg2.astype(np.int16)).astype(
         np.uint8
     )
-    # remove the color components
-    luma = cv2.cvtColor(diffimg, cv2.COLOR_BGR2GRAY)
+    # choose the visual output
+    yuv_diffimg = cv2.cvtColor(diffimg, cv2.COLOR_BGR2YCrCb)
+    if diff_component == "y":
+        # use the luma for diff luma
+        yd = yuv_diffimg[:, :, 0]
+    elif diff_component == "u":
+        # use the u for diff luma
+        yd = yuv_diffimg[:, :, 1]
+    elif diff_component == "v":
+        # use the v for diff luma
+        yd = yuv_diffimg[:, :, 2]
     # apply the diff factor
-    luma = luma * diff_factor
-    # clip the output
-    luma = np.clip(luma, 0, 255).astype(np.uint8)
-    # store the output image
-    # reverse the luma, so darker means more change
-    luma = 255 - luma
-    outimg = cv2.cvtColor(luma, cv2.COLOR_GRAY2BGR)
+    yd_float = yd * diff_factor
+    yd_float = yd_float.clip(0, 255)
+    yd_float = np.around(yd_float)
+    yd = yd_float.astype(np.uint8)
+    # invert the luma values
+    yd = 255 - yd
+    # # use gray chromas for visualization
+    # width, height = yd.shape
+    # ud = np.full((width, height), 128, dtype=np.uint8)
+    # ud = np.full((width, height), 128, dtype=np.uint8)
+    # combine the diff color components
+    outimg = cv2.cvtColor(yd, cv2.COLOR_GRAY2BGR)
+    # write the output image
     cv2.imwrite(outfile, outimg)
 
 
@@ -371,6 +388,20 @@ def get_options(argv):
         dest="diff_factor",
         default=default_values["diff_factor"],
         help="Diff Multiplication Factor",
+    )
+    parser.add_argument(
+        "--diff-component",
+        action="store",
+        type=str,
+        default=default_values["diff_component"],
+        choices=DIFF_COMPONENT_LIST,
+        metavar="[%s]"
+        % (
+            " | ".join(
+                DIFF_COMPONENT_LIST,
+            )
+        ),
+        help="diff component arg",
     )
     parser.add_argument(
         "-x",
@@ -656,6 +687,7 @@ def main(argv):
             options.infile2,
             options.outfile,
             options.diff_factor,
+            options.diff_component,
             options.debug,
         )
 
