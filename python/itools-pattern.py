@@ -16,6 +16,7 @@ import sys
 
 PATTERN_LIST = ("kwrgb", "bandw", "grayscale")
 RANGE_CONVERSION_LIST = ("fr2fr", "fr2lr", "lr2fr", "lr2lr")
+DIFF_COMPONENT_LIST = ("y", "u", "v")
 
 FUNC_CHOICES = {
     "help": "show help options",
@@ -33,7 +34,8 @@ default_values = {
     "pattern": "kwrgb",
     "width": 4032,
     "height": 3024,
-    "diff_luma_factor": 1.0,
+    "diff_factor": 1.0,
+    "diff_component": "y",
     "range_conversion": "fr2fr",
     "func": "help",
     "infile": None,
@@ -232,7 +234,7 @@ def range_convert(infile, outfile, num_cols, num_rows, range_conversion, debug):
 
 
 # yuv420p10le differ
-def diff(infile1, infile2, outfile, num_cols, num_rows, diff_luma_factor, debug):
+def diff(infile1, infile2, outfile, num_cols, num_rows, diff_factor, diff_component, debug):
     # read the input files
     y1, u1, v1 = read_yuv420p10le_to_ndarray(infile1, num_cols, num_rows)
     y2, u2, v2 = read_yuv420p10le_to_ndarray(infile2, num_cols, num_rows)
@@ -244,23 +246,38 @@ def diff(infile1, infile2, outfile, num_cols, num_rows, diff_luma_factor, debug)
     yd_mean, yd_std = yd.mean(), yd.std()
     ud_mean, ud_std = ud.mean(), ud.std()
     vd_mean, vd_std = vd.mean(), vd.std()
+    # print out values
+    print(f"y {{ mean: {yd_mean} stddev: {yd_std} }}")
+    print(f"u {{ mean: {ud_mean} stddev: {ud_std} }}")
+    print(f"v {{ mean: {vd_mean} stddev: {vd_std} }}")
+    # choose the visual output
+    if diff_component == "y":
+        # use the luma for diff luma
+        yd = yd
+    elif diff_component == "u":
+        # use the u for diff luma
+        yd = ud
+        num_rows >>= 1
+        num_cols >>= 1
+    elif diff_component == "v":
+        # use the v for diff luma
+        yd = vd
+        num_rows >>= 1
+        num_cols >>= 1
     # apply the luma factor
-    yd_float = yd * diff_luma_factor
+    yd_float = yd * diff_factor
     yd_float = yd_float.clip(0, 1023)
     yd_float = np.around(yd_float)
     yd = yd_float.astype(np.uint16)
     # invert the luma values
     yd = 1023 - yd
-    ud = 512 + ud
-    vd = 512 + vd
-    # print out values
-    print(f"y {{ mean: {yd_mean} stddev: {yd_std} }}")
-    print(f"u {{ mean: {ud_mean} stddev: {ud_std} }}")
-    print(f"v {{ mean: {vd_mean} stddev: {vd_std} }}")
+    # use gray chromas for visualization
+    ud = np.full((num_rows >> 1, num_cols >> 1), 512, dtype=np.uint16)
+    vd = np.full((num_rows >> 1, num_cols >> 1), 512, dtype=np.uint16)
     # write the diff as an output file
     write_ndarray_to_yuv420p10le(outfile, yd, ud, vd, num_cols, num_rows)
     # write the diff as a png file
-    outfile_png = outfile + ".png"
+    outfile_png = f"{outfile}.png"
     command = f"ffmpeg -y -f rawvideo -pixel_format yuv420p10le -s {num_cols}x{num_rows} -i {outfile} {outfile_png}"
     run(command, debug=debug)
     print(f"output: {outfile} png: {outfile_png}")
@@ -397,15 +414,28 @@ def get_options(argv):
         nargs=1,
         help="use <width>x<height>",
     )
-
     parser.add_argument(
-        "--diff-luma-factor",
+        "--diff-factor",
         action="store",
         type=float,
-        dest="diff_luma_factor",
-        default=default_values["diff_luma_factor"],
+        dest="diff_factor",
+        default=default_values["diff_factor"],
         metavar="LUMA-FACTOR",
-        help=("luma factor for diff (default: %f)" % default_values["diff_luma_factor"]),
+        help=("luma factor for diff (default: %f)" % default_values["diff_factor"]),
+    )
+    parser.add_argument(
+        "--diff-component",
+        action="store",
+        type=str,
+        default=default_values["diff_component"],
+        choices=DIFF_COMPONENT_LIST,
+        metavar="[%s]"
+        % (
+            " | ".join(
+                DIFF_COMPONENT_LIST,
+            )
+        ),
+        help="diff component arg",
     )
 
     parser.add_argument(
@@ -483,7 +513,7 @@ def main(argv):
     elif options.func == "diff":
         # ensure there is infile2
         assert options.infile2 is not None, "error: need a second input file (-j/--infile2)"
-        diff(options.infile, options.infile2, options.outfile, options.width, options.height, options.diff_luma_factor, options.debug)
+        diff(options.infile, options.infile2, options.outfile, options.width, options.height, options.diff_factor, options.diff_component, options.debug)
 
 
 if __name__ == "__main__":
