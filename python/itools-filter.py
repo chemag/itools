@@ -15,6 +15,13 @@ import sys
 
 
 DEFAULT_NOISE_LEVEL = 50
+ROTATE_ANGLE_LIST = {
+    0: 0,
+    90: 1,
+    180: 2,
+    270: -1,
+    -90: -1,
+}
 
 FILTER_CHOICES = {
     "help": "show help options",
@@ -25,6 +32,7 @@ FILTER_CHOICES = {
     "diff": "diff 2 frames",
     "mse": "get the MSE of a frame",
     "compose": "compose 2 frames",
+    "rotate": "rotate a frame (90, 180, 270)",
     "match": "match 2 frames (needle and haystack problem -- only shift)",
     "affine": "run an affine transformation (defined as 2x matrices A and B) on the input",
     "affine-points": "run an affine transformation (defined as 2x set of 3x points) on the input",
@@ -36,6 +44,7 @@ default_values = {
     "filter": "help",
     "noise_level": DEFAULT_NOISE_LEVEL,
     "diff_factor": 1,
+    "rotate_angle": 90,
     "x": 10,
     "y": 20,
     "width": 0,
@@ -137,6 +146,18 @@ def mse_image(infile, debug):
     width, height = luma.shape
     mse = ((255 - luma) ** 2).mean() / (width * height)
     return mse
+
+
+# rotates infile
+def rotate_image(infile, rotate_angle, outfile, debug):
+    # load the input image
+    inimg = cv2.imread(cv2.samples.findFile(infile))
+    assert inimg is not None, f"error: cannot read {infile}"
+    # rotate it
+    num_rotations = ROTATE_ANGLE_LIST[rotate_angle]
+    outimg = np.rot90(inimg, k=num_rotations, axes=(0, 1))
+    # write the output image
+    cv2.imwrite(outfile, outimg)
 
 
 # composes infile2 on top of infile1, at (xloc, yloc)
@@ -384,6 +405,21 @@ def get_options(argv):
         help="Output height",
     )
     parser.add_argument(
+        "--rotate-angle",
+        action="store",
+        type=int,
+        dest="rotate_angle",
+        default=default_values["rotate_angle"],
+        choices=ROTATE_ANGLE_LIST.keys(),
+        metavar="[%s]"
+        % (
+            " | ".join(
+                [str(angle) for angle in ROTATE_ANGLE_LIST.keys()],
+            )
+        ),
+        help="rotate angle arg",
+    )
+    parser.add_argument(
         "--a00",
         action="store",
         type=float,
@@ -626,6 +662,14 @@ def main(argv):
     elif options.filter == "mse":
         mse = mse_image(options.infile, options.debug)
         print(f"{mse = }")
+
+    elif options.filter == "rotate":
+        rotate_image(
+            options.infile,
+            options.rotate_angle,
+            options.outfile,
+            options.debug,
+        )
 
     elif options.filter == "compose":
         compose_images(

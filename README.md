@@ -175,6 +175,20 @@ transform_matrix = array([[ 0.91, -0.09,  5.  ],
 Figure 9 shows the output of the affine transformation using the points in the above command.
 
 
+## 2.9. `rotate` filter
+
+This filter rotates an image (0, 90, 180, or 270 degrees).
+
+Example
+```
+$ ./python/itools-filter.py --filter rotate -i docs/lena.jpeg --rotate-angle -90 -o docs/lena.rotate.png
+```
+
+![Figure 10](docs/lena.rotate.png)
+
+Figure 10 shows the original image after being passed through the `rotate` filter.
+
+
 # 3. Requirements
 
 * opencv2
