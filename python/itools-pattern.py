@@ -10,6 +10,7 @@ parses them in yuv420p10le format.
 
 import argparse
 import numpy as np
+import subprocess
 import sys
 
 
@@ -21,6 +22,7 @@ FUNC_CHOICES = {
     "generate": "generate pattern input (MIPI-RAW10-RGGB)",
     "parse": "parse pattern output (yuv420p10le)",
     "range-convert": "convert the range of the input image (yuv420p10le)",
+    "diff": "diff 2x input files (yuv420p10le) into an output (yuv420p10le)",
 }
 
 
@@ -31,6 +33,7 @@ default_values = {
     "pattern": "kwrgb",
     "width": 4032,
     "height": 3024,
+    "diff_luma_factor": 1.0,
     "range_conversion": "fr2fr",
     "func": "help",
     "infile": None,
@@ -87,6 +90,43 @@ PATTERN_COLORS = {
     "kwrgb": ("black64", "white", "red", "green", "blue"),
     "grayscale": ("black0", "black64", "gray100", "gray200", "gray300", "white"),
 }
+
+
+def run(command, **kwargs):
+    debug = kwargs.get("debug", 0)
+    dry_run = kwargs.get("dry_run", False)
+    env = kwargs.get("env", None)
+    stdin = subprocess.PIPE if kwargs.get("stdin", False) else None
+    bufsize = kwargs.get("bufsize", 0)
+    universal_newlines = kwargs.get("universal_newlines", False)
+    default_close_fds = True if sys.platform == "linux2" else False
+    close_fds = kwargs.get("close_fds", default_close_fds)
+    shell = type(command) in (type(""), type(""))
+    if debug > 0:
+        print(f"running $ {command}")
+    if dry_run:
+        return 0, b"stdout", b"stderr"
+    p = subprocess.Popen(  # noqa: E501
+        command,
+        stdin=stdin,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        bufsize=bufsize,
+        universal_newlines=universal_newlines,
+        env=env,
+        close_fds=close_fds,
+        shell=shell,
+    )
+    # wait for the command to terminate
+    if stdin is not None:
+        out, err = p.communicate(stdin)
+    else:
+        out, err = p.communicate()
+    returncode = p.returncode
+    # clean up
+    del p
+    # return results
+    return returncode, out, err
 
 
 def read_yuv420p10le_to_ndarray(infile, num_cols, num_rows):
@@ -189,6 +229,41 @@ def range_convert(infile, outfile, num_cols, num_rows, range_conversion, debug):
     vc = convert_range(v, cimin, cimax, comin, comax)
     # write input image
     write_ndarray_to_yuv420p10le(outfile, yc, uc, vc, num_cols, num_rows)
+
+
+# yuv420p10le differ
+def diff(infile1, infile2, outfile, num_cols, num_rows, diff_luma_factor, debug):
+    # read the input files
+    y1, u1, v1 = read_yuv420p10le_to_ndarray(infile1, num_cols, num_rows)
+    y2, u2, v2 = read_yuv420p10le_to_ndarray(infile2, num_cols, num_rows)
+    # diff them
+    yd = np.absolute(y1.astype(np.int32) - y2.astype(np.int32)).astype(np.uint16)
+    ud = np.absolute(u1.astype(np.int32) - u2.astype(np.int32)).astype(np.uint16)
+    vd = np.absolute(v1.astype(np.int32) - v2.astype(np.int32)).astype(np.uint16)
+    # calculate the energy of the diff
+    yd_mean, yd_std = yd.mean(), yd.std()
+    ud_mean, ud_std = ud.mean(), ud.std()
+    vd_mean, vd_std = vd.mean(), vd.std()
+    # apply the luma factor
+    yd_float = yd * diff_luma_factor
+    yd_float = yd_float.clip(0, 65536)
+    yd_float = np.around(yd_float)
+    yd = yd_float.astype(np.uint16)
+    # invert the luma values
+    yd = 1023 - yd
+    ud = 512 + ud
+    vd = 512 + vd
+    # print out values
+    print(f"y {{ mean: {yd_mean} stddev: {yd_std} }}")
+    print(f"u {{ mean: {ud_mean} stddev: {ud_std} }}")
+    print(f"v {{ mean: {vd_mean} stddev: {vd_std} }}")
+    # write the diff as an output file
+    write_ndarray_to_yuv420p10le(outfile, yd, ud, vd, num_cols, num_rows)
+    # write the diff as a png file
+    outfile_png = outfile + ".png"
+    command = f"ffmpeg -y -f rawvideo -pixel_format yuv420p10le -s {num_cols}x{num_rows} -i {outfile} {outfile_png}"
+    run(command, debug=debug)
+    print(f"output: {outfile} png: {outfile_png}")
 
 
 # MIPI-RAW10-RGGB generator
@@ -324,6 +399,16 @@ def get_options(argv):
     )
 
     parser.add_argument(
+        "--diff-luma-factor",
+        action="store",
+        type=float,
+        dest="diff_luma_factor",
+        default=default_values["diff_luma_factor"],
+        metavar="LUMA-FACTOR",
+        help=("luma factor for diff (default: %f)" % default_values["diff_luma_factor"]),
+    )
+
+    parser.add_argument(
         "func",
         type=str,
         nargs="?",
@@ -394,6 +479,11 @@ def main(argv):
 
     elif options.func == "range-convert":
         range_convert(options.infile, options.outfile, options.width, options.height, options.range_conversion, options.debug)
+
+    elif options.func == "diff":
+        # ensure there is infile2
+        assert options.infile2 is not None, "error: need a second input file (-j/--infile2)"
+        diff(options.infile, options.infile2, options.outfile, options.width, options.height, options.diff_luma_factor, options.debug)
 
 
 if __name__ == "__main__":
