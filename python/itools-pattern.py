@@ -14,11 +14,13 @@ import sys
 
 
 PATTERN_LIST = ("kwrgb", "bandw", "grayscale")
+RANGE_CONVERSION_LIST = ("fr2fr", "fr2lr", "lr2fr", "lr2lr")
 
 FUNC_CHOICES = {
     "help": "show help options",
     "generate": "generate pattern input (MIPI-RAW10-RGGB)",
     "parse": "parse pattern output (yuv420p10le)",
+    "range-convert": "convert the range of the input image (yuv420p10le)",
 }
 
 
@@ -29,8 +31,10 @@ default_values = {
     "pattern": "kwrgb",
     "width": 4032,
     "height": 3024,
+    "range_conversion": "fr2fr",
     "func": "help",
     "infile": None,
+    "infile2": None,
     "outfile": None,
 }
 
@@ -109,6 +113,23 @@ def read_yuv420p10le_to_ndarray(infile, num_cols, num_rows):
     return y, u, v
 
 
+def write_ndarray_to_yuv420p10le(outfile, y, u, v, num_cols, num_rows):
+    with open(outfile, "wb") as fout:
+        # write the luma plane
+        for row in range(num_rows):
+            for col in range(num_cols):
+                fout.write(int(y[row][col]).to_bytes(2, byteorder="little"))
+        # read the u plane
+        for row in range(num_rows >> 1):
+            for col in range(num_cols >> 1):
+                fout.write(int(u[row][col]).to_bytes(2, byteorder="little"))
+        # read the v plane
+        for row in range(num_rows >> 1):
+            for col in range(num_cols >> 1):
+                fout.write(int(v[row][col]).to_bytes(2, byteorder="little"))
+    return
+
+
 # yuv420p10le parser
 def parse(infile, num_cols, num_rows, pattern, debug):
     # read the input file
@@ -127,6 +148,47 @@ def parse(infile, num_cols, num_rows, pattern, debug):
         # print results
         cur_color = PATTERN_COLORS[pattern][cur_band]
         print(f"{cur_color:10}   Y: {int(yavg):4}   U: {int(uavg):4}   V: {int(vavg):4}    Ystd: {ystd} Ustd: {ustd} Vstd: {vstd}")
+
+
+def convert_range(matrix_in, imin, imax, omin, omax):
+    convert_fun = lambda x: (x - imin) * ((omax - omin) / (imax - imin)) + omin
+    matrix_out = np.vectorize(convert_fun)(matrix_in)
+    # clip the output matrix
+    matrix_out = matrix_out.clip(0, 65536)
+    # round the output matrix
+    # https://stackoverflow.com/a/43920513
+    matrix_out = np.around(matrix_out)
+    # enforce the type
+    matrix_out = matrix_out.astype(np.uint16)
+    return matrix_out
+
+
+# yuv420p10le range conversion
+def range_convert(infile, outfile, num_cols, num_rows, range_conversion, debug):
+    # read input image
+    y, u, v = read_yuv420p10le_to_ndarray(infile, num_cols, num_rows)
+    # convert range for each component
+    if range_conversion in ("fr2fr", "fr2lr"):
+        # input is FR
+        yimin, yimax = 0, 1023
+        cimin, cimax = 0, 1023
+    else:
+        # input is LR
+        yimin, yimax = 64, 940
+        cimin, cimax = 64, 960
+    if range_conversion in ("fr2fr", "lr2fr"):
+        # output is FR
+        yomin, yomax = 0, 1023
+        comin, comax = 0, 1023
+    else:
+        # output is LR
+        yomin, yomax = 64, 940
+        comin, comax = 64, 960
+    yc = convert_range(y, yimin, yimax, yomin, yomax)
+    uc = convert_range(u, cimin, cimax, comin, comax)
+    vc = convert_range(v, cimin, cimax, comin, comax)
+    # write input image
+    write_ndarray_to_yuv420p10le(outfile, yc, uc, vc, num_cols, num_rows)
 
 
 # MIPI-RAW10-RGGB generator
@@ -215,6 +277,21 @@ def get_options(argv):
         ),
         help="pattern arg",
     )
+    parser.add_argument(
+        "--range-conversion",
+        action="store",
+        type=str,
+        dest="range_conversion",
+        default=default_values["range_conversion"],
+        choices=RANGE_CONVERSION_LIST,
+        metavar="[%s]"
+        % (
+            " | ".join(
+                RANGE_CONVERSION_LIST,
+            )
+        ),
+        help="range conversion arg",
+    )
     # 2-parameter setter using argparse.Action
     parser.add_argument(
         "--width",
@@ -266,6 +343,16 @@ def get_options(argv):
         help="input file",
     )
     parser.add_argument(
+        "-j",
+        "--infile2",
+        action="store",
+        type=str,
+        dest="infile2",
+        default=default_values["infile2"],
+        metavar="input-file-2",
+        help="input file 2",
+    )
+    parser.add_argument(
         "-o",
         "--outfile",
         action="store",
@@ -304,6 +391,9 @@ def main(argv):
 
     elif options.func == "parse":
         parse(options.infile, options.width, options.height, options.pattern, options.debug)
+
+    elif options.func == "range-convert":
+        range_convert(options.infile, options.outfile, options.width, options.height, options.range_conversion, options.debug)
 
 
 if __name__ == "__main__":
