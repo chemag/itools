@@ -194,7 +194,7 @@ def convert_range(matrix_in, imin, imax, omin, omax):
     convert_fun = lambda x: (x - imin) * ((omax - omin) / (imax - imin)) + omin
     matrix_out = np.vectorize(convert_fun)(matrix_in)
     # clip the output matrix
-    matrix_out = matrix_out.clip(0, 65536)
+    matrix_out = matrix_out.clip(0, 1023)
     # round the output matrix
     # https://stackoverflow.com/a/43920513
     matrix_out = np.around(matrix_out)
@@ -246,7 +246,7 @@ def diff(infile1, infile2, outfile, num_cols, num_rows, diff_luma_factor, debug)
     vd_mean, vd_std = vd.mean(), vd.std()
     # apply the luma factor
     yd_float = yd * diff_luma_factor
-    yd_float = yd_float.clip(0, 65536)
+    yd_float = yd_float.clip(0, 1023)
     yd_float = np.around(yd_float)
     yd = yd_float.astype(np.uint16)
     # invert the luma values
