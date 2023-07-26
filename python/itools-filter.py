@@ -120,21 +120,31 @@ def diff_images(infile1, infile2, outfile, diff_factor, diff_component, debug):
     assert inimg1 is not None, f"error: cannot read {infile1}"
     inimg2 = cv2.imread(cv2.samples.findFile(infile2))
     assert inimg2 is not None, f"error: cannot read {infile2}"
+    # convert them to yuv
+    yuv1 = cv2.cvtColor(inimg1, cv2.COLOR_BGR2YCrCb)
+    yuv2 = cv2.cvtColor(inimg2, cv2.COLOR_BGR2YCrCb)
     # diff them
-    diffimg = np.absolute(inimg1.astype(np.int16) - inimg2.astype(np.int16)).astype(
-        np.uint8
-    )
+    diff_yuv_sign = yuv1.astype(np.int16) - yuv2.astype(np.int16)
+    diff_yuv = np.absolute(diff_yuv_sign).astype(np.uint8)
+    # calculate the energy of the diff
+    yd, ud, vd = diff_yuv[:, :, 0], diff_yuv[:, :, 1], diff_yuv[:, :, 2]
+    yd_mean, yd_std = yd.mean(), yd.std()
+    ud_mean, ud_std = ud.mean(), ud.std()
+    vd_mean, vd_std = vd.mean(), vd.std()
+    # print out values
+    print(f"y {{ mean: {yd_mean} stddev: {yd_std} }}")
+    print(f"u {{ mean: {ud_mean} stddev: {ud_std} }}")
+    print(f"v {{ mean: {vd_mean} stddev: {vd_std} }}")
     # choose the visual output
-    yuv_diffimg = cv2.cvtColor(diffimg, cv2.COLOR_BGR2YCrCb)
     if diff_component == "y":
         # use the luma for diff luma
-        yd = yuv_diffimg[:, :, 0]
+        yd = yd
     elif diff_component == "u":
         # use the u for diff luma
-        yd = yuv_diffimg[:, :, 1]
+        yd = ud
     elif diff_component == "v":
         # use the v for diff luma
-        yd = yuv_diffimg[:, :, 2]
+        yd = vd
     # apply the diff factor
     yd_float = yd * diff_factor
     yd_float = yd_float.clip(0, 255)
@@ -142,12 +152,13 @@ def diff_images(infile1, infile2, outfile, diff_factor, diff_component, debug):
     yd = yd_float.astype(np.uint8)
     # invert the luma values
     yd = 255 - yd
-    # # use gray chromas for visualization
-    # width, height = yd.shape
-    # ud = np.full((width, height), 128, dtype=np.uint8)
-    # ud = np.full((width, height), 128, dtype=np.uint8)
+    # use gray chromas for visualization
+    width, height = yd.shape
+    ud = np.full((width, height), 128, dtype=np.uint8)
+    vd = np.full((width, height), 128, dtype=np.uint8)
     # combine the diff color components
-    outimg = cv2.cvtColor(yd, cv2.COLOR_GRAY2BGR)
+    outyuv = np.stack((yd, ud, vd), axis=2)
+    outimg = cv2.cvtColor(outyuv, cv2.COLOR_YCrCb2BGR)
     # write the output image
     cv2.imwrite(outfile, outimg)
 
