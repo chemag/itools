@@ -125,6 +125,14 @@ def add_noise(infile, outfile, noise_level, debug):
     write_image_file(outfile, outimg)
 
 
+def copy_image(infile, outfile, debug):
+    # load the input image
+    inimg = read_image_file(infile)
+    assert inimg is not None, f"error: cannot read {infile}"
+    # write the output image
+    write_image_file(outfile, inimg)
+
+
 def force_range(val):
     return val if (val <= 255 and val >= 0) else (0 if val <= 0 else 255)
 
@@ -748,7 +756,14 @@ def main(argv):
     if options.debug > 0:
         print(options)
 
-    if options.filter == "diff":
+    if options.filter == "copy":
+        copy_image(
+            options.infile,
+            options.outfile,
+            options.debug,
+        )
+
+    elif options.filter == "diff":
         diff_images(
             options.infile,
             options.infile2,
