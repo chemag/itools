@@ -82,6 +82,10 @@ def read_image_file(infile, flags=None):
     return cv2.imread(cv2.samples.findFile(infile, flags))
 
 
+def write_image_file(outfile, outimg):
+    cv2.imwrite(outfile, outimg)
+
+
 def image_to_gray(infile, outfile, debug):
     # load the input image
     inimg = read_image_file(infile)
@@ -90,7 +94,7 @@ def image_to_gray(infile, outfile, debug):
     tmpimg = cv2.cvtColor(inimg, cv2.COLOR_BGR2GRAY)
     outimg = cv2.cvtColor(tmpimg, cv2.COLOR_GRAY2BGR)
     # store the output image
-    cv2.imwrite(outfile, outimg)
+    write_image_file(outfile, outimg)
 
 
 def swap_xchroma(infile, outfile, debug):
@@ -102,7 +106,7 @@ def swap_xchroma(infile, outfile, debug):
     yuvimg = yuvimg[:, :, [0, 2, 1]]
     outimg = cv2.cvtColor(yuvimg, cv2.COLOR_YCrCb2BGR)
     # store the output image
-    cv2.imwrite(outfile, outimg)
+    write_image_file(outfile, outimg)
 
 
 def add_noise(infile, outfile, noise_level, debug):
@@ -118,7 +122,7 @@ def add_noise(infile, outfile, noise_level, debug):
     outimg[outimg < np.iinfo(np.uint8).min] = np.iinfo(np.uint8).min
     outimg = outimg.astype(np.uint8)
     # store the output image
-    cv2.imwrite(outfile, outimg)
+    write_image_file(outfile, outimg)
 
 
 def force_range(val):
@@ -189,7 +193,7 @@ def diff_images(infile1, infile2, outfile, diff_factor, diff_component, diff_col
     outyuv = np.stack((yd, ud, vd), axis=2)
     outimg = cv2.cvtColor(outyuv, cv2.COLOR_YCrCb2BGR)
     # write the output image
-    cv2.imwrite(outfile, outimg)
+    write_image_file(outfile, outimg)
 
 
 def mse_image(infile, debug):
@@ -214,7 +218,7 @@ def rotate_image(infile, rotate_angle, outfile, debug):
     num_rotations = ROTATE_ANGLE_LIST[rotate_angle]
     outimg = np.rot90(inimg, k=num_rotations, axes=(0, 1))
     # write the output image
-    cv2.imwrite(outfile, outimg)
+    write_image_file(outfile, outimg)
 
 
 # composes infile2 on top of infile1, at (xloc, yloc)
@@ -249,7 +253,7 @@ def compose_images(infile1, infile2, xloc, yloc, outfile, debug):
 
     # store the output image
     outimg = outimg.astype(np.uint8)
-    cv2.imwrite(outfile, outimg)
+    write_image_file(outfile, outimg)
 
 
 def match_images(infile1, infile2, outfile, debug):
@@ -305,7 +309,7 @@ def match_images(infile1, infile2, outfile, debug):
 
     # store the output image
     outimg = np.absolute(outimg).astype(np.uint8)
-    cv2.imwrite(outfile, outimg)
+    write_image_file(outfile, outimg)
 
 
 def affine_transformation_matrix(
@@ -324,7 +328,7 @@ def affine_transformation_matrix(
     height = height if height != 0 else inimg.shape[0]
     outimg = cv2.warpAffine(inimg, transform_matrix, (width, height))
     # store the output image
-    cv2.imwrite(outfile, outimg)
+    write_image_file(outfile, outimg)
 
 
 def affine_transformation_points(
@@ -365,7 +369,7 @@ def affine_transformation_points(
     height = height if height != 0 else inimg.shape[0]
     outimg = cv2.warpAffine(inimg, transform_matrix, (width, height))
     # store the output image
-    cv2.imwrite(outfile, outimg)
+    write_image_file(outfile, outimg)
 
 
 def get_options(argv):
