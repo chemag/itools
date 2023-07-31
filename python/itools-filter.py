@@ -11,6 +11,7 @@ import argparse
 import cv2
 import itertools
 import numpy as np
+import os.path
 import sys
 
 
@@ -77,9 +78,13 @@ default_values = {
 }
 
 
+def read_image_file(infile, flags=None):
+    return cv2.imread(cv2.samples.findFile(infile, flags))
+
+
 def image_to_gray(infile, outfile, debug):
     # load the input image
-    inimg = cv2.imread(cv2.samples.findFile(infile))
+    inimg = read_image_file(infile)
     assert inimg is not None, f"error: cannot read {infile}"
     # convert to gray
     tmpimg = cv2.cvtColor(inimg, cv2.COLOR_BGR2GRAY)
@@ -90,7 +95,7 @@ def image_to_gray(infile, outfile, debug):
 
 def swap_xchroma(infile, outfile, debug):
     # load the input image
-    inimg = cv2.imread(cv2.samples.findFile(infile))
+    inimg = read_image_file(infile)
     assert inimg is not None, f"error: cannot read {infile}"
     # swap chromas
     yuvimg = cv2.cvtColor(inimg, cv2.COLOR_BGR2YCrCb)
@@ -102,7 +107,7 @@ def swap_xchroma(infile, outfile, debug):
 
 def add_noise(infile, outfile, noise_level, debug):
     # load the input image
-    inimg = cv2.imread(cv2.samples.findFile(infile))
+    inimg = read_image_file(infile)
     assert inimg is not None, f"error: cannot read {infile}"
     # convert to gray
     noiseimg = np.random.randint(
@@ -130,9 +135,9 @@ def diff_color_vval(ydiff):
 
 def diff_images(infile1, infile2, outfile, diff_factor, diff_component, diff_color, diff_color_factor, debug):
     # load the input images
-    inimg1 = cv2.imread(cv2.samples.findFile(infile1))
+    inimg1 = read_image_file(infile1)
     assert inimg1 is not None, f"error: cannot read {infile1}"
-    inimg2 = cv2.imread(cv2.samples.findFile(infile2))
+    inimg2 = read_image_file(infile2)
     assert inimg2 is not None, f"error: cannot read {infile2}"
     # convert them to yuv
     yuv1 = cv2.cvtColor(inimg1, cv2.COLOR_BGR2YCrCb)
@@ -189,7 +194,7 @@ def diff_images(infile1, infile2, outfile, diff_factor, diff_component, diff_col
 
 def mse_image(infile, debug):
     # load the input image
-    inimg = cv2.imread(cv2.samples.findFile(infile))
+    inimg = read_image_file(infile)
     assert inimg is not None, f"error: cannot read {infile}"
     # careful with number ranges
     yuvimg = cv2.cvtColor(inimg, cv2.COLOR_BGR2YCrCb).astype(np.int32)
@@ -203,7 +208,7 @@ def mse_image(infile, debug):
 # rotates infile
 def rotate_image(infile, rotate_angle, outfile, debug):
     # load the input image
-    inimg = cv2.imread(cv2.samples.findFile(infile))
+    inimg = read_image_file(infile)
     assert inimg is not None, f"error: cannot read {infile}"
     # rotate it
     num_rotations = ROTATE_ANGLE_LIST[rotate_angle]
@@ -216,9 +221,9 @@ def rotate_image(infile, rotate_angle, outfile, debug):
 # uses alpha
 def compose_images(infile1, infile2, xloc, yloc, outfile, debug):
     # load the input images
-    inimg1 = cv2.imread(cv2.samples.findFile(infile1))
+    inimg1 = read_image_file(infile1)
     assert inimg1 is not None, f"error: cannot read {infile1}"
-    inimg2 = cv2.imread(cv2.samples.findFile(infile2), cv2.IMREAD_UNCHANGED)
+    inimg2 = read_image_file(infile2, cv2.IMREAD_UNCHANGED)
     assert inimg2 is not None, f"error: cannot read {infile2}"
     # compose them
     width1, height1, _ = inimg1.shape
@@ -249,9 +254,9 @@ def compose_images(infile1, infile2, xloc, yloc, outfile, debug):
 
 def match_images(infile1, infile2, outfile, debug):
     # load the input images
-    inimg1 = cv2.imread(cv2.samples.findFile(infile1))
+    inimg1 = read_image_file(infile1)
     assert inimg1 is not None, f"error: cannot read {infile1}"
-    inimg2 = cv2.imread(cv2.samples.findFile(infile2), cv2.IMREAD_UNCHANGED)
+    inimg2 = read_image_file(infile2, cv2.IMREAD_UNCHANGED)
     assert inimg2 is not None, f"error: cannot read {infile2}"
     # we will do gray correlation image matching: Use only the lumas
     luma1 = cv2.cvtColor(inimg1, cv2.COLOR_BGR2GRAY)
@@ -307,7 +312,7 @@ def affine_transformation_matrix(
     infile, outfile, width, height, a00, a01, a10, a11, b00, b10, debug
 ):
     # load the input image
-    inimg = cv2.imread(cv2.samples.findFile(infile))
+    inimg = read_image_file(infile)
     assert inimg is not None, f"error: cannot read {infile}"
     # process the image
     m0 = [a00, a01, b00]
@@ -342,7 +347,7 @@ def affine_transformation_points(
     debug,
 ):
     # load the input image
-    inimg = cv2.imread(cv2.samples.findFile(infile))
+    inimg = read_image_file(infile)
     assert inimg is not None, f"error: cannot read {infile}"
     # process the image
     s0 = [s0x, s0y]
