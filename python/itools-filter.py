@@ -34,6 +34,7 @@ FILTER_CHOICES = {
     "noise": "add noise",
     "diff": "diff 2 frames",
     "mse": "get the MSE of a frame",
+    "lumahist": "get a histogram of the luminance values",
     "compose": "compose 2 frames",
     "rotate": "rotate a frame (90, 180, 270)",
     "match": "match 2 frames (needle and haystack problem -- only shift)",
@@ -292,6 +293,28 @@ def mse_image(infile, debug):
     width, height = luma.shape
     mse = ((255 - luma) ** 2).mean() / (width * height)
     return mse
+
+
+# calculates a histogram of the luminance values
+def luma_histogram(infile, outfile, debug):
+    # load the input image
+    inimg = read_image_file(infile, return_type=Return_t.COLOR_YUV)
+    assert inimg is not None, f"error: cannot read {infile}"
+    # get the luma
+    y = inimg[:, :, 0]
+    # calculate the histogram
+    VALUE_RANGE = 256  # assume 8-bit color
+    histogram = {k: 0 for k in range(VALUE_RANGE)}
+    for v in y:
+        for vv in v:
+            histogram[vv] += 1
+    # normalize histogram
+    histogram_normalized = {k: (v / y.size) for (k, v) in histogram.items()}
+    # store histogram as csv
+    with open(outfile, "w") as fout:
+        fout.write("value,hist,norm\n")
+        for k in range(VALUE_RANGE):
+            fout.write(f"{k},{histogram[k]},{histogram_normalized[k]}\n")
 
 
 # rotates infile
@@ -855,6 +878,9 @@ def main(argv):
     elif options.filter == "mse":
         mse = mse_image(options.infile, options.debug)
         print(f"{mse = }")
+
+    elif options.filter == "lumahist":
+        luma_histogram(options.infile, options.outfile, options.debug)
 
     elif options.filter == "rotate":
         rotate_image(

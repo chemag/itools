@@ -228,6 +228,31 @@ $ ./python/itools-filter.py --filter rotate -i docs/lena.jpeg --rotate-angle -90
 Figure 15 shows the original image after being passed through the `rotate` filter.
 
 
+## 2.10. `lumahist` filter
+
+This filter produces a histogram of the lumas of a file.
+
+Example
+```
+$ ./python/itools-filter.py --filter lumahist -i docs/grayscale.down.png -o /tmp/foo.csv
+$  csvlook /tmp/foo.csv
+| value | hist |  norm |
+| ----- | ---- | ----- |
+|     0 |  256 | 0.004 |
+|     1 |  256 | 0.004 |
+|     2 |  256 | 0.004 |
+|     3 |  256 | 0.004 |
+|     4 |  256 | 0.004 |
+|     5 |  256 | 0.004 |
+|     6 |  256 | 0.004 |
+...
+|   252 |  256 | 0.004 |
+|   253 |  256 | 0.004 |
+|   254 |  256 | 0.004 |
+|   255 |  256 | 0.004 |
+```
+
+
 # 3. Requirements
 
 * opencv2
