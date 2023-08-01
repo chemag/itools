@@ -169,9 +169,9 @@ def image_to_gray(infile, outfile, debug):
     assert inimg is not None, f"error: cannot read {infile}"
     # convert to gray
     tmpimg = cv2.cvtColor(inimg, cv2.COLOR_BGR2GRAY)
-    outimg = cv2.cvtColor(tmpimg, cv2.COLOR_GRAY2BGR)
+    bgrimg = cv2.cvtColor(tmpimg, cv2.COLOR_GRAY2BGR)
     # store the output image
-    write_image_file(outfile, outimg)
+    write_image_file(outfile, bgrimg)
 
 
 def swap_xchroma(infile, outfile, debug):
@@ -181,9 +181,9 @@ def swap_xchroma(infile, outfile, debug):
     # swap chromas
     yuvimg = cv2.cvtColor(inimg, cv2.COLOR_BGR2YCrCb)
     yuvimg = yuvimg[:, :, [0, 2, 1]]
-    outimg = cv2.cvtColor(yuvimg, cv2.COLOR_YCrCb2BGR)
+    bgrimg = cv2.cvtColor(yuvimg, cv2.COLOR_YCrCb2BGR)
     # store the output image
-    write_image_file(outfile, outimg)
+    write_image_file(outfile, bgrimg)
 
 
 def add_noise(infile, outfile, noise_level, debug):
@@ -194,12 +194,12 @@ def add_noise(infile, outfile, noise_level, debug):
     noiseimg = np.random.randint(
         -noise_level, noise_level, size=inimg.shape, dtype=np.int16
     )
-    outimg = inimg + noiseimg
-    outimg[outimg > np.iinfo(np.uint8).max] = np.iinfo(np.uint8).max
-    outimg[outimg < np.iinfo(np.uint8).min] = np.iinfo(np.uint8).min
-    outimg = outimg.astype(np.uint8)
+    outbgr = inimg + noiseimg
+    outbgr[outbgr > np.iinfo(np.uint8).max] = np.iinfo(np.uint8).max
+    outbgr[outbgr < np.iinfo(np.uint8).min] = np.iinfo(np.uint8).min
+    outbgr = outbgr.astype(np.uint8)
     # store the output image
-    write_image_file(outfile, outimg)
+    write_image_file(outfile, outbgr)
 
 
 def copy_image(infile, outfile, debug):
@@ -276,9 +276,9 @@ def diff_images(infile1, infile2, outfile, diff_factor, diff_component, diff_col
 
     # combine the diff color components
     outyuv = np.stack((yd, ud, vd), axis=2)
-    outimg = cv2.cvtColor(outyuv, cv2.COLOR_YCrCb2BGR)
+    outbgr = cv2.cvtColor(outyuv, cv2.COLOR_YCrCb2BGR)
     # write the output image
-    write_image_file(outfile, outimg)
+    write_image_file(outfile, outbgr)
 
 
 def mse_image(infile, debug):
@@ -301,9 +301,9 @@ def rotate_image(infile, rotate_angle, outfile, debug):
     assert inimg is not None, f"error: cannot read {infile}"
     # rotate it
     num_rotations = ROTATE_ANGLE_LIST[rotate_angle]
-    outimg = np.rot90(inimg, k=num_rotations, axes=(0, 1))
+    outbgr = np.rot90(inimg, k=num_rotations, axes=(0, 1))
     # write the output image
-    write_image_file(outfile, outimg)
+    write_image_file(outfile, outbgr)
 
 
 # composes infile2 on top of infile1, at (xloc, yloc)
@@ -321,24 +321,24 @@ def compose_images(infile1, infile2, xloc, yloc, outfile, debug):
     assert yloc + height2 < height1
     if inimg2.shape[2] == 3:
         # no alpha channel: just use 50% ((im1 + im2) / 2)
-        outimg = inimg1.astype(np.int16)
-        outimg[yloc: yloc + height2, xloc: xloc + width2] += inimg2
-        outimg[yloc: yloc + height2, xloc: xloc + width2] /= 2
+        outbgr = inimg1.astype(np.int16)
+        outbgr[yloc: yloc + height2, xloc: xloc + width2] += inimg2
+        outbgr[yloc: yloc + height2, xloc: xloc + width2] /= 2
 
     elif inimg2.shape[2] == 4:
-        outimg = inimg1.astype(np.int16)
+        outbgr = inimg1.astype(np.int16)
         # TODO(chema): replace this loop with alpha-channel line
         for (x2, y2) in itertools.product(range(width2), range(height2)):
             x1 = xloc + x2
             y1 = yloc + y2
             alpha_value = inimg2[y2][x2][3] / 256
-            outimg[y1][x1] = np.rint(
-                outimg[y1][x1] * (1 - alpha_value) + inimg2[y2][x2][:3] * alpha_value
+            outbgr[y1][x1] = np.rint(
+                outbgr[y1][x1] * (1 - alpha_value) + inimg2[y2][x2][:3] * alpha_value
             )
 
     # store the output image
-    outimg = outimg.astype(np.uint8)
-    write_image_file(outfile, outimg)
+    outbgr = outbgr.astype(np.uint8)
+    write_image_file(outfile, outbgr)
 
 
 def match_images(infile1, infile2, outfile, debug):
@@ -378,23 +378,23 @@ def match_images(infile1, infile2, outfile, debug):
     if debug > 0:
         print(f"{x0 = } {y0 = }")
     # prepare the output
-    outimg = inimg1.astype(np.int16)
+    outbgr = inimg1.astype(np.int16)
     xwidth, ywidth, _ = inimg2.shape
     x1, y1 = x0 + xwidth, y0 + ywidth
     # substract the needle from the haystack
     # this replaces black with black: Not very useful
-    # outimg[y0:y1, x0:x1] -= inimg2[:,:,:3]
+    # outbgr[y0:y1, x0:x1] -= inimg2[:,:,:3]
     # add an X in the origin (0,0) point
-    # cv2.line(outimg, (0, 0), (2, 2), color=(0,0,0), thickness=1)
+    # cv2.line(outbgr, (0, 0), (2, 2), color=(0,0,0), thickness=1)
     # add an X in the (x0, y0) point
-    # cv2.line(outimg, (x0 - 2, y0 - 2), (x0 + 2, y0 + 2), color=(0, 0, 0), thickness=1)
-    # cv2.line(outimg, (x0 + 2, y0 - 2), (x0 - 2, y0 + 2), color=(0, 0, 0), thickness=1)
+    # cv2.line(outbgr, (x0 - 2, y0 - 2), (x0 + 2, y0 + 2), color=(0, 0, 0), thickness=1)
+    # cv2.line(outbgr, (x0 + 2, y0 - 2), (x0 - 2, y0 + 2), color=(0, 0, 0), thickness=1)
     # add a square in the full needle location
-    cv2.rectangle(outimg, (x0, y0), (x1, y1), color=(0, 0, 0), thickness=1)
+    cv2.rectangle(outbgr, (x0, y0), (x1, y1), color=(0, 0, 0), thickness=1)
 
     # store the output image
-    outimg = np.absolute(outimg).astype(np.uint8)
-    write_image_file(outfile, outimg)
+    outbgr = np.absolute(outbgr).astype(np.uint8)
+    write_image_file(outfile, outbgr)
 
 
 def affine_transformation_matrix(
@@ -411,9 +411,9 @@ def affine_transformation_matrix(
         print(f"{transform_matrix = }")
     width = width if width != 0 else inimg.shape[1]
     height = height if height != 0 else inimg.shape[0]
-    outimg = cv2.warpAffine(inimg, transform_matrix, (width, height))
+    outbgr = cv2.warpAffine(inimg, transform_matrix, (width, height))
     # store the output image
-    write_image_file(outfile, outimg)
+    write_image_file(outfile, outbgr)
 
 
 def affine_transformation_points(
@@ -452,9 +452,9 @@ def affine_transformation_points(
         print(f"{transform_matrix = }")
     width = width if width != 0 else inimg.shape[1]
     height = height if height != 0 else inimg.shape[0]
-    outimg = cv2.warpAffine(inimg, transform_matrix, (width, height))
+    outbgr = cv2.warpAffine(inimg, transform_matrix, (width, height))
     # store the output image
-    write_image_file(outfile, outimg)
+    write_image_file(outfile, outbgr)
 
 
 def get_options(argv):
