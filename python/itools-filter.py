@@ -104,7 +104,7 @@ def read_y4m(infile):
     luma_size = width * height
     ya = np.frombuffer(y4m_read_frame.buffer[:luma_size], dtype=dt).reshape(width, height)
     # read the chromas
-    if colorspace in ("420jpeg", "420paldv", "420"):
+    if colorspace in ("420jpeg", "420paldv", "420", "420mpeg2"):
         chroma_w = width >> 1
         chroma_h = height >> 1
     elif colorspace in ("422",):
@@ -118,7 +118,7 @@ def read_y4m(infile):
     va = np.frombuffer(y4m_read_frame.buffer[luma_size + chroma_size:], dtype=dt).reshape(chroma_w, chroma_h)
     # combine the color components
     # undo chroma subsample in order to combine same-size matrices
-    if colorspace in ("420jpeg", "420paldv", "420"):
+    if colorspace in ("420jpeg", "420paldv", "420", "420mpeg2"):
         ua_full = np.zeros(ya.shape, dtype=np.uint8)
         ua_full[::2, ::2] = ua
         ua_full[1::2, ::2] = ua
