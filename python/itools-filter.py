@@ -13,6 +13,7 @@ import itertools
 import numpy as np
 import os.path
 import sys
+import y4m
 
 
 DEFAULT_NOISE_LEVEL = 50
@@ -78,8 +79,84 @@ default_values = {
 }
 
 
-def read_image_file(infile, flags=None):
-    return cv2.imread(cv2.samples.findFile(infile, flags))
+# TODO(chemag): avoid the global variable to read frames
+def y4m_process_frame(frame):
+    global y4m_read_frame
+    y4m_read_frame = frame
+
+
+def read_y4m(infile):
+    # read the y4m frame
+    with open(infile, "rb") as fin:
+        data = fin.read()
+    parser = y4m.Reader(y4m_process_frame, verbose=False)
+    parser.decode(data)
+    # convert it to a numpy array
+    width = y4m_read_frame.headers["W"]
+    height = y4m_read_frame.headers["H"]
+    # framerate = y4m_read_frame.headers["F"]
+    # interlaced = y4m_read_frame.headers["I"]
+    # aspect = y4m_read_frame.headers["A"]
+    colorspace = y4m_read_frame.headers["C"]
+    # extra = y4m_read_frame.headers["X"]
+    dt = np.dtype(np.uint8)
+    luma_size = width * height
+    ya = np.frombuffer(y4m_read_frame.buffer[:luma_size], dtype=dt).reshape(width, height)
+    # read the chromas
+    if colorspace in ("420jpeg", "420paldv", "420"):
+        chroma_w = width >> 1
+        chroma_h = height >> 1
+    elif colorspace in ("422",):
+        chroma_w = width >> 1
+        chroma_h = height
+    elif colorspace in ("444",):
+        chroma_w = width
+        chroma_h = height
+    chroma_size = chroma_w * chroma_h
+    ua = np.frombuffer(y4m_read_frame.buffer[luma_size: luma_size + chroma_size], dtype=dt).reshape(chroma_w, chroma_h)
+    va = np.frombuffer(y4m_read_frame.buffer[luma_size + chroma_size:], dtype=dt).reshape(chroma_w, chroma_h)
+    # combine the color components
+    # undo chroma subsample in order to combine same-size matrices
+    if colorspace in ("420jpeg", "420paldv", "420"):
+        ua_full = np.zeros(ya.shape, dtype=np.uint8)
+        ua_full[::2, ::2] = ua
+        ua_full[1::2, ::2] = ua
+        ua_full[::2, 1::2] = ua
+        ua_full[1::2, 1::2] = ua
+        va_full = np.zeros(ya.shape, dtype=np.uint8)
+        va_full[::2, ::2] = va
+        va_full[1::2, ::2] = va
+        va_full[::2, 1::2] = va
+        va_full[1::2, 1::2] = va
+        ua, va = ua_full, va_full
+    elif colorspace in ("422",):
+        ua_full = np.zeros(ya.shape, dtype=np.uint8)
+        ua_full[::, ::2] = ua
+        ua_full[::, 1::2] = ua
+        va_full = np.zeros(ya.shape, dtype=np.uint8)
+        va_full[::, ::2] = va
+        va_full[::, 1::2] = va
+        ua, va = ua_full, va_full
+    outyuv = np.stack((ya, ua, va), axis=2)
+    return outyuv
+
+
+class Return_t:
+    COLOR_BGR, COLOR_YUV = range(2)
+
+
+def read_image_file(infile, flags=None, return_type=None):
+    if os.path.splitext(infile)[1] == ".y4m":
+        outyuv = read_y4m(infile)
+        if return_type == Return_t.COLOR_YUV:
+            return outyuv
+        outbgr = cv2.cvtColor(outyuv, cv2.COLOR_YCrCb2BGR)
+        return outbgr
+    outbgr = cv2.imread(cv2.samples.findFile(infile, flags))
+    if return_type == Return_t.COLOR_YUV:
+        outyuv = cv2.cvtColor(outbgr, cv2.COLOR_BGR2YCrCb)
+        return outyuv
+    return outbgr
 
 
 def write_image_file(outfile, outimg):
