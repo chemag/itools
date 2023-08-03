@@ -25,6 +25,7 @@ ROTATE_ANGLE_LIST = {
     -90: -1,
 }
 DIFF_COMPONENT_LIST = ("y", "u", "v")
+HIST_COMPONENT_LIST = ("y", "u", "v", "r", "g", "b")
 
 FILTER_CHOICES = {
     "help": "show help options",
@@ -34,7 +35,7 @@ FILTER_CHOICES = {
     "noise": "add noise",
     "diff": "diff 2 frames",
     "mse": "get the MSE of a frame",
-    "lumahist": "get a histogram of the luminance values",
+    "histogram": "get a histogram of the values of a given component",
     "compose": "compose 2 frames",
     "rotate": "rotate a frame (90, 180, 270)",
     "match": "match 2 frames (needle and haystack problem -- only shift)",
@@ -51,6 +52,7 @@ default_values = {
     "diff_component": "y",
     "diff_color": False,
     "diff_color_factor": 5,
+    "hist_component": "y",
     "rotate_angle": 90,
     "x": 10,
     "y": 20,
@@ -296,20 +298,28 @@ def mse_image(infile, debug):
 
 
 # calculates a histogram of the luminance values
-def luma_histogram(infile, outfile, debug):
+def get_histogram(infile, outfile, hist_component, debug):
     # load the input image
-    inimg = read_image_file(infile, return_type=Return_t.COLOR_YUV)
+    if hist_component in ("y", "u", "v"):
+        inimg = read_image_file(infile, return_type=Return_t.COLOR_YUV)
+    else:  # hist_component in ("r", "g", "b"):
+        inimg = read_image_file(infile)
     assert inimg is not None, f"error: cannot read {infile}"
-    # get the luma
-    y = inimg[:, :, 0]
+    # get the requested component: note that options are YUV or BGR
+    if hist_component == "y" or hist_component == "b":
+        component = inimg[:, :, 0]
+    elif hist_component == "u" or hist_component == "g":
+        component = inimg[:, :, 1]
+    elif hist_component == "v" or hist_component == "r":
+        component = inimg[:, :, 2]
     # calculate the histogram
     VALUE_RANGE = 256  # assume 8-bit color
     histogram = {k: 0 for k in range(VALUE_RANGE)}
-    for v in y:
+    for v in component:
         for vv in v:
             histogram[vv] += 1
     # normalize histogram
-    histogram_normalized = {k: (v / y.size) for (k, v) in histogram.items()}
+    histogram_normalized = {k: (v / component.size) for (k, v) in histogram.items()}
     # store histogram as csv
     with open(outfile, "w") as fout:
         fout.write("value,hist,norm\n")
@@ -577,6 +587,20 @@ def get_options(argv):
         dest="diff_color_factor",
         default=default_values["diff_color_factor"],
         help="Diff Color Multiplication Factor",
+    )
+    parser.add_argument(
+        "--hist-component",
+        action="store",
+        type=str,
+        default=default_values["hist_component"],
+        choices=HIST_COMPONENT_LIST,
+        metavar="[%s]"
+        % (
+            " | ".join(
+                HIST_COMPONENT_LIST,
+            )
+        ),
+        help="histogram component arg",
     )
     parser.add_argument(
         "-x",
@@ -879,8 +903,10 @@ def main(argv):
         mse = mse_image(options.infile, options.debug)
         print(f"{mse = }")
 
-    elif options.filter == "lumahist":
-        luma_histogram(options.infile, options.outfile, options.debug)
+    elif options.filter == "histogram":
+        get_histogram(
+            options.infile, options.outfile, options.hist_component, options.debug
+        )
 
     elif options.filter == "rotate":
         rotate_image(

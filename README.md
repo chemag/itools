@@ -228,13 +228,13 @@ $ ./python/itools-filter.py --filter rotate -i docs/lena.jpeg --rotate-angle -90
 Figure 15 shows the original image after being passed through the `rotate` filter.
 
 
-## 2.10. `lumahist` filter
+## 2.10. `histogram` filter
 
-This filter produces a histogram of the lumas of a file.
+This filter produces a histogram of the lumas or chromas of a file. Use the option "`--hist-component [y|u|v|r|g|b]`" to select the actual component.
 
 Example
 ```
-$ ./python/itools-filter.py --filter lumahist -i docs/grayscale.down.png -o /tmp/foo.csv
+$ ./python/itools-filter.py --filter histogram -i docs/grayscale.down.png -o /tmp/foo.csv
 $  csvlook /tmp/foo.csv
 | value | hist |  norm |
 | ----- | ---- | ----- |
