@@ -104,7 +104,9 @@ def read_y4m(infile):
     # extra = y4m_read_frame.headers["X"]
     dt = np.dtype(np.uint8)
     luma_size = width * height
-    ya = np.frombuffer(y4m_read_frame.buffer[:luma_size], dtype=dt).reshape(width, height)
+    ya = np.frombuffer(y4m_read_frame.buffer[:luma_size], dtype=dt).reshape(
+        width, height
+    )
     # read the chromas
     if colorspace in ("420jpeg", "420paldv", "420", "420mpeg2"):
         chroma_w = width >> 1
@@ -116,8 +118,12 @@ def read_y4m(infile):
         chroma_w = width
         chroma_h = height
     chroma_size = chroma_w * chroma_h
-    ua = np.frombuffer(y4m_read_frame.buffer[luma_size: luma_size + chroma_size], dtype=dt).reshape(chroma_w, chroma_h)
-    va = np.frombuffer(y4m_read_frame.buffer[luma_size + chroma_size:], dtype=dt).reshape(chroma_w, chroma_h)
+    ua = np.frombuffer(
+        y4m_read_frame.buffer[luma_size : luma_size + chroma_size], dtype=dt
+    ).reshape(chroma_w, chroma_h)
+    va = np.frombuffer(
+        y4m_read_frame.buffer[luma_size + chroma_size :], dtype=dt
+    ).reshape(chroma_w, chroma_h)
     # combine the color components
     # undo chroma subsample in order to combine same-size matrices
     if colorspace in ("420jpeg", "420paldv", "420", "420mpeg2"):
@@ -140,25 +146,26 @@ def read_y4m(infile):
         va_full[::, ::2] = va
         va_full[::, 1::2] = va
         ua, va = ua_full, va_full
-    outyuv = np.stack((ya, ua, va), axis=2)
-    return outyuv
+    # note that OpenCV conversions use YCrCb (YVU) instead of YCbCr (YUV)
+    outyvu = np.stack((ya, va, ua), axis=2)
+    return outyvu
 
 
 class Return_t:
-    COLOR_BGR, COLOR_YUV = range(2)
+    COLOR_BGR, COLOR_YVU = range(2)
 
 
 def read_image_file(infile, flags=None, return_type=None):
     if os.path.splitext(infile)[1] == ".y4m":
-        outyuv = read_y4m(infile)
-        if return_type == Return_t.COLOR_YUV:
-            return outyuv
-        outbgr = cv2.cvtColor(outyuv, cv2.COLOR_YCrCb2BGR)
+        outyvu = read_y4m(infile)
+        if return_type == Return_t.COLOR_YVU:
+            return outyvu
+        outbgr = cv2.cvtColor(outyvu, cv2.COLOR_YCrCb2BGR)
         return outbgr
     outbgr = cv2.imread(cv2.samples.findFile(infile, flags))
-    if return_type == Return_t.COLOR_YUV:
-        outyuv = cv2.cvtColor(outbgr, cv2.COLOR_BGR2YCrCb)
-        return outyuv
+    if return_type == Return_t.COLOR_YVU:
+        outyvu = cv2.cvtColor(outbgr, cv2.COLOR_BGR2YCrCb)
+        return outyvu
     return outbgr
 
 
@@ -168,36 +175,36 @@ def write_image_file(outfile, outimg):
 
 def image_to_gray(infile, outfile, debug):
     # load the input image
-    inimg = read_image_file(infile)
-    assert inimg is not None, f"error: cannot read {infile}"
+    inbgr = read_image_file(infile)
+    assert inbgr is not None, f"error: cannot read {infile}"
     # convert to gray
-    tmpimg = cv2.cvtColor(inimg, cv2.COLOR_BGR2GRAY)
-    bgrimg = cv2.cvtColor(tmpimg, cv2.COLOR_GRAY2BGR)
+    tmpgray = cv2.cvtColor(inbgr, cv2.COLOR_BGR2GRAY)
+    outbgr = cv2.cvtColor(tmpgray, cv2.COLOR_GRAY2BGR)
     # store the output image
-    write_image_file(outfile, bgrimg)
+    write_image_file(outfile, outbgr)
 
 
 def swap_xchroma(infile, outfile, debug):
     # load the input image
-    inimg = read_image_file(infile)
-    assert inimg is not None, f"error: cannot read {infile}"
+    inbgr = read_image_file(infile)
+    assert inbgr is not None, f"error: cannot read {infile}"
     # swap chromas
-    yuvimg = cv2.cvtColor(inimg, cv2.COLOR_BGR2YCrCb)
-    yuvimg = yuvimg[:, :, [0, 2, 1]]
-    bgrimg = cv2.cvtColor(yuvimg, cv2.COLOR_YCrCb2BGR)
+    tmpyvu = cv2.cvtColor(inbgr, cv2.COLOR_BGR2YCrCb)
+    outyvu = tmpyvu[:, :, [0, 2, 1]]
+    outbgr = cv2.cvtColor(outyvu, cv2.COLOR_YCrCb2BGR)
     # store the output image
-    write_image_file(outfile, bgrimg)
+    write_image_file(outfile, outbgr)
 
 
 def add_noise(infile, outfile, noise_level, debug):
     # load the input image
-    inimg = read_image_file(infile)
-    assert inimg is not None, f"error: cannot read {infile}"
+    inbgr = read_image_file(infile)
+    assert inbgr is not None, f"error: cannot read {infile}"
     # convert to gray
     noiseimg = np.random.randint(
-        -noise_level, noise_level, size=inimg.shape, dtype=np.int16
+        -noise_level, noise_level, size=inbgr.shape, dtype=np.int16
     )
-    outbgr = inimg + noiseimg
+    outbgr = inbgr + noiseimg
     outbgr[outbgr > np.iinfo(np.uint8).max] = np.iinfo(np.uint8).max
     outbgr[outbgr < np.iinfo(np.uint8).min] = np.iinfo(np.uint8).min
     outbgr = outbgr.astype(np.uint8)
@@ -207,10 +214,10 @@ def add_noise(infile, outfile, noise_level, debug):
 
 def copy_image(infile, outfile, debug):
     # load the input image
-    inimg = read_image_file(infile)
-    assert inimg is not None, f"error: cannot read {infile}"
+    inbgr = read_image_file(infile)
+    assert inbgr is not None, f"error: cannot read {infile}"
     # write the output image
-    write_image_file(outfile, inimg)
+    write_image_file(outfile, inbgr)
 
 
 def force_range(val):
@@ -225,20 +232,29 @@ def diff_color_vval(ydiff):
     return force_range(int(((DIFF_COLOR_FACTOR * ydiff + 255) / 2)))
 
 
-def diff_images(infile1, infile2, outfile, diff_factor, diff_component, diff_color, diff_color_factor, debug):
+def diff_images(
+    infile1,
+    infile2,
+    outfile,
+    diff_factor,
+    diff_component,
+    diff_color,
+    diff_color_factor,
+    debug,
+):
     # load the input images
-    inimg1 = read_image_file(infile1)
-    assert inimg1 is not None, f"error: cannot read {infile1}"
-    inimg2 = read_image_file(infile2)
-    assert inimg2 is not None, f"error: cannot read {infile2}"
+    inbgr1 = read_image_file(infile1)
+    assert inbgr1 is not None, f"error: cannot read {infile1}"
+    inbgr2 = read_image_file(infile2)
+    assert inbgr2 is not None, f"error: cannot read {infile2}"
     # convert them to yuv
-    yuv1 = cv2.cvtColor(inimg1, cv2.COLOR_BGR2YCrCb)
-    yuv2 = cv2.cvtColor(inimg2, cv2.COLOR_BGR2YCrCb)
+    inyvu1 = cv2.cvtColor(inbgr1, cv2.COLOR_BGR2YCrCb)
+    inyvu2 = cv2.cvtColor(inbgr2, cv2.COLOR_BGR2YCrCb)
     # diff them
-    diff_yuv_sign = yuv1.astype(np.int16) - yuv2.astype(np.int16)
-    diff_yuv = np.absolute(diff_yuv_sign).astype(np.uint8)
+    diff_yvu_sign = inyvu1.astype(np.int16) - inyvu2.astype(np.int16)
+    diff_yvu = np.absolute(diff_yvu_sign).astype(np.uint8)
     # calculate the energy of the diff
-    yd, ud, vd = diff_yuv[:, :, 0], diff_yuv[:, :, 1], diff_yuv[:, :, 2]
+    yd, vd, ud = diff_yvu[:, :, 0], diff_yvu[:, :, 1], diff_yvu[:, :, 2]
     yd_mean, yd_std = yd.mean(), yd.std()
     ud_mean, ud_std = ud.mean(), ud.std()
     vd_mean, vd_std = vd.mean(), vd.std()
@@ -274,24 +290,24 @@ def diff_images(infile1, infile2, outfile, diff_factor, diff_component, diff_col
         DIFF_COLOR_FACTOR = diff_color_factor
         apply_uval = np.vectorize(diff_color_uval)
         apply_vval = np.vectorize(diff_color_vval)
-        ud = apply_uval(diff_yuv_sign).astype(np.uint8)[:, :, 0]
-        vd = apply_vval(diff_yuv_sign).astype(np.uint8)[:, :, 0]
+        ud = apply_uval(diff_yvu_sign).astype(np.uint8)[:, :, 0]
+        vd = apply_vval(diff_yvu_sign).astype(np.uint8)[:, :, 0]
 
     # combine the diff color components
-    outyuv = np.stack((yd, ud, vd), axis=2)
-    outbgr = cv2.cvtColor(outyuv, cv2.COLOR_YCrCb2BGR)
+    outyvu = np.stack((yd, vd, ud), axis=2)
+    outbgr = cv2.cvtColor(outyvu, cv2.COLOR_YCrCb2BGR)
     # write the output image
     write_image_file(outfile, outbgr)
 
 
 def mse_image(infile, debug):
     # load the input image
-    inimg = read_image_file(infile)
-    assert inimg is not None, f"error: cannot read {infile}"
+    inbgr = read_image_file(infile)
+    assert inbgr is not None, f"error: cannot read {infile}"
     # careful with number ranges
-    yuvimg = cv2.cvtColor(inimg, cv2.COLOR_BGR2YCrCb).astype(np.int32)
+    inyvu = cv2.cvtColor(inbgr, cv2.COLOR_BGR2YCrCb).astype(np.int32)
     # calculate the (1 - luma) mse
-    luma = yuvimg[:, :, 0]
+    luma = inyvu[:, :, 0]
     width, height = luma.shape
     mse = ((255 - luma) ** 2).mean() / (width * height)
     return mse
@@ -300,18 +316,19 @@ def mse_image(infile, debug):
 # calculates a histogram of the luminance values
 def get_histogram(infile, outfile, hist_component, debug):
     # load the input image
-    if hist_component in ("y", "u", "v"):
-        inimg = read_image_file(infile, return_type=Return_t.COLOR_YUV)
+    if hist_component in ("y", "v", "u"):
+        inimg = read_image_file(infile, return_type=Return_t.COLOR_YVU)
     else:  # hist_component in ("r", "g", "b"):
         inimg = read_image_file(infile)
     assert inimg is not None, f"error: cannot read {infile}"
-    # get the requested component: note that options are YUV or BGR
+    # get the requested component: note that options are YVU or BGR
     if hist_component == "y" or hist_component == "b":
-        component = inimg[:, :, 0]
-    elif hist_component == "u" or hist_component == "g":
-        component = inimg[:, :, 1]
-    elif hist_component == "v" or hist_component == "r":
-        component = inimg[:, :, 2]
+        component = inimg[:, :, 0]  # inyvu, inbgr
+    elif hist_component == "v" or hist_component == "g":
+        component = inimg[:, :, 1]  # inyvu, inbgr
+    elif hist_component == "u" or hist_component == "r":
+        component = inimg[:, :, 2]  # inyvu, inbgr
+
     # calculate the histogram
     VALUE_RANGE = 256  # assume 8-bit color
     histogram = {k: 0 for k in range(VALUE_RANGE)}
@@ -330,11 +347,11 @@ def get_histogram(infile, outfile, hist_component, debug):
 # rotates infile
 def rotate_image(infile, rotate_angle, outfile, debug):
     # load the input image
-    inimg = read_image_file(infile)
-    assert inimg is not None, f"error: cannot read {infile}"
+    inbgr = read_image_file(infile)
+    assert inbgr is not None, f"error: cannot read {infile}"
     # rotate it
     num_rotations = ROTATE_ANGLE_LIST[rotate_angle]
-    outbgr = np.rot90(inimg, k=num_rotations, axes=(0, 1))
+    outbgr = np.rot90(inbgr, k=num_rotations, axes=(0, 1))
     # write the output image
     write_image_file(outfile, outbgr)
 
@@ -343,30 +360,30 @@ def rotate_image(infile, rotate_angle, outfile, debug):
 # uses alpha
 def compose_images(infile1, infile2, xloc, yloc, outfile, debug):
     # load the input images
-    inimg1 = read_image_file(infile1)
-    assert inimg1 is not None, f"error: cannot read {infile1}"
-    inimg2 = read_image_file(infile2, cv2.IMREAD_UNCHANGED)
-    assert inimg2 is not None, f"error: cannot read {infile2}"
+    inbgr1 = read_image_file(infile1)
+    assert inbgr1 is not None, f"error: cannot read {infile1}"
+    inbgr2 = read_image_file(infile2, cv2.IMREAD_UNCHANGED)
+    assert inbgr2 is not None, f"error: cannot read {infile2}"
     # compose them
-    width1, height1, _ = inimg1.shape
-    width2, height2, _ = inimg2.shape
+    width1, height1, _ = inbgr1.shape
+    width2, height2, _ = inbgr2.shape
     assert xloc + width2 < width1
     assert yloc + height2 < height1
-    if inimg2.shape[2] == 3:
+    if inbgr2.shape[2] == 3:
         # no alpha channel: just use 50% ((im1 + im2) / 2)
-        outbgr = inimg1.astype(np.int16)
-        outbgr[yloc: yloc + height2, xloc: xloc + width2] += inimg2
-        outbgr[yloc: yloc + height2, xloc: xloc + width2] /= 2
+        outbgr = inbgr1.astype(np.int16)
+        outbgr[yloc : yloc + height2, xloc : xloc + width2] += inbgr2
+        outbgr[yloc : yloc + height2, xloc : xloc + width2] /= 2
 
-    elif inimg2.shape[2] == 4:
-        outbgr = inimg1.astype(np.int16)
+    elif inbgr2.shape[2] == 4:
+        outbgr = inbgr1.astype(np.int16)
         # TODO(chema): replace this loop with alpha-channel line
         for (x2, y2) in itertools.product(range(width2), range(height2)):
             x1 = xloc + x2
             y1 = yloc + y2
-            alpha_value = inimg2[y2][x2][3] / 256
+            alpha_value = inbgr2[y2][x2][3] / 256
             outbgr[y1][x1] = np.rint(
-                outbgr[y1][x1] * (1 - alpha_value) + inimg2[y2][x2][:3] * alpha_value
+                outbgr[y1][x1] * (1 - alpha_value) + inbgr2[y2][x2][:3] * alpha_value
             )
 
     # store the output image
@@ -376,47 +393,47 @@ def compose_images(infile1, infile2, xloc, yloc, outfile, debug):
 
 def match_images(infile1, infile2, outfile, debug):
     # load the input images
-    inimg1 = read_image_file(infile1)
-    assert inimg1 is not None, f"error: cannot read {infile1}"
-    inimg2 = read_image_file(infile2, cv2.IMREAD_UNCHANGED)
-    assert inimg2 is not None, f"error: cannot read {infile2}"
+    inbgr1 = read_image_file(infile1)
+    assert inbgr1 is not None, f"error: cannot read {infile1}"
+    inbgr2 = read_image_file(infile2, cv2.IMREAD_UNCHANGED)
+    assert inbgr2 is not None, f"error: cannot read {infile2}"
     # we will do gray correlation image matching: Use only the lumas
-    luma1 = cv2.cvtColor(inimg1, cv2.COLOR_BGR2GRAY)
-    luma2 = cv2.cvtColor(inimg2, cv2.COLOR_BGR2GRAY)
+    inluma1 = cv2.cvtColor(inbgr1, cv2.COLOR_BGR2GRAY)
+    inluma2 = cv2.cvtColor(inbgr2, cv2.COLOR_BGR2GRAY)
     # support needles with alpha channels
-    if inimg2.shape[2] == 3:
+    if inbgr2.shape[2] == 3:
         # no alpha channel: just use the luma for the search
         pass
-    elif inimg2.shape[2] == 4:
+    elif inbgr2.shape[2] == 4:
         # alpha channel: add noise to the non-alpha channel parts
         # https://stackoverflow.com/a/20461136
         # TODO(chema): replace random-composed luma with alpha-channel-based
         # matchTemplate() function.
-        luma2rand = np.random.randint(256, size=luma2.shape).astype(np.int16)
-        width2, height2 = luma2.shape
-        alpha_channel2 = inimg2[:, :, 3]
+        luma2rand = np.random.randint(256, size=inluma2.shape).astype(np.int16)
+        width2, height2 = inluma2.shape
+        alpha_channel2 = inbgr2[:, :, 3]
         # TODO(chema): replace this loop with alpha-channel line
         for (x2, y2) in itertools.product(range(width2), range(height2)):
             alpha_value = alpha_channel2[y2][x2] / 256
             luma2rand[y2][x2] = np.rint(
-                luma2rand[y2][x2] * (1 - alpha_value) + luma2[y2][x2] * alpha_value
+                luma2rand[y2][x2] * (1 - alpha_value) + inluma2[y2][x2] * alpha_value
             )
-        luma2 = luma2rand.astype(np.uint8)
+        inluma2 = luma2rand.astype(np.uint8)
     # match infile2 (template, needle) in infile1 (image, haystack)
     # Note that matchTemplate() does not support rotation or scaling
     # https://docs.opencv.org/4.x/d4/dc6/tutorial_py_template_matching.html
-    match = cv2.matchTemplate(luma1, luma2, cv2.TM_CCOEFF_NORMED)
+    match = cv2.matchTemplate(inluma1, inluma2, cv2.TM_CCOEFF_NORMED)
     # get the location for the highest match[] value
     y0, x0 = np.unravel_index(match.argsort(axis=None)[-1], match.shape)
     if debug > 0:
         print(f"{x0 = } {y0 = }")
     # prepare the output
-    outbgr = inimg1.astype(np.int16)
-    xwidth, ywidth, _ = inimg2.shape
+    outbgr = inbgr1.astype(np.int16)
+    xwidth, ywidth, _ = inbgr2.shape
     x1, y1 = x0 + xwidth, y0 + ywidth
     # substract the needle from the haystack
     # this replaces black with black: Not very useful
-    # outbgr[y0:y1, x0:x1] -= inimg2[:,:,:3]
+    # outbgr[y0:y1, x0:x1] -= inbgr2[:,:,:3]
     # add an X in the origin (0,0) point
     # cv2.line(outbgr, (0, 0), (2, 2), color=(0,0,0), thickness=1)
     # add an X in the (x0, y0) point
@@ -434,17 +451,17 @@ def affine_transformation_matrix(
     infile, outfile, width, height, a00, a01, a10, a11, b00, b10, debug
 ):
     # load the input image
-    inimg = read_image_file(infile)
-    assert inimg is not None, f"error: cannot read {infile}"
+    inbgr = read_image_file(infile)
+    assert inbgr is not None, f"error: cannot read {infile}"
     # process the image
     m0 = [a00, a01, b00]
     m1 = [a10, a11, b10]
     transform_matrix = np.array([m0, m1]).astype(np.float32)
     if debug > 0:
         print(f"{transform_matrix = }")
-    width = width if width != 0 else inimg.shape[1]
-    height = height if height != 0 else inimg.shape[0]
-    outbgr = cv2.warpAffine(inimg, transform_matrix, (width, height))
+    width = width if width != 0 else inbgr.shape[1]
+    height = height if height != 0 else inbgr.shape[0]
+    outbgr = cv2.warpAffine(inbgr, transform_matrix, (width, height))
     # store the output image
     write_image_file(outfile, outbgr)
 
@@ -469,8 +486,8 @@ def affine_transformation_points(
     debug,
 ):
     # load the input image
-    inimg = read_image_file(infile)
-    assert inimg is not None, f"error: cannot read {infile}"
+    inbgr = read_image_file(infile)
+    assert inbgr is not None, f"error: cannot read {infile}"
     # process the image
     s0 = [s0x, s0y]
     s1 = [s1x, s1y]
@@ -483,9 +500,9 @@ def affine_transformation_points(
     transform_matrix = cv2.getAffineTransform(src_trio, dst_trio)
     if debug > 0:
         print(f"{transform_matrix = }")
-    width = width if width != 0 else inimg.shape[1]
-    height = height if height != 0 else inimg.shape[0]
-    outbgr = cv2.warpAffine(inimg, transform_matrix, (width, height))
+    width = width if width != 0 else inbgr.shape[1]
+    height = height if height != 0 else inbgr.shape[0]
+    outbgr = cv2.warpAffine(inbgr, transform_matrix, (width, height))
     # store the output image
     write_image_file(outfile, outbgr)
 
