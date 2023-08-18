@@ -10,6 +10,7 @@ Runs generic image transformation on input images.
 import argparse
 import cv2
 import itertools
+import math
 import numpy as np
 import os.path
 import sys
@@ -17,6 +18,7 @@ import y4m
 
 
 DEFAULT_NOISE_LEVEL = 50
+PSNR_K = math.log10(2**8 - 1)
 ROTATE_ANGLE_LIST = {
     0: 0,
     90: 1,
@@ -34,7 +36,8 @@ FILTER_CHOICES = {
     "xchroma": "swap chromas",
     "noise": "add noise",
     "diff": "diff 2 frames",
-    "mse": "get the MSE of a frame",
+    "mse": "get the MSE/PSNR of a frame",
+    "psnr": "get the MSE/PSNR of a frame",
     "histogram": "get a histogram of the values of a given component",
     "compose": "compose 2 frames",
     "rotate": "rotate a frame (90, 180, 270)",
@@ -310,7 +313,9 @@ def mse_image(infile, debug):
     luma = inyvu[:, :, 0]
     width, height = luma.shape
     mse = ((255 - luma) ** 2).mean() / (width * height)
-    return mse
+    # calculate the PSNR
+    psnr = (20 * PSNR_K - 10 * math.log10(mse)) if mse != 0.0 else 100
+    return mse, psnr
 
 
 # calculates a histogram of the luminance values
@@ -916,9 +921,9 @@ def main(argv):
             options.debug,
         )
 
-    elif options.filter == "mse":
-        mse = mse_image(options.infile, options.debug)
-        print(f"{mse = }")
+    elif options.filter == "mse" or options.filter == "psnr":
+        mse, psnr = mse_image(options.infile, options.debug)
+        print(f"{mse = }\n{psnr = }")
 
     elif options.filter == "histogram":
         get_histogram(
