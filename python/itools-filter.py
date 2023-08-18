@@ -312,7 +312,7 @@ def mse_image(infile, debug):
     # calculate the (1 - luma) mse
     luma = inyvu[:, :, 0]
     width, height = luma.shape
-    mse = ((255 - luma) ** 2).mean() / (width * height)
+    mse = ((255 - luma) ** 2).mean()
     # calculate the PSNR
     psnr = (20 * PSNR_K - 10 * math.log10(mse)) if mse != 0.0 else 100
     return mse, psnr
