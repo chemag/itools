@@ -59,6 +59,8 @@ default_values = {
     "rotate_angle": 90,
     "x": 10,
     "y": 20,
+    "iwidth": 0,
+    "iheight": 0,
     "width": 0,
     "height": 0,
     "a00": 1,
@@ -154,31 +156,56 @@ def read_y4m(infile):
     return outyvu
 
 
+# rgba is packed, R/G/B/A components
+def read_rgba(infile, iwidth, iheight):
+    with open(infile, "rb") as fin:
+        data = fin.read()
+    outrgba = np.frombuffer(data, dtype=np.uint8)
+    # extract the 3x components (ignore alpha channel)
+    outr, outg, outb = outrgba[0::4], outrgba[1::4], outrgba[2::4]
+    # reshape them to the width and height
+    outr = outr.reshape(iwidth, iheight)
+    outg = outg.reshape(iwidth, iheight)
+    outb = outb.reshape(iwidth, iheight)
+    # stack components
+    outbgr = np.stack((outb, outg, outr), axis=2)
+    return outbgr
+
+
 class Return_t:
     COLOR_BGR, COLOR_YVU = range(2)
 
 
-def read_image_file(infile, flags=None, return_type=None):
+def read_image_file(
+    infile, flags=None, return_type=Return_t.COLOR_BGR, iwidth=None, iheight=None
+):
     if os.path.splitext(infile)[1] == ".y4m":
         outyvu = read_y4m(infile)
         if return_type == Return_t.COLOR_YVU:
             return outyvu
         outbgr = cv2.cvtColor(outyvu, cv2.COLOR_YCrCb2BGR)
         return outbgr
-    outbgr = cv2.imread(cv2.samples.findFile(infile, flags))
-    if return_type == Return_t.COLOR_YVU:
+
+    elif os.path.splitext(infile)[1] == ".rgba":
+        outbgr = read_rgba(infile, iwidth, iheight)
+
+    else:
+        outbgr = cv2.imread(cv2.samples.findFile(infile, flags))
+
+    if return_type == Return_t.COLOR_BGR:
+        return outbgr
+    elif return_type == Return_t.COLOR_YVU:
         outyvu = cv2.cvtColor(outbgr, cv2.COLOR_BGR2YCrCb)
         return outyvu
-    return outbgr
 
 
 def write_image_file(outfile, outimg):
     cv2.imwrite(outfile, outimg)
 
 
-def image_to_gray(infile, outfile, debug):
+def image_to_gray(infile, outfile, iwidth, iheight, debug):
     # load the input image
-    inbgr = read_image_file(infile)
+    inbgr = read_image_file(infile, iwidth=iwidth, iheight=iheight)
     assert inbgr is not None, f"error: cannot read {infile}"
     # convert to gray
     tmpgray = cv2.cvtColor(inbgr, cv2.COLOR_BGR2GRAY)
@@ -187,9 +214,9 @@ def image_to_gray(infile, outfile, debug):
     write_image_file(outfile, outbgr)
 
 
-def swap_xchroma(infile, outfile, debug):
+def swap_xchroma(infile, outfile, iwidth, iheight, debug):
     # load the input image
-    inbgr = read_image_file(infile)
+    inbgr = read_image_file(infile, iwidth=iwidth, iheight=iheight)
     assert inbgr is not None, f"error: cannot read {infile}"
     # swap chromas
     tmpyvu = cv2.cvtColor(inbgr, cv2.COLOR_BGR2YCrCb)
@@ -199,9 +226,9 @@ def swap_xchroma(infile, outfile, debug):
     write_image_file(outfile, outbgr)
 
 
-def add_noise(infile, outfile, noise_level, debug):
+def add_noise(infile, outfile, iwidth, iheight, noise_level, debug):
     # load the input image
-    inbgr = read_image_file(infile)
+    inbgr = read_image_file(infile, iwidth=iwidth, iheight=iheight)
     assert inbgr is not None, f"error: cannot read {infile}"
     # convert to gray
     noiseimg = np.random.randint(
@@ -215,9 +242,9 @@ def add_noise(infile, outfile, noise_level, debug):
     write_image_file(outfile, outbgr)
 
 
-def copy_image(infile, outfile, debug):
+def copy_image(infile, outfile, iwidth, iheight, debug):
     # load the input image
-    inbgr = read_image_file(infile)
+    inbgr = read_image_file(infile, iwidth=iwidth, iheight=iheight)
     assert inbgr is not None, f"error: cannot read {infile}"
     # write the output image
     write_image_file(outfile, inbgr)
@@ -239,6 +266,8 @@ def diff_images(
     infile1,
     infile2,
     outfile,
+    iwidth,
+    iheight,
     diff_factor,
     diff_component,
     diff_color,
@@ -246,9 +275,9 @@ def diff_images(
     debug,
 ):
     # load the input images
-    inbgr1 = read_image_file(infile1)
+    inbgr1 = read_image_file(infile1, iwidth=iwidth, iheight=iheight)
     assert inbgr1 is not None, f"error: cannot read {infile1}"
-    inbgr2 = read_image_file(infile2)
+    inbgr2 = read_image_file(infile2, iwidth=iwidth, iheight=iheight)
     assert inbgr2 is not None, f"error: cannot read {infile2}"
     # convert them to yuv
     inyvu1 = cv2.cvtColor(inbgr1, cv2.COLOR_BGR2YCrCb)
@@ -303,9 +332,9 @@ def diff_images(
     write_image_file(outfile, outbgr)
 
 
-def mse_image(infile, debug):
+def mse_image(infile, iwidth, iheight, debug):
     # load the input image
-    inbgr = read_image_file(infile)
+    inbgr = read_image_file(infile, iwidth=iwidth, iheight=iheight)
     assert inbgr is not None, f"error: cannot read {infile}"
     # careful with number ranges
     inyvu = cv2.cvtColor(inbgr, cv2.COLOR_BGR2YCrCb).astype(np.int32)
@@ -319,12 +348,14 @@ def mse_image(infile, debug):
 
 
 # calculates a histogram of the luminance values
-def get_histogram(infile, outfile, hist_component, debug):
+def get_histogram(infile, outfile, iwidth, iheight, hist_component, debug):
     # load the input image
     if hist_component in ("y", "v", "u"):
-        inimg = read_image_file(infile, return_type=Return_t.COLOR_YVU)
+        inimg = read_image_file(
+            infile, return_type=Return_t.COLOR_YVU, iwidth=iwidth, iheight=iheight
+        )
     else:  # hist_component in ("r", "g", "b"):
-        inimg = read_image_file(infile)
+        inimg = read_image_file(infile, iwidth=iwidth, iheight=iheight)
     assert inimg is not None, f"error: cannot read {infile}"
     # get the requested component: note that options are YVU or BGR
     if hist_component == "y" or hist_component == "b":
@@ -350,9 +381,9 @@ def get_histogram(infile, outfile, hist_component, debug):
 
 
 # rotates infile
-def rotate_image(infile, rotate_angle, outfile, debug):
+def rotate_image(infile, rotate_angle, outfile, iwidth, iheight, debug):
     # load the input image
-    inbgr = read_image_file(infile)
+    inbgr = read_image_file(infile, iwidth=iwidth, iheight=iheight)
     assert inbgr is not None, f"error: cannot read {infile}"
     # rotate it
     num_rotations = ROTATE_ANGLE_LIST[rotate_angle]
@@ -363,11 +394,13 @@ def rotate_image(infile, rotate_angle, outfile, debug):
 
 # composes infile2 on top of infile1, at (xloc, yloc)
 # uses alpha
-def compose_images(infile1, infile2, xloc, yloc, outfile, debug):
+def compose_images(infile1, infile2, iwidth, iheight, xloc, yloc, outfile, debug):
     # load the input images
-    inbgr1 = read_image_file(infile1)
+    inbgr1 = read_image_file(infile1, iwidth=iwidth, iheight=iheight)
     assert inbgr1 is not None, f"error: cannot read {infile1}"
-    inbgr2 = read_image_file(infile2, cv2.IMREAD_UNCHANGED)
+    inbgr2 = read_image_file(
+        infile2, cv2.IMREAD_UNCHANGED, iwidth=iwidth, iheight=iheight
+    )
     assert inbgr2 is not None, f"error: cannot read {infile2}"
     # compose them
     width1, height1, _ = inbgr1.shape
@@ -396,11 +429,13 @@ def compose_images(infile1, infile2, xloc, yloc, outfile, debug):
     write_image_file(outfile, outbgr)
 
 
-def match_images(infile1, infile2, outfile, debug):
+def match_images(infile1, infile2, outfile, iwidth, iheight, debug):
     # load the input images
-    inbgr1 = read_image_file(infile1)
+    inbgr1 = read_image_file(infile1, iwidth=iwidth, iheight=iheight)
     assert inbgr1 is not None, f"error: cannot read {infile1}"
-    inbgr2 = read_image_file(infile2, cv2.IMREAD_UNCHANGED)
+    inbgr2 = read_image_file(
+        infile2, cv2.IMREAD_UNCHANGED, iwidth=iwidth, iheight=iheight
+    )
     assert inbgr2 is not None, f"error: cannot read {infile2}"
     # we will do gray correlation image matching: Use only the lumas
     inluma1 = cv2.cvtColor(inbgr1, cv2.COLOR_BGR2GRAY)
@@ -453,10 +488,10 @@ def match_images(infile1, infile2, outfile, debug):
 
 
 def affine_transformation_matrix(
-    infile, outfile, width, height, a00, a01, a10, a11, b00, b10, debug
+    infile, iwidth, iheight, outfile, width, height, a00, a01, a10, a11, b00, b10, debug
 ):
     # load the input image
-    inbgr = read_image_file(infile)
+    inbgr = read_image_file(infile, iwidth=iwidth, iheight=iheight)
     assert inbgr is not None, f"error: cannot read {infile}"
     # process the image
     m0 = [a00, a01, b00]
@@ -473,6 +508,8 @@ def affine_transformation_matrix(
 
 def affine_transformation_points(
     infile,
+    iwidth,
+    iheight,
     outfile,
     width,
     height,
@@ -491,7 +528,7 @@ def affine_transformation_points(
     debug,
 ):
     # load the input image
-    inbgr = read_image_file(infile)
+    inbgr = read_image_file(infile, iwidth=iwidth, iheight=iheight)
     assert inbgr is not None, f"error: cannot read {infile}"
     # process the image
     s0 = [s0x, s0y]
@@ -640,6 +677,36 @@ def get_options(argv):
         default=default_values["y"],
         help="Composition Y Coordinate",
     )
+    parser.add_argument(
+        "--iwidth",
+        action="store",
+        type=int,
+        dest="iwidth",
+        default=default_values["iwidth"],
+        metavar="WIDTH",
+        help=("input WIDTH (default: %i)" % default_values["iwidth"]),
+    )
+    parser.add_argument(
+        "--iheight",
+        action="store",
+        type=int,
+        dest="iheight",
+        default=default_values["iheight"],
+        metavar="HEIGHT",
+        help=("input HEIGHT (default: %i)" % default_values["iheight"]),
+    )
+
+    class VideoSizeAction(argparse.Action):
+        def __call__(self, parser, namespace, values, option_string=None):
+            namespace.iwidth, namespace.iheight = [int(v) for v in values[0].split("x")]
+
+    parser.add_argument(
+        "--isize",
+        action=VideoSizeAction,
+        nargs=1,
+        help="use <width>x<height>",
+    )
+
     parser.add_argument(
         "--width",
         action="store",
@@ -906,6 +973,8 @@ def main(argv):
         copy_image(
             options.infile,
             options.outfile,
+            options.iwidth,
+            options.iheight,
             options.debug,
         )
 
@@ -914,6 +983,8 @@ def main(argv):
             options.infile,
             options.infile2,
             options.outfile,
+            options.iwidth,
+            options.iheight,
             options.diff_factor,
             options.diff_component,
             options.diff_color,
@@ -922,12 +993,19 @@ def main(argv):
         )
 
     elif options.filter == "mse" or options.filter == "psnr":
-        mse, psnr = mse_image(options.infile, options.debug)
+        mse, psnr = mse_image(
+            options.infile, options.iwidth, options.iheight, options.debug
+        )
         print(f"{mse = }\n{psnr = }")
 
     elif options.filter == "histogram":
         get_histogram(
-            options.infile, options.outfile, options.hist_component, options.debug
+            options.infile,
+            options.outfile,
+            options.iwidth,
+            options.iheight,
+            options.hist_component,
+            options.debug,
         )
 
     elif options.filter == "rotate":
@@ -935,6 +1013,8 @@ def main(argv):
             options.infile,
             options.rotate_angle,
             options.outfile,
+            options.iwidth,
+            options.iheight,
             options.debug,
         )
 
@@ -942,6 +1022,8 @@ def main(argv):
         compose_images(
             options.infile,
             options.infile2,
+            options.iwidth,
+            options.iheight,
             options.x,
             options.y,
             options.outfile,
@@ -949,20 +1031,48 @@ def main(argv):
         )
 
     elif options.filter == "match":
-        match_images(options.infile, options.infile2, options.outfile, options.debug)
+        match_images(
+            options.infile,
+            options.infile2,
+            options.outfile,
+            options.iwidth,
+            options.iheight,
+            options.debug,
+        )
 
     elif options.filter == "gray":
-        image_to_gray(options.infile, options.outfile, options.debug)
+        image_to_gray(
+            options.infile,
+            options.outfile,
+            options.iwidth,
+            options.iheight,
+            options.debug,
+        )
 
     elif options.filter == "xchroma":
-        swap_xchroma(options.infile, options.outfile, options.debug)
+        swap_xchroma(
+            options.infile,
+            options.outfile,
+            options.iwidth,
+            options.iheight,
+            options.debug,
+        )
 
     elif options.filter == "noise":
-        add_noise(options.infile, options.outfile, options.noise_level, options.debug)
+        add_noise(
+            options.infile,
+            options.outfile,
+            options.iwidth,
+            options.iheight,
+            options.noise_level,
+            options.debug,
+        )
 
     elif options.filter == "affine":
         affine_transformation_matrix(
             options.infile,
+            options.iwidth,
+            options.iheight,
             options.outfile,
             options.width,
             options.height,
@@ -978,6 +1088,8 @@ def main(argv):
     elif options.filter == "affine-points":
         affine_transformation_points(
             options.infile,
+            options.iwidth,
+            options.iheight,
             options.outfile,
             options.width,
             options.height,
