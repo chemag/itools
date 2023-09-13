@@ -33,7 +33,8 @@ FILTER_CHOICES = {
     "help": "show help options",
     "copy": "copy input to output",
     "gray": "convert image to GRAY scale",
-    "xchroma": "swap chromas",
+    "xchroma": "swap U and V chromas",
+    "xrgb2yuv": "swap RGB components as YUV",
     "noise": "add noise",
     "diff": "diff 2 frames",
     "mse": "get the MSE/PSNR of a frame",
@@ -221,6 +222,19 @@ def swap_xchroma(infile, outfile, iwidth, iheight, debug):
     # swap chromas
     tmpyvu = cv2.cvtColor(inbgr, cv2.COLOR_BGR2YCrCb)
     outyvu = tmpyvu[:, :, [0, 2, 1]]
+    outbgr = cv2.cvtColor(outyvu, cv2.COLOR_YCrCb2BGR)
+    # store the output image
+    write_image_file(outfile, outbgr)
+
+
+def swap_xrgb2yuv(infile, outfile, iwidth, iheight, debug):
+    # load the input image
+    inbgr = read_image_file(infile, iwidth=iwidth, iheight=iheight)
+    assert inbgr is not None, f"error: cannot read {infile}"
+    inrgb = inbgr[:, :, [2, 1, 0]]
+    # swap RGB to YUV
+    outyuv = inrgb
+    outyvu = outyuv[:, :, [0, 2, 1]]
     outbgr = cv2.cvtColor(outyvu, cv2.COLOR_YCrCb2BGR)
     # store the output image
     write_image_file(outfile, outbgr)
@@ -1051,6 +1065,15 @@ def main(argv):
 
     elif options.filter == "xchroma":
         swap_xchroma(
+            options.infile,
+            options.outfile,
+            options.iwidth,
+            options.iheight,
+            options.debug,
+        )
+
+    elif options.filter == "xrgb2yuv":
+        swap_xrgb2yuv(
             options.infile,
             options.outfile,
             options.iwidth,

@@ -12,6 +12,7 @@ This tool converts between different Bayer formats.
 This tool provides some image filters, including:
 * `gray`: convert image to grayscale.
 * `xchroma`: swap chromas (Cb and Cr) in the image.
+* `xrgb2yuv`: swap RGB with YUV components.
 * `noise`: add noise to the image.
 * `diff`: get the diff of 2x images.
 * `compose`: compose 2x images.
@@ -228,7 +229,21 @@ $ ./python/itools-filter.py --filter rotate -i docs/lena.jpeg --rotate-angle -90
 Figure 15 shows the original image after being passed through the `rotate` filter.
 
 
-## 2.10. `histogram` filter
+## 2.10. `xrgb2yuv` filter
+
+This filter swaps the RGB and YUV components.
+
+Example
+```
+$ ./python/itools-filter.py --filter xrgb2yuv -i docs/lena.jpeg -o docs/lena.xrgb2yuv.jpeg
+```
+
+![Figure 16](docs/lena.xrgb2yuv.jpeg)
+
+Figure 16 shows the original image after being passed through the `xrgb2yuv` filter.
+
+
+## 2.12. `histogram` filter
 
 This filter produces a histogram of the lumas or chromas of a file. Use the option "`--hist-component [y|u|v|r|g|b]`" to select the actual component.
 
