@@ -40,6 +40,7 @@ FILTER_CHOICES = {
     "mse": "get the MSE/PSNR of a frame",
     "psnr": "get the MSE/PSNR of a frame",
     "histogram": "get a histogram of the values of a given component",
+    "components": "get the average/stddev of all the components",
     "compose": "compose 2 frames",
     "rotate": "rotate a frame (90, 180, 270)",
     "match": "match 2 frames (needle and haystack problem -- only shift)",
@@ -301,13 +302,13 @@ def diff_images(
     diff_yvu = np.absolute(diff_yvu_sign).astype(np.uint8)
     # calculate the energy of the diff
     yd, vd, ud = diff_yvu[:, :, 0], diff_yvu[:, :, 1], diff_yvu[:, :, 2]
-    yd_mean, yd_std = yd.mean(), yd.std()
-    ud_mean, ud_std = ud.mean(), ud.std()
-    vd_mean, vd_std = vd.mean(), vd.std()
+    y_mean, y_std = yd.mean(), yd.std()
+    u_mean, u_std = ud.mean(), ud.std()
+    v_mean, v_std = vd.mean(), vd.std()
     # print out values
-    print(f"y {{ mean: {yd_mean} stddev: {yd_std} }}")
-    print(f"u {{ mean: {ud_mean} stddev: {ud_std} }}")
-    print(f"v {{ mean: {vd_mean} stddev: {vd_std} }}")
+    print(f"y {{ mean: {y_mean} stddev: {y_std} }}")
+    print(f"u {{ mean: {u_mean} stddev: {u_std} }}")
+    print(f"v {{ mean: {v_mean} stddev: {v_std} }}")
     # choose the visual output
     if diff_component == "y":
         # use the luma for diff luma
@@ -392,6 +393,32 @@ def get_histogram(infile, outfile, iwidth, iheight, hist_component, debug):
         fout.write("value,hist,norm\n")
         for k in range(VALUE_RANGE):
             fout.write(f"{k},{histogram[k]},{histogram_normalized[k]}\n")
+
+
+# calculates the average/stddev of all components
+def get_components(infile, outfile, iwidth, iheight, debug):
+    # load the input image as both yuv and rgb
+    inyvu = read_image_file(
+        infile, return_type=Return_t.COLOR_YVU, iwidth=iwidth, iheight=iheight
+    )
+    inbgr = read_image_file(infile, iwidth=iwidth, iheight=iheight)
+    # get the requested component: note that options are YVU or BGR
+    yd, vd, ud = inyvu[:, :, 0], inyvu[:, :, 1], inyvu[:, :, 2]
+    y_mean, y_std = yd.mean(), yd.std()
+    u_mean, u_std = ud.mean(), ud.std()
+    v_mean, v_std = vd.mean(), vd.std()
+    bd, gd, rd = inbgr[:, :, 0], inbgr[:, :, 1], inbgr[:, :, 2]
+    b_mean, b_std = bd.mean(), bd.std()
+    g_mean, g_std = gd.mean(), gd.std()
+    r_mean, r_std = rd.mean(), rd.std()
+    # store results as csv
+    with open(outfile, "w") as fout:
+        fout.write(
+            "filename,y_mean,y_std,u_mean,u_std,v_mean,v_std,r_mean,r_std,g_mean,g_std,b_mean,b_std\n"
+        )
+        fout.write(
+            f"{infile},{y_mean},{y_std},{u_mean},{u_std},{v_mean},{v_std},{r_mean},{r_std},{g_mean},{g_std},{b_mean},{b_std}\n"
+        )
 
 
 # rotates infile
@@ -1019,6 +1046,15 @@ def main(argv):
             options.iwidth,
             options.iheight,
             options.hist_component,
+            options.debug,
+        )
+
+    elif options.filter == "components":
+        get_components(
+            options.infile,
+            options.outfile,
+            options.iwidth,
+            options.iheight,
             options.debug,
         )
 
