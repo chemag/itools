@@ -141,17 +141,17 @@ def read_yuv420p10le_to_ndarray(infile, num_cols, num_rows):
         for row in range(num_rows):
             for col in range(num_cols):
                 value_packed = fin.read(2)
-                y[row][col] = ((value_packed[1] << 8) | (value_packed[0])) & 0x03ff
+                y[row][col] = ((value_packed[1] << 8) | (value_packed[0])) & 0x03FF
         # read the u plane
         for row in range(num_rows >> 1):
             for col in range(num_cols >> 1):
                 value_packed = fin.read(2)
-                u[row][col] = ((value_packed[1] << 8) | (value_packed[0])) & 0x03ff
+                u[row][col] = ((value_packed[1] << 8) | (value_packed[0])) & 0x03FF
         # read the v plane
         for row in range(num_rows >> 1):
             for col in range(num_cols >> 1):
                 value_packed = fin.read(2)
-                v[row][col] = ((value_packed[1] << 8) | (value_packed[0])) & 0x03ff
+                v[row][col] = ((value_packed[1] << 8) | (value_packed[0])) & 0x03FF
     return y, u, v
 
 
@@ -189,7 +189,9 @@ def parse(infile, num_cols, num_rows, pattern, debug):
         vavg, vstd = np.average(v[row_mid >> 1]), np.std(v[row_mid >> 1])
         # print results
         cur_color = PATTERN_COLORS[pattern][cur_band]
-        print(f"{cur_color:10}   Y: {int(yavg):4}   U: {int(uavg):4}   V: {int(vavg):4}    Ystd: {ystd} Ustd: {ustd} Vstd: {vstd}")
+        print(
+            f"{cur_color:10}   Y: {int(yavg):4}   U: {int(uavg):4}   V: {int(vavg):4}    Ystd: {ystd} Ustd: {ustd} Vstd: {vstd}"
+        )
 
 
 def convert_range(matrix_in, imin, imax, omin, omax):
@@ -234,7 +236,9 @@ def range_convert(infile, outfile, num_cols, num_rows, range_conversion, debug):
 
 
 # yuv420p10le differ
-def diff(infile1, infile2, outfile, num_cols, num_rows, diff_factor, diff_component, debug):
+def diff(
+    infile1, infile2, outfile, num_cols, num_rows, diff_factor, diff_component, debug
+):
     # read the input files
     y1, u1, v1 = read_yuv420p10le_to_ndarray(infile1, num_cols, num_rows)
     y2, u2, v2 = read_yuv420p10le_to_ndarray(infile2, num_cols, num_rows)
@@ -502,18 +506,48 @@ def main(argv):
         print(options)
     # do something
     if options.func == "generate":
-        generate(options.outfile, options.width, options.height, options.pattern, options.debug)
+        generate(
+            options.outfile,
+            options.width,
+            options.height,
+            options.pattern,
+            options.debug,
+        )
 
     elif options.func == "parse":
-        parse(options.infile, options.width, options.height, options.pattern, options.debug)
+        parse(
+            options.infile,
+            options.width,
+            options.height,
+            options.pattern,
+            options.debug,
+        )
 
     elif options.func == "range-convert":
-        range_convert(options.infile, options.outfile, options.width, options.height, options.range_conversion, options.debug)
+        range_convert(
+            options.infile,
+            options.outfile,
+            options.width,
+            options.height,
+            options.range_conversion,
+            options.debug,
+        )
 
     elif options.func == "diff":
         # ensure there is infile2
-        assert options.infile2 is not None, "error: need a second input file (-j/--infile2)"
-        diff(options.infile, options.infile2, options.outfile, options.width, options.height, options.diff_factor, options.diff_component, options.debug)
+        assert (
+            options.infile2 is not None
+        ), "error: need a second input file (-j/--infile2)"
+        diff(
+            options.infile,
+            options.infile2,
+            options.outfile,
+            options.width,
+            options.height,
+            options.diff_factor,
+            options.diff_component,
+            options.debug,
+        )
 
 
 if __name__ == "__main__":

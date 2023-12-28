@@ -457,7 +457,7 @@ def compose_images(infile1, infile2, iwidth, iheight, xloc, yloc, outfile, debug
     elif inbgr2.shape[2] == 4:
         outbgr = inbgr1.astype(np.int16)
         # TODO(chema): replace this loop with alpha-channel line
-        for (x2, y2) in itertools.product(range(width2), range(height2)):
+        for x2, y2 in itertools.product(range(width2), range(height2)):
             x1 = xloc + x2
             y1 = yloc + y2
             alpha_value = inbgr2[y2][x2][3] / 256
@@ -494,7 +494,7 @@ def match_images(infile1, infile2, outfile, iwidth, iheight, debug):
         width2, height2 = inluma2.shape
         alpha_channel2 = inbgr2[:, :, 3]
         # TODO(chema): replace this loop with alpha-channel line
-        for (x2, y2) in itertools.product(range(width2), range(height2)):
+        for x2, y2 in itertools.product(range(width2), range(height2)):
             alpha_value = alpha_channel2[y2][x2] / 256
             luma2rand[y2][x2] = np.rint(
                 luma2rand[y2][x2] * (1 - alpha_value) + inluma2[y2][x2] * alpha_value

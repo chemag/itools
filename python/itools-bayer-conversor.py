@@ -20,6 +20,7 @@ COLOR_ORDER = ["RGGB", "BGGR", "GRBG", "GBRG"]
 
 # read/write functions
 
+
 # 2 bytes -> 2 components
 def rfun_8(data):
     return data[0], data[1]
@@ -60,14 +61,13 @@ def rfun_10_packed_expanded_to_16(data):
 
 
 def wfun_10_packed_expanded_to_16(c0, c1, c2, c3):
-    main = (((c0 >> 8) << 24) |
-            ((c1 >> 8) << 16) |
-            ((c2 >> 8) << 8) |
-            ((c3 >> 8) << 0))
-    remaining = ((((c3 >> 6) & 0x03) << 6) |
-                 (((c2 >> 6) & 0x03) << 4) |
-                 (((c1 >> 6) & 0x03) << 2) |
-                 (((c0 >> 6) & 0x03) << 0))
+    main = ((c0 >> 8) << 24) | ((c1 >> 8) << 16) | ((c2 >> 8) << 8) | ((c3 >> 8) << 0)
+    remaining = (
+        (((c3 >> 6) & 0x03) << 6)
+        | (((c2 >> 6) & 0x03) << 4)
+        | (((c1 >> 6) & 0x03) << 2)
+        | (((c0 >> 6) & 0x03) << 0)
+    )
     return main.to_bytes(4, "big") + remaining.to_bytes(1, "big")
 
 
@@ -183,7 +183,10 @@ def wfun_16le(c0, c1):
 BAYER_FORMATS = {
     # 8-bit Bayer formats
     "bayer_bggr8": {
-        "alias": ("BA81", "SBGGR8",),
+        "alias": (
+            "BA81",
+            "SBGGR8",
+        ),
         # component order
         "order": "BGGR",
         # byte length
@@ -200,7 +203,10 @@ BAYER_FORMATS = {
         "wfun": wfun_8,
     },
     "bayer_rggb8": {
-        "alias": ("RGGB", "SRGGB8",),
+        "alias": (
+            "RGGB",
+            "SRGGB8",
+        ),
         "order": "RGGB",
         "blen": 2,
         "clen": 2,
@@ -210,7 +216,10 @@ BAYER_FORMATS = {
         "wfun": wfun_8,
     },
     "bayer_gbrg8": {
-        "alias": ("GBRG", "SGBRG8",),
+        "alias": (
+            "GBRG",
+            "SGBRG8",
+        ),
         "order": "GBRG",
         "blen": 2,
         "clen": 2,
@@ -220,7 +229,10 @@ BAYER_FORMATS = {
         "wfun": wfun_8,
     },
     "bayer_grbg8": {
-        "alias": ("GRBG", "SGRBG8",),
+        "alias": (
+            "GRBG",
+            "SGRBG8",
+        ),
         "order": "GRBG",
         "blen": 2,
         "clen": 2,
@@ -229,7 +241,6 @@ BAYER_FORMATS = {
         "rfun": rfun_8,
         "wfun": wfun_8,
     },
-
     # 10-bit Bayer formats expanded to 16 bits
     "RG10": {
         "alias": ("SRGGB10",),
@@ -602,7 +613,11 @@ BAYER_FORMATS = {
     },
     # 16-bit Bayer formats
     "bayer_bggr16le": {
-        "alias": ("BA82", "BYR2", "SBGGR16",),
+        "alias": (
+            "BA82",
+            "BYR2",
+            "SBGGR16",
+        ),
         "order": "BGGR",
         "blen": 4,
         "clen": 2,
@@ -613,7 +628,10 @@ BAYER_FORMATS = {
     },
     "bayer_rggb16le": {
         "order": "RGGB",
-        "alias": ("RG16", "SRGGB16",),
+        "alias": (
+            "RG16",
+            "SRGGB16",
+        ),
         "blen": 4,
         "clen": 2,
         "cdepth": 16,
@@ -622,7 +640,10 @@ BAYER_FORMATS = {
         "wfun": wfun_16le,
     },
     "bayer_gbrg16le": {
-        "alias": ("GB16", "SGBRG16",),
+        "alias": (
+            "GB16",
+            "SGBRG16",
+        ),
         "order": "GBRG",
         "blen": 4,
         "clen": 2,
@@ -632,7 +653,10 @@ BAYER_FORMATS = {
         "wfun": wfun_16le,
     },
     "bayer_grbg16le": {
-        "alias": ("GR16", "SGRBG16",),
+        "alias": (
+            "GR16",
+            "SGRBG16",
+        ),
         "order": "GRBG",
         "blen": 4,
         "clen": 2,
@@ -683,9 +707,13 @@ BAYER_FORMATS = {
 INPUT_FORMATS = {k: v for (k, v) in BAYER_FORMATS.items() if "rfun" in v}
 OUTPUT_FORMATS = {k: v for (k, v) in BAYER_FORMATS.items() if "wfun" in v}
 INPUT_CANONICAL_LIST = list(INPUT_FORMATS.keys())
-INPUT_ALIAS_LIST = list(alias for v in INPUT_FORMATS.values() if "alias" in v for alias in v["alias"])
+INPUT_ALIAS_LIST = list(
+    alias for v in INPUT_FORMATS.values() if "alias" in v for alias in v["alias"]
+)
 OUTPUT_CANONICAL_LIST = list(OUTPUT_FORMATS.keys())
-OUTPUT_ALIAS_LIST = list(alias for v in OUTPUT_FORMATS.values() if "alias" in v for alias in v["alias"])
+OUTPUT_ALIAS_LIST = list(
+    alias for v in OUTPUT_FORMATS.values() if "alias" in v for alias in v["alias"]
+)
 
 
 default_values = {
@@ -823,14 +851,16 @@ def rfun_image_file(infile, i_pix_fmt, width, height, outfile, o_pix_fmt, debug)
                 c_index = 0
                 new_components = ()
                 while c_index < len(components):
-                    new_components += sort_components(components[c_index: c_index + 4], iorder, oorder)
+                    new_components += sort_components(
+                        components[c_index : c_index + 4], iorder, oorder
+                    )
                     c_index += 4
                 components = new_components
             # 4. write components to the output
             c_index = 0
             while c_index < len(components):
                 odata = OUTPUT_FORMATS[o_pix_fmt]["wfun"](
-                    *components[c_index: c_index + oclen]
+                    *components[c_index : c_index + oclen]
                 )
                 fout.write(odata)
                 c_index += oclen
