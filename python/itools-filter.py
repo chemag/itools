@@ -174,6 +174,26 @@ def read_rgba(infile, iwidth, iheight):
     return outbgr
 
 
+def write_y4m(outfile, outyvu):
+    with open(outfile, "wb") as fout:
+        # write luma
+        width, height, _ = outyvu.shape
+        header = f"YUV4MPEG2 W{width} H{height} F30000:1001 Ip C420\n"
+        fout.write(header.encode("utf-8"))
+        # write frame line
+        frame = "FRAME\n"
+        fout.write(frame.encode("utf-8"))
+        # write y
+        y = outyvu[:, :, 0].flatten()
+        fout.write(y)
+        # write u
+        u = outyvu[:, :, 2].flatten()
+        fout.write(u)
+        # write v
+        v = outyvu[:, :, 1].flatten()
+        fout.write(v)
+
+
 class Return_t:
     COLOR_BGR, COLOR_YVU = range(2)
 
@@ -201,8 +221,16 @@ def read_image_file(
         return outyvu
 
 
-def write_image_file(outfile, outimg):
-    cv2.imwrite(outfile, outimg)
+def write_image_file(outfile, outimg, return_type=Return_t.COLOR_BGR):
+    if os.path.splitext(outfile)[1] == ".y4m" and return_type == Return_t.COLOR_YVU:
+        write_y4m(outfile, outimg)
+        return
+    # otherwise ensure we are writing BGR
+    if return_type == Return_t.COLOR_YVU:
+        outbgr = cv2.cvtColor(outimg, cv2.COLOR_YCrCb2BGR)
+    elif return_type == Return_t.COLOR_BGR:
+        outbgr = outimg
+    cv2.imwrite(outfile, outbgr)
 
 
 def image_to_gray(infile, outfile, iwidth, iheight, debug):
@@ -345,7 +373,7 @@ def diff_images(
     outyvu = np.stack((yd, vd, ud), axis=2)
     outbgr = cv2.cvtColor(outyvu, cv2.COLOR_YCrCb2BGR)
     # write the output image
-    write_image_file(outfile, outbgr)
+    write_image_file(outfile, outyvu, return_type=Return_t.COLOR_YVU)
 
 
 def mse_image(infile, iwidth, iheight, debug):
