@@ -289,14 +289,15 @@ def diff_images(
     diff_color_factor,
     debug,
 ):
-    # load the input images
-    inbgr1 = read_image_file(infile1, iwidth=iwidth, iheight=iheight)
-    assert inbgr1 is not None, f"error: cannot read {infile1}"
-    inbgr2 = read_image_file(infile2, iwidth=iwidth, iheight=iheight)
-    assert inbgr2 is not None, f"error: cannot read {infile2}"
-    # convert them to yuv
-    inyvu1 = cv2.cvtColor(inbgr1, cv2.COLOR_BGR2YCrCb)
-    inyvu2 = cv2.cvtColor(inbgr2, cv2.COLOR_BGR2YCrCb)
+    # load the input images as YVU
+    inyvu1 = read_image_file(
+        infile1, iwidth=iwidth, iheight=iheight, return_type=Return_t.COLOR_YVU
+    )
+    inyvu2 = read_image_file(
+        infile2, iwidth=iwidth, iheight=iheight, return_type=Return_t.COLOR_YVU
+    )
+    assert inyvu1 is not None, f"error: cannot read {infile1}"
+    assert inyvu2 is not None, f"error: cannot read {infile2}"
     # diff them
     diff_yvu_sign = inyvu1.astype(np.int16) - inyvu2.astype(np.int16)
     diff_yvu = np.absolute(diff_yvu_sign).astype(np.uint8)
