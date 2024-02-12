@@ -95,6 +95,32 @@ def y4m_process_frame(frame):
     y4m_read_frame = frame
 
 
+# converts a chroma-subsampled matrix into a non-chroma subsampled one
+# Algo is very simple (just dup values)
+def chroma_subsample_reverse(inmatrix, colorspace):
+    in_w, in_h = inmatrix.shape
+    if colorspace in ("420jpeg", "420paldv", "420", "420mpeg2"):
+        out_w = in_w << 1
+        out_h = in_h << 1
+        outmatrix = np.zeros((out_w, out_h), dtype=np.uint8)
+        outmatrix[::2, ::2] = inmatrix
+        outmatrix[1::2, ::2] = inmatrix
+        outmatrix[::2, 1::2] = inmatrix
+        outmatrix[1::2, 1::2] = inmatrix
+    elif colorspace in ("422",):
+        out_w = in_w << 1
+        out_h = in_h
+        outmatrix = np.zeros((out_w, out_h), dtype=np.uint8)
+        outmatrix[::, ::2] = inmatrix
+        outmatrix[::, 1::2] = inmatrix
+    elif colorspace in ("444",):
+        out_w = in_w
+        out_h = in_h
+        outmatrix = np.zeros((out_w, out_h), dtype=np.uint8)
+        outmatrix = inmatrix
+    return outmatrix
+
+
 def read_y4m(infile):
     # read the y4m frame
     with open(infile, "rb") as fin:
@@ -133,28 +159,10 @@ def read_y4m(infile):
     ).reshape(chroma_w, chroma_h)
     # combine the color components
     # undo chroma subsample in order to combine same-size matrices
-    if colorspace in ("420jpeg", "420paldv", "420", "420mpeg2"):
-        ua_full = np.zeros(ya.shape, dtype=np.uint8)
-        ua_full[::2, ::2] = ua
-        ua_full[1::2, ::2] = ua
-        ua_full[::2, 1::2] = ua
-        ua_full[1::2, 1::2] = ua
-        va_full = np.zeros(ya.shape, dtype=np.uint8)
-        va_full[::2, ::2] = va
-        va_full[1::2, ::2] = va
-        va_full[::2, 1::2] = va
-        va_full[1::2, 1::2] = va
-        ua, va = ua_full, va_full
-    elif colorspace in ("422",):
-        ua_full = np.zeros(ya.shape, dtype=np.uint8)
-        ua_full[::, ::2] = ua
-        ua_full[::, 1::2] = ua
-        va_full = np.zeros(ya.shape, dtype=np.uint8)
-        va_full[::, ::2] = va
-        va_full[::, 1::2] = va
-        ua, va = ua_full, va_full
+    ua_full = chroma_subsample_reverse(ua, colorspace)
+    va_full = chroma_subsample_reverse(va, colorspace)
     # note that OpenCV conversions use YCrCb (YVU) instead of YCbCr (YUV)
-    outyvu = np.stack((ya, va, ua), axis=2)
+    outyvu = np.stack((ya, va_full, ua_full), axis=2)
     return outyvu
 
 
