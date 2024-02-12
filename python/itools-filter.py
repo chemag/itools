@@ -121,6 +121,36 @@ def chroma_subsample_reverse(inmatrix, colorspace):
     return outmatrix
 
 
+# converts a non-chroma-subsampled matrix into a chroma subsampled one
+# Algo is very simple (just average values)
+def chroma_subsample_direct(inmatrix, colorspace):
+    in_w, in_h = inmatrix.shape
+    if colorspace in ("420jpeg", "420paldv", "420", "420mpeg2"):
+        out_w = in_w >> 1
+        out_h = in_h >> 1
+        outmatrix = np.zeros((out_w, out_h), dtype=np.uint16)
+        outmatrix += inmatrix[::2, ::2]
+        outmatrix += inmatrix[1::2, ::2]
+        outmatrix += inmatrix[::2, 1::2]
+        outmatrix += inmatrix[1::2, 1::2]
+        outmatrix = outmatrix / 4
+        outmatrix = outmatrix.astype(np.uint8)
+    elif colorspace in ("422",):
+        out_w = in_w >> 1
+        out_h = in_h
+        outmatrix = np.zeros((out_w, out_h), dtype=np.uint16)
+        outmatrix += inmatrix[::, ::2]
+        outmatrix += inmatrix[::, 1::2]
+        outmatrix = outmatrix / 2
+        outmatrix = outmatrix.astype(np.uint8)
+    elif colorspace in ("444",):
+        out_w = in_w
+        out_h = in_h
+        outmatrix = np.zeros((out_w, out_h), dtype=np.uint8)
+        outmatrix = inmatrix
+    return outmatrix
+
+
 def read_y4m(infile):
     # read the y4m frame
     with open(infile, "rb") as fin:
@@ -182,24 +212,26 @@ def read_rgba(infile, iwidth, iheight):
     return outbgr
 
 
-def write_y4m(outfile, outyvu):
+def write_y4m(outfile, outyvu, colorspace="420"):
     with open(outfile, "wb") as fout:
         # write luma
         width, height, _ = outyvu.shape
-        header = f"YUV4MPEG2 W{width} H{height} F30000:1001 Ip C420\n"
+        header = f"YUV4MPEG2 W{width} H{height} F30000:1001 Ip C{colorspace}\n"
         fout.write(header.encode("utf-8"))
         # write frame line
         frame = "FRAME\n"
         fout.write(frame.encode("utf-8"))
         # write y
-        y = outyvu[:, :, 0].flatten()
-        fout.write(y)
-        # write u
-        u = outyvu[:, :, 2].flatten()
-        fout.write(u)
-        # write v
-        v = outyvu[:, :, 1].flatten()
-        fout.write(v)
+        ya = outyvu[:, :, 0]
+        fout.write(ya.flatten())
+        # write u (implementing chroma subsample)
+        ua_full = outyvu[:, :, 2]
+        ua = chroma_subsample_direct(ua_full, colorspace)
+        fout.write(ua.flatten())
+        # write v (implementing chroma subsample)
+        va_full = outyvu[:, :, 1]
+        va = chroma_subsample_direct(va_full, colorspace)
+        fout.write(va.flatten())
 
 
 class Return_t:
