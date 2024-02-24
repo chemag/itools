@@ -15,7 +15,9 @@ import numpy as np
 import os.path
 import pandas as pd
 import sys
-import y4m
+import importlib
+
+itools_y4m = importlib.import_module("itools-y4m")
 
 
 DEFAULT_NOISE_LEVEL = 50
@@ -90,113 +92,6 @@ default_values = {
 }
 
 
-# TODO(chemag): avoid the global variable to read frames
-def y4m_process_frame(frame):
-    global y4m_read_frame
-    y4m_read_frame = frame
-
-
-# converts a chroma-subsampled matrix into a non-chroma subsampled one
-# Algo is very simple (just dup values)
-def chroma_subsample_reverse(inmatrix, colorspace):
-    in_w, in_h = inmatrix.shape
-    if colorspace in ("420jpeg", "420paldv", "420", "420mpeg2"):
-        out_w = in_w << 1
-        out_h = in_h << 1
-        outmatrix = np.zeros((out_w, out_h), dtype=np.uint8)
-        outmatrix[::2, ::2] = inmatrix
-        outmatrix[1::2, ::2] = inmatrix
-        outmatrix[::2, 1::2] = inmatrix
-        outmatrix[1::2, 1::2] = inmatrix
-    elif colorspace in ("422",):
-        out_w = in_w << 1
-        out_h = in_h
-        outmatrix = np.zeros((out_w, out_h), dtype=np.uint8)
-        outmatrix[::, ::2] = inmatrix
-        outmatrix[::, 1::2] = inmatrix
-    elif colorspace in ("444",):
-        out_w = in_w
-        out_h = in_h
-        outmatrix = np.zeros((out_w, out_h), dtype=np.uint8)
-        outmatrix = inmatrix
-    return outmatrix
-
-
-# converts a non-chroma-subsampled matrix into a chroma subsampled one
-# Algo is very simple (just average values)
-def chroma_subsample_direct(inmatrix, colorspace):
-    in_w, in_h = inmatrix.shape
-    if colorspace in ("420jpeg", "420paldv", "420", "420mpeg2"):
-        out_w = in_w >> 1
-        out_h = in_h >> 1
-        outmatrix = np.zeros((out_w, out_h), dtype=np.uint16)
-        outmatrix += inmatrix[::2, ::2]
-        outmatrix += inmatrix[1::2, ::2]
-        outmatrix += inmatrix[::2, 1::2]
-        outmatrix += inmatrix[1::2, 1::2]
-        outmatrix = outmatrix / 4
-        outmatrix = outmatrix.astype(np.uint8)
-    elif colorspace in ("422",):
-        out_w = in_w >> 1
-        out_h = in_h
-        outmatrix = np.zeros((out_w, out_h), dtype=np.uint16)
-        outmatrix += inmatrix[::, ::2]
-        outmatrix += inmatrix[::, 1::2]
-        outmatrix = outmatrix / 2
-        outmatrix = outmatrix.astype(np.uint8)
-    elif colorspace in ("444",):
-        out_w = in_w
-        out_h = in_h
-        outmatrix = np.zeros((out_w, out_h), dtype=np.uint8)
-        outmatrix = inmatrix
-    return outmatrix
-
-
-def read_y4m(infile):
-    # read the y4m frame
-    with open(infile, "rb") as fin:
-        data = fin.read()
-    parser = y4m.Reader(y4m_process_frame, verbose=False)
-    parser.decode(data)
-    # convert it to a numpy array
-    width = y4m_read_frame.headers["W"]
-    height = y4m_read_frame.headers["H"]
-    # framerate = y4m_read_frame.headers["F"]
-    # interlaced = y4m_read_frame.headers["I"]
-    # aspect = y4m_read_frame.headers["A"]
-    colorspace = y4m_read_frame.headers["C"]
-    # extra = y4m_read_frame.headers["X"]
-    dt = np.dtype(np.uint8)
-    luma_size = width * height
-    ya = np.frombuffer(y4m_read_frame.buffer[:luma_size], dtype=dt).reshape(
-        width, height
-    )
-    # read the chromas
-    if colorspace in ("420jpeg", "420paldv", "420", "420mpeg2"):
-        chroma_w = width >> 1
-        chroma_h = height >> 1
-    elif colorspace in ("422",):
-        chroma_w = width >> 1
-        chroma_h = height
-    elif colorspace in ("444",):
-        chroma_w = width
-        chroma_h = height
-    chroma_size = chroma_w * chroma_h
-    ua = np.frombuffer(
-        y4m_read_frame.buffer[luma_size : luma_size + chroma_size], dtype=dt
-    ).reshape(chroma_w, chroma_h)
-    va = np.frombuffer(
-        y4m_read_frame.buffer[luma_size + chroma_size :], dtype=dt
-    ).reshape(chroma_w, chroma_h)
-    # combine the color components
-    # undo chroma subsample in order to combine same-size matrices
-    ua_full = chroma_subsample_reverse(ua, colorspace)
-    va_full = chroma_subsample_reverse(va, colorspace)
-    # note that OpenCV conversions use YCrCb (YVU) instead of YCbCr (YUV)
-    outyvu = np.stack((ya, va_full, ua_full), axis=2)
-    return outyvu
-
-
 # rgba is packed, R/G/B/A components
 def read_rgba(infile, iwidth, iheight):
     with open(infile, "rb") as fin:
@@ -213,28 +108,6 @@ def read_rgba(infile, iwidth, iheight):
     return outbgr
 
 
-def write_y4m(outfile, outyvu, colorspace="420"):
-    with open(outfile, "wb") as fout:
-        # write luma
-        width, height, _ = outyvu.shape
-        header = f"YUV4MPEG2 W{width} H{height} F30000:1001 Ip C{colorspace}\n"
-        fout.write(header.encode("utf-8"))
-        # write frame line
-        frame = "FRAME\n"
-        fout.write(frame.encode("utf-8"))
-        # write y
-        ya = outyvu[:, :, 0]
-        fout.write(ya.flatten())
-        # write u (implementing chroma subsample)
-        ua_full = outyvu[:, :, 2]
-        ua = chroma_subsample_direct(ua_full, colorspace)
-        fout.write(ua.flatten())
-        # write v (implementing chroma subsample)
-        va_full = outyvu[:, :, 1]
-        va = chroma_subsample_direct(va_full, colorspace)
-        fout.write(va.flatten())
-
-
 class Return_t:
     COLOR_BGR, COLOR_YVU = range(2)
 
@@ -243,7 +116,7 @@ def read_image_file(
     infile, flags=None, return_type=Return_t.COLOR_BGR, iwidth=None, iheight=None
 ):
     if os.path.splitext(infile)[1] == ".y4m":
-        outyvu = read_y4m(infile)
+        outyvu = itools_y4m.read_y4m(infile)
         if return_type == Return_t.COLOR_YVU:
             return outyvu
         outbgr = cv2.cvtColor(outyvu, cv2.COLOR_YCrCb2BGR)
@@ -264,7 +137,7 @@ def read_image_file(
 
 def write_image_file(outfile, outimg, return_type=Return_t.COLOR_BGR):
     if os.path.splitext(outfile)[1] == ".y4m" and return_type == Return_t.COLOR_YVU:
-        write_y4m(outfile, outimg)
+        itools_y4m.write_y4m(outfile, outimg)
         return
     # otherwise ensure we are writing BGR
     if return_type == Return_t.COLOR_YVU:
