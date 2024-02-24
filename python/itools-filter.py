@@ -13,6 +13,7 @@ import itertools
 import math
 import numpy as np
 import os.path
+import pandas as pd
 import sys
 import y4m
 
@@ -371,13 +372,32 @@ def diff_images(
     diff_yvu = np.absolute(diff_yvu_sign).astype(np.uint8)
     # calculate the energy of the diff
     yd, vd, ud = diff_yvu[:, :, 0], diff_yvu[:, :, 1], diff_yvu[:, :, 2]
-    y_mean, y_std = yd.mean(), yd.std()
-    u_mean, u_std = ud.mean(), ud.std()
-    v_mean, v_std = vd.mean(), vd.std()
-    # print out values
-    print(f"y {{ mean: {y_mean} stddev: {y_std} }}")
-    print(f"u {{ mean: {u_mean} stddev: {u_std} }}")
-    print(f"v {{ mean: {v_mean} stddev: {v_std} }}")
+    ymean, ystddev = yd.mean(), yd.std()
+    umean, ustddev = ud.mean(), ud.std()
+    vmean, vstddev = vd.mean(), vd.std()
+    # store values in a dataframe
+    df = pd.DataFrame(
+        columns=(
+            "infile1",
+            "infile2",
+            "ymean",
+            "ystddev",
+            "umean",
+            "ustddev",
+            "vmean",
+            "vstddev",
+        )
+    )
+    df.loc[len(df.index)] = [
+        infile1,
+        infile2,
+        ymean,
+        ystddev,
+        umean,
+        ustddev,
+        vmean,
+        vstddev,
+    ]
     # choose the visual output
     if diff_component == "y":
         # use the luma for diff luma
@@ -414,6 +434,7 @@ def diff_images(
     outbgr = cv2.cvtColor(outyvu, cv2.COLOR_YCrCb2BGR)
     # write the output image
     write_image_file(outfile, outyvu, return_type=Return_t.COLOR_YVU)
+    return df
 
 
 def mse_image(infile, iwidth, iheight, debug):
@@ -473,20 +494,20 @@ def get_components(infile, outfile, iwidth, iheight, debug):
     inbgr = read_image_file(infile, iwidth=iwidth, iheight=iheight)
     # get the requested component: note that options are YVU or BGR
     yd, vd, ud = inyvu[:, :, 0], inyvu[:, :, 1], inyvu[:, :, 2]
-    y_mean, y_std = yd.mean(), yd.std()
-    u_mean, u_std = ud.mean(), ud.std()
-    v_mean, v_std = vd.mean(), vd.std()
+    ymean, ystddev = yd.mean(), yd.std()
+    umean, ustddev = ud.mean(), ud.std()
+    vmean, vstddev = vd.mean(), vd.std()
     bd, gd, rd = inbgr[:, :, 0], inbgr[:, :, 1], inbgr[:, :, 2]
-    b_mean, b_std = bd.mean(), bd.std()
-    g_mean, g_std = gd.mean(), gd.std()
-    r_mean, r_std = rd.mean(), rd.std()
+    bmean, bstddev = bd.mean(), bd.std()
+    gmean, gstddev = gd.mean(), gd.std()
+    rmean, rstddev = rd.mean(), rd.std()
     # store results as csv
     with open(outfile, "w") as fout:
         fout.write(
-            "filename,y_mean,y_std,u_mean,u_std,v_mean,v_std,r_mean,r_std,g_mean,g_std,b_mean,b_std\n"
+            "filename,ymean,ystddev,umean,ustddev,vmean,vstddev,rmean,rstddev,gmean,gstddev,bmean,bstddev\n"
         )
         fout.write(
-            f"{infile},{y_mean},{y_std},{u_mean},{u_std},{v_mean},{v_std},{r_mean},{r_std},{g_mean},{g_std},{b_mean},{b_std}\n"
+            f"{infile},{ymean},{ystddev},{umean},{ustddev},{vmean},{vstddev},{rmean},{rstddev},{gmean},{gstddev},{bmean},{bstddev}\n"
         )
 
 
@@ -1089,7 +1110,7 @@ def main(argv):
         )
 
     elif options.filter == "diff":
-        diff_images(
+        df = diff_images(
             options.infile,
             options.infile2,
             options.outfile,
@@ -1101,6 +1122,7 @@ def main(argv):
             options.diff_color_factor,
             options.debug,
         )
+        df.to_csv("/dev/fd/1", index=False)
 
     elif options.filter == "mse" or options.filter == "psnr":
         mse, psnr = mse_image(
