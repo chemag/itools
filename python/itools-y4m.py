@@ -255,8 +255,8 @@ def read_y4m(infile, colorrange=None):
         return frame, header, offset
 
 
-def write_header(width, height, colorspace):
-    return f"YUV4MPEG2 W{width} H{height} F30000:1001 Ip C{colorspace}\n"
+def write_header(width, height, colorspace, colorrange="FULL"):
+    return f"YUV4MPEG2 W{width} H{height} F30000:1001 Ip C{colorspace} XCOLORRANGE={colorrange}\n"
 
 
 def write_y4m(outfile, outyvu, colorspace="420"):
