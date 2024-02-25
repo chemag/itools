@@ -67,7 +67,7 @@ def chroma_subsample_direct(inmatrix, colorspace):
     return outmatrix
 
 
-def range_conversion(inarr, srcmin, srcmax, dstmin, dstmax, strict):
+def range_conversion(inarr, srcmin, srcmax, dstmin, dstmax):
     # conversion function is $yout = a * yin + b$
     # Conversion requirements:
     # * (1) dstmin = a * srcmin + b
@@ -77,38 +77,34 @@ def range_conversion(inarr, srcmin, srcmax, dstmin, dstmax, strict):
     f = lambda yin: np.round(a * yin + b)
     outarr = f(inarr)
     # look for invalid values
+    broken_range = False
     if (
         len(outarr[outarr < np.iinfo(np.uint8).min]) > 0
         or len(outarr[outarr > np.iinfo(np.uint8).max]) > 0
     ):
-        errmsg = (
-            f"error: range conversion is producing invalid values: check your source"
-        )
-        if strict:
-            raise AssertionError(errmsg)
-        else:
-            print(errmsg)
+        # strictly speaking, this y4m is wrong
+        broken_range = True
     # clip values
     outarr[outarr < np.iinfo(np.uint8).min] = np.iinfo(np.uint8).min
     outarr[outarr > np.iinfo(np.uint8).max] = np.iinfo(np.uint8).max
     outarr = outarr.astype(np.uint8)
-    return outarr
+    return outarr, broken_range
 
 
-def luma_range_conversion(ya, src, dst, strict):
+def luma_range_conversion(ya, src, dst):
     srcmin = 0 if src == "FULL" else 16
     dstmin = 0 if dst == "FULL" else 16
     srcmax = 255 if src == "FULL" else 235
     dstmax = 255 if dst == "FULL" else 235
-    return range_conversion(ya, srcmin, srcmax, dstmin, dstmax, strict)
+    return range_conversion(ya, srcmin, srcmax, dstmin, dstmax)
 
 
-def chroma_range_conversion(va, src, dst, strict):
+def chroma_range_conversion(va, src, dst):
     srcmin = 0 if src == "FULL" else 16
     dstmin = 0 if dst == "FULL" else 16
     srcmax = 255 if src == "FULL" else 240
     dstmax = 255 if dst == "FULL" else 240
-    return range_conversion(va, srcmin, srcmax, dstmin, dstmax, strict)
+    return range_conversion(va, srcmin, srcmax, dstmin, dstmax)
 
 
 class Y4MHeader:
@@ -196,7 +192,7 @@ class Y4MHeader:
             return self.width * self.height * 3
         raise f"only support 420, 422, 444 colorspaces (not {self.colorspace})"
 
-    def read_frame(self, data, colorrange, strict, debug):
+    def read_frame(self, data, colorrange, debug):
         # read "FRAME\n" tidbit
         assert data[:6] == b"FRAME\n", f"error: invalid FRAME: starts with {data[:6]}"
         offset = 6
@@ -232,41 +228,46 @@ class Y4MHeader:
         va_full = chroma_subsample_reverse(va, self.colorspace)
         if debug > 0:
             print(f"y4m frame read with {self.comment.get('COLORRANGE', None)}")
+        status = {
+            "colorrange": self.comment.get("COLORRANGE", "default").lower(),
+            "broken": 0,
+        }
         if colorrange is not None and colorrange.upper() != self.comment.get(
             "COLORRANGE", None
         ):
-            ya = luma_range_conversion(
+            ya, ya_broken = luma_range_conversion(
                 ya,
                 src=self.comment.get("COLORRANGE", None),
                 dst=colorrange.upper(),
-                strict=strict,
             )
-            ua_full = chroma_range_conversion(
+            ua_full, ua_broken = chroma_range_conversion(
                 ua_full,
                 src=self.comment.get("COLORRANGE", None),
                 dst=colorrange.upper(),
-                strict=strict,
             )
-            va_full = chroma_range_conversion(
+            va_full, va_broken = chroma_range_conversion(
                 va_full,
                 src=self.comment.get("COLORRANGE", None),
                 dst=colorrange.upper(),
-                strict=strict,
             )
+            status["ybroken"] = int(ya_broken)
+            status["ubroken"] = int(ua_broken)
+            status["vbroken"] = int(va_broken)
+            status["broken"] = int(ya_broken or ua_broken or va_broken)
         # note that OpenCV conversions use YCrCb (YVU) instead of YCbCr (YUV)
         outyvu = np.stack((ya, va_full, ua_full), axis=2)
-        return outyvu, offset
+        return outyvu, offset, status
 
 
-def read_y4m(infile, colorrange=None, strict=False, debug=0):
+def read_y4m(infile, colorrange=None, debug=0):
     # read the y4m frame
     with open(infile, "rb") as fin:
         # read y4m header
         data = fin.read()
         header, offset = Y4MHeader.read(data)
         # read y4m frame
-        frame, offset = header.read_frame(data[offset:], colorrange, strict, debug)
-        return frame, header, offset
+        frame, offset, status = header.read_frame(data[offset:], colorrange, debug)
+        return frame, header, offset, status
 
 
 def write_header(width, height, colorspace, colorrange="FULL"):

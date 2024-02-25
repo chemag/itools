@@ -122,15 +122,13 @@ def read_image_file(
     infile, flags=None, return_type=ProcColor.bgr, iwidth=None, iheight=None
 ):
     if os.path.splitext(infile)[1] == ".y4m":
-        try:
-            outyvu, _, _ = itools_y4m.read_y4m(infile, colorrange="full", debug=1)
-        except AssertionError as ae:
-            errmsg = ae.args[0] + f": {infile}"
-            raise AssertionError(errmsg)
+        outyvu, _, _, status = itools_y4m.read_y4m(infile, colorrange="full", debug=1)
+        if status is not None and status["broken"]:
+            print(f"error: file {infile} is broken")
         if return_type == ProcColor.yvu:
-            return outyvu
+            return outyvu, status
         outbgr = cv2.cvtColor(outyvu, cv2.COLOR_YCrCb2BGR)
-        return outbgr
+        return outbgr, status
 
     elif os.path.splitext(infile)[1] == ".rgba":
         outbgr = read_rgba(infile, iwidth, iheight)
@@ -139,10 +137,10 @@ def read_image_file(
         outbgr = cv2.imread(cv2.samples.findFile(infile, flags))
 
     if return_type == ProcColor.bgr:
-        return outbgr
+        return outbgr, None
     elif return_type == ProcColor.yvu:
         outyvu = cv2.cvtColor(outbgr, cv2.COLOR_BGR2YCrCb)
-        return outyvu
+        return outyvu, None
 
 
 def write_image_file(outfile, outimg, return_type=ProcColor.bgr):
@@ -167,7 +165,7 @@ def image_to_gray(infile, outfile, iwidth, iheight, proc_color, debug):
         proc_color == ProcColor.bgr
     ), f"error: image_to_gray unsupported in {proc_color}"
     # load the input image
-    inbgr = read_image_file(infile, iwidth=iwidth, iheight=iheight)
+    inbgr, _ = read_image_file(infile, iwidth=iwidth, iheight=iheight)
     assert inbgr is not None, f"error: cannot read {infile}"
     # convert to gray
     tmpgray = cv2.cvtColor(inbgr, cv2.COLOR_BGR2GRAY)
@@ -181,7 +179,7 @@ def swap_xchroma(infile, outfile, iwidth, iheight, proc_color, debug):
         proc_color == ProcColor.bgr
     ), f"error: swap_xchroma unsupported in {proc_color}"
     # load the input image
-    inbgr = read_image_file(infile, iwidth=iwidth, iheight=iheight)
+    inbgr, _ = read_image_file(infile, iwidth=iwidth, iheight=iheight)
     assert inbgr is not None, f"error: cannot read {infile}"
     # swap chromas
     tmpyvu = cv2.cvtColor(inbgr, cv2.COLOR_BGR2YCrCb)
@@ -196,7 +194,7 @@ def swap_xrgb2yuv(infile, outfile, iwidth, iheight, proc_color, debug):
         proc_color == ProcColor.bgr
     ), f"error: swap_xrgb2yuv unsupported in {proc_color}"
     # load the input image
-    inbgr = read_image_file(infile, iwidth=iwidth, iheight=iheight)
+    inbgr, _ = read_image_file(infile, iwidth=iwidth, iheight=iheight)
     assert inbgr is not None, f"error: cannot read {infile}"
     inrgb = inbgr[:, :, [2, 1, 0]]
     # swap RGB to YUV
@@ -210,7 +208,7 @@ def swap_xrgb2yuv(infile, outfile, iwidth, iheight, proc_color, debug):
 def add_noise(infile, outfile, iwidth, iheight, noise_level, proc_color, debug):
     assert proc_color == ProcColor.bgr, f"error: add_noise unsupported in {proc_color}"
     # load the input image
-    inbgr = read_image_file(infile, iwidth=iwidth, iheight=iheight)
+    inbgr, _ = read_image_file(infile, iwidth=iwidth, iheight=iheight)
     assert inbgr is not None, f"error: cannot read {infile}"
     # convert to gray
     noiseimg = np.random.randint(
@@ -226,7 +224,7 @@ def add_noise(infile, outfile, iwidth, iheight, noise_level, proc_color, debug):
 
 def copy_image(infile, outfile, iwidth, iheight, proc_color, debug):
     # load the input image
-    inabc = read_image_file(
+    inabc, _ = read_image_file(
         infile, iwidth=iwidth, iheight=iheight, return_type=proc_color
     )
     assert inabc is not None, f"error: cannot read {infile}"
@@ -259,10 +257,10 @@ def diff_images(
     debug,
 ):
     # load the input images as YVU
-    inyvu1 = read_image_file(
+    inyvu1, instatus1 = read_image_file(
         infile1, iwidth=iwidth, iheight=iheight, return_type=ProcColor.yvu
     )
-    inyvu2 = read_image_file(
+    inyvu2, instatus2 = read_image_file(
         infile2, iwidth=iwidth, iheight=iheight, return_type=ProcColor.yvu
     )
     assert inyvu1 is not None, f"error: cannot read {infile1}"
@@ -279,7 +277,11 @@ def diff_images(
     df = pd.DataFrame(
         columns=(
             "infile1",
+            "incolorrange1",
+            "inbroken1",
             "infile2",
+            "incolorrange2",
+            "inbroken2",
             "ymean",
             "ystddev",
             "umean",
@@ -290,7 +292,11 @@ def diff_images(
     )
     df.loc[len(df.index)] = [
         infile1,
+        instatus1["colorrange"] if instatus1 is not None else "",
+        instatus1["broken"] if instatus1 is not None else "",
         infile2,
+        instatus2["colorrange"] if instatus2 is not None else "",
+        instatus2["broken"] if instatus2 is not None else "",
         ymean,
         ystddev,
         umean,
@@ -340,7 +346,7 @@ def diff_images(
 def mse_image(infile, iwidth, iheight, proc_color, debug):
     assert proc_color == ProcColor.bgr, f"error: mse_image unsupported in {proc_color}"
     # load the input image
-    inbgr = read_image_file(infile, iwidth=iwidth, iheight=iheight)
+    inbgr, _ = read_image_file(infile, iwidth=iwidth, iheight=iheight)
     assert inbgr is not None, f"error: cannot read {infile}"
     # careful with number ranges
     inyvu = cv2.cvtColor(inbgr, cv2.COLOR_BGR2YCrCb).astype(np.int32)
@@ -357,11 +363,11 @@ def mse_image(infile, iwidth, iheight, proc_color, debug):
 def get_histogram(infile, outfile, iwidth, iheight, hist_component, debug):
     # load the input image
     if hist_component in ("y", "v", "u"):
-        inimg = read_image_file(
+        inimg, _ = read_image_file(
             infile, return_type=ProcColor.yvu, iwidth=iwidth, iheight=iheight
         )
     else:  # hist_component in ("r", "g", "b"):
-        inimg = read_image_file(infile, iwidth=iwidth, iheight=iheight)
+        inimg, _ = read_image_file(infile, iwidth=iwidth, iheight=iheight)
     assert inimg is not None, f"error: cannot read {infile}"
     # get the requested component: note that options are YVU or BGR
     if hist_component == "y" or hist_component == "b":
@@ -389,10 +395,10 @@ def get_histogram(infile, outfile, iwidth, iheight, hist_component, debug):
 # calculates the average/stddev of all components
 def get_components(infile, outfile, iwidth, iheight, debug):
     # load the input image as both yuv and rgb
-    inyvu = read_image_file(
+    inyvu, _ = read_image_file(
         infile, return_type=ProcColor.yvu, iwidth=iwidth, iheight=iheight
     )
-    inbgr = read_image_file(infile, iwidth=iwidth, iheight=iheight)
+    inbgr, _ = read_image_file(infile, iwidth=iwidth, iheight=iheight)
     # get the requested component: note that options are YVU or BGR
     yd, vd, ud = inyvu[:, :, 0], inyvu[:, :, 1], inyvu[:, :, 2]
     ymean, ystddev = yd.mean(), yd.std()
@@ -418,7 +424,7 @@ def rotate_image(infile, rotate_angle, outfile, iwidth, iheight, proc_color, deb
         proc_color == ProcColor.bgr
     ), f"error: rotate_image unsupported in {proc_color}"
     # load the input image
-    inbgr = read_image_file(infile, iwidth=iwidth, iheight=iheight)
+    inbgr, _ = read_image_file(infile, iwidth=iwidth, iheight=iheight)
     assert inbgr is not None, f"error: cannot read {infile}"
     # rotate it
     num_rotations = ROTATE_ANGLE_LIST[rotate_angle]
@@ -436,9 +442,9 @@ def compose_images(
         proc_color == ProcColor.bgr
     ), f"error: compose_images unsupported in {proc_color}"
     # load the input images
-    inbgr1 = read_image_file(infile1, iwidth=iwidth, iheight=iheight)
+    inbgr1, _ = read_image_file(infile1, iwidth=iwidth, iheight=iheight)
     assert inbgr1 is not None, f"error: cannot read {infile1}"
-    inbgr2 = read_image_file(
+    inbgr2, _ = read_image_file(
         infile2, cv2.IMREAD_UNCHANGED, iwidth=iwidth, iheight=iheight
     )
     assert inbgr2 is not None, f"error: cannot read {infile2}"
@@ -474,9 +480,9 @@ def match_images(infile1, infile2, outfile, iwidth, iheight, proc_color, debug):
         proc_color == ProcColor.bgr
     ), f"error: match_images unsupported in {proc_color}"
     # load the input images
-    inbgr1 = read_image_file(infile1, iwidth=iwidth, iheight=iheight)
+    inbgr1, _ = read_image_file(infile1, iwidth=iwidth, iheight=iheight)
     assert inbgr1 is not None, f"error: cannot read {infile1}"
-    inbgr2 = read_image_file(
+    inbgr2, _ = read_image_file(
         infile2, cv2.IMREAD_UNCHANGED, iwidth=iwidth, iheight=iheight
     )
     assert inbgr2 is not None, f"error: cannot read {infile2}"
@@ -534,7 +540,7 @@ def affine_transformation_matrix(
     infile, iwidth, iheight, outfile, width, height, a00, a01, a10, a11, b00, b10, debug
 ):
     # load the input image
-    inbgr = read_image_file(infile, iwidth=iwidth, iheight=iheight)
+    inbgr, _ = read_image_file(infile, iwidth=iwidth, iheight=iheight)
     assert inbgr is not None, f"error: cannot read {infile}"
     # process the image
     m0 = [a00, a01, b00]
@@ -571,7 +577,7 @@ def affine_transformation_points(
     debug,
 ):
     # load the input image
-    inbgr = read_image_file(infile, iwidth=iwidth, iheight=iheight)
+    inbgr, _ = read_image_file(infile, iwidth=iwidth, iheight=iheight)
     assert inbgr is not None, f"error: cannot read {infile}"
     # process the image
     s0 = [s0x, s0y]
