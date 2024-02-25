@@ -146,15 +146,20 @@ def read_image_file(
 
 
 def write_image_file(outfile, outimg, return_type=ProcColor.bgr):
-    if os.path.splitext(outfile)[1] == ".y4m" and return_type == ProcColor.yvu:
-        itools_y4m.write_y4m(outfile, outimg)
-        return
-    # otherwise ensure we are writing BGR
-    if return_type == ProcColor.yvu:
-        outbgr = cv2.cvtColor(outimg, cv2.COLOR_YCrCb2BGR)
-    elif return_type == ProcColor.bgr:
-        outbgr = outimg
-    cv2.imwrite(outfile, outbgr)
+    if os.path.splitext(outfile)[1] == ".y4m":
+        # y4m writer requires YVU
+        if return_type == ProcColor.yvu:
+            outyvu = outimg
+        elif return_type == ProcColor.bgr:
+            outyvu = cv2.cvtColor(outimg, cv2.COLOR_BGR2YCrCb)
+        itools_y4m.write_y4m(outfile, outyvu)
+    else:
+        # cv2 writer requires BGR
+        if return_type == ProcColor.yvu:
+            outbgr = cv2.cvtColor(outimg, cv2.COLOR_YCrCb2BGR)
+        elif return_type == ProcColor.bgr:
+            outbgr = outimg
+        cv2.imwrite(outfile, outbgr)
 
 
 def image_to_gray(infile, outfile, iwidth, iheight, proc_color, debug):
