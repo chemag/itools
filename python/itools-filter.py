@@ -9,6 +9,7 @@ Runs generic image transformation on input images.
 
 import argparse
 import cv2
+import enum
 import itertools
 import math
 import numpy as np
@@ -51,9 +52,18 @@ FILTER_CHOICES = {
     "affine-points": "run an affine transformation (defined as 2x set of 3x points) on the input",
 }
 
+
+class ProcColor(enum.Enum):
+    bgr = 0
+    yvu = 1
+
+
+PROC_COLOR_LIST = list(c.name for c in ProcColor)
+
 default_values = {
     "debug": 0,
     "dry_run": False,
+    "proc_color": "bgr",
     "filter": "help",
     "noise_level": DEFAULT_NOISE_LEVEL,
     "diff_factor": 1.0,
@@ -108,12 +118,8 @@ def read_rgba(infile, iwidth, iheight):
     return outbgr
 
 
-class Return_t:
-    COLOR_BGR, COLOR_YVU = range(2)
-
-
 def read_image_file(
-    infile, flags=None, return_type=Return_t.COLOR_BGR, iwidth=None, iheight=None
+    infile, flags=None, return_type=ProcColor.bgr, iwidth=None, iheight=None
 ):
     if os.path.splitext(infile)[1] == ".y4m":
         try:
@@ -121,7 +127,7 @@ def read_image_file(
         except AssertionError as ae:
             errmsg = ae.args[0] + f": {infile}"
             raise AssertionError(errmsg)
-        if return_type == Return_t.COLOR_YVU:
+        if return_type == ProcColor.yvu:
             return outyvu
         outbgr = cv2.cvtColor(outyvu, cv2.COLOR_YCrCb2BGR)
         return outbgr
@@ -132,26 +138,29 @@ def read_image_file(
     else:
         outbgr = cv2.imread(cv2.samples.findFile(infile, flags))
 
-    if return_type == Return_t.COLOR_BGR:
+    if return_type == ProcColor.bgr:
         return outbgr
-    elif return_type == Return_t.COLOR_YVU:
+    elif return_type == ProcColor.yvu:
         outyvu = cv2.cvtColor(outbgr, cv2.COLOR_BGR2YCrCb)
         return outyvu
 
 
-def write_image_file(outfile, outimg, return_type=Return_t.COLOR_BGR):
-    if os.path.splitext(outfile)[1] == ".y4m" and return_type == Return_t.COLOR_YVU:
+def write_image_file(outfile, outimg, return_type=ProcColor.bgr):
+    if os.path.splitext(outfile)[1] == ".y4m" and return_type == ProcColor.yvu:
         itools_y4m.write_y4m(outfile, outimg)
         return
     # otherwise ensure we are writing BGR
-    if return_type == Return_t.COLOR_YVU:
+    if return_type == ProcColor.yvu:
         outbgr = cv2.cvtColor(outimg, cv2.COLOR_YCrCb2BGR)
-    elif return_type == Return_t.COLOR_BGR:
+    elif return_type == ProcColor.bgr:
         outbgr = outimg
     cv2.imwrite(outfile, outbgr)
 
 
-def image_to_gray(infile, outfile, iwidth, iheight, debug):
+def image_to_gray(infile, outfile, iwidth, iheight, proc_color, debug):
+    assert (
+        proc_color == ProcColor.bgr
+    ), f"error: image_to_gray unsupported in {proc_color}"
     # load the input image
     inbgr = read_image_file(infile, iwidth=iwidth, iheight=iheight)
     assert inbgr is not None, f"error: cannot read {infile}"
@@ -162,7 +171,10 @@ def image_to_gray(infile, outfile, iwidth, iheight, debug):
     write_image_file(outfile, outbgr)
 
 
-def swap_xchroma(infile, outfile, iwidth, iheight, debug):
+def swap_xchroma(infile, outfile, iwidth, iheight, proc_color, debug):
+    assert (
+        proc_color == ProcColor.bgr
+    ), f"error: swap_xchroma unsupported in {proc_color}"
     # load the input image
     inbgr = read_image_file(infile, iwidth=iwidth, iheight=iheight)
     assert inbgr is not None, f"error: cannot read {infile}"
@@ -174,7 +186,10 @@ def swap_xchroma(infile, outfile, iwidth, iheight, debug):
     write_image_file(outfile, outbgr)
 
 
-def swap_xrgb2yuv(infile, outfile, iwidth, iheight, debug):
+def swap_xrgb2yuv(infile, outfile, iwidth, iheight, proc_color, debug):
+    assert (
+        proc_color == ProcColor.bgr
+    ), f"error: swap_xrgb2yuv unsupported in {proc_color}"
     # load the input image
     inbgr = read_image_file(infile, iwidth=iwidth, iheight=iheight)
     assert inbgr is not None, f"error: cannot read {infile}"
@@ -187,7 +202,8 @@ def swap_xrgb2yuv(infile, outfile, iwidth, iheight, debug):
     write_image_file(outfile, outbgr)
 
 
-def add_noise(infile, outfile, iwidth, iheight, noise_level, debug):
+def add_noise(infile, outfile, iwidth, iheight, noise_level, proc_color, debug):
+    assert proc_color == ProcColor.bgr, f"error: add_noise unsupported in {proc_color}"
     # load the input image
     inbgr = read_image_file(infile, iwidth=iwidth, iheight=iheight)
     assert inbgr is not None, f"error: cannot read {infile}"
@@ -203,7 +219,8 @@ def add_noise(infile, outfile, iwidth, iheight, noise_level, debug):
     write_image_file(outfile, outbgr)
 
 
-def copy_image(infile, outfile, iwidth, iheight, debug):
+def copy_image(infile, outfile, iwidth, iheight, proc_color, debug):
+    assert proc_color == ProcColor.bgr, f"error: copy_image unsupported in {proc_color}"
     # load the input image
     inbgr = read_image_file(infile, iwidth=iwidth, iheight=iheight)
     assert inbgr is not None, f"error: cannot read {infile}"
@@ -237,10 +254,10 @@ def diff_images(
 ):
     # load the input images as YVU
     inyvu1 = read_image_file(
-        infile1, iwidth=iwidth, iheight=iheight, return_type=Return_t.COLOR_YVU
+        infile1, iwidth=iwidth, iheight=iheight, return_type=ProcColor.yvu
     )
     inyvu2 = read_image_file(
-        infile2, iwidth=iwidth, iheight=iheight, return_type=Return_t.COLOR_YVU
+        infile2, iwidth=iwidth, iheight=iheight, return_type=ProcColor.yvu
     )
     assert inyvu1 is not None, f"error: cannot read {infile1}"
     assert inyvu2 is not None, f"error: cannot read {infile2}"
@@ -310,11 +327,12 @@ def diff_images(
     outyvu = np.stack((yd, vd, ud), axis=2)
     outbgr = cv2.cvtColor(outyvu, cv2.COLOR_YCrCb2BGR)
     # write the output image
-    write_image_file(outfile, outyvu, return_type=Return_t.COLOR_YVU)
+    write_image_file(outfile, outyvu, return_type=ProcColor.yvu)
     return df
 
 
-def mse_image(infile, iwidth, iheight, debug):
+def mse_image(infile, iwidth, iheight, proc_color, debug):
+    assert proc_color == ProcColor.bgr, f"error: mse_image unsupported in {proc_color}"
     # load the input image
     inbgr = read_image_file(infile, iwidth=iwidth, iheight=iheight)
     assert inbgr is not None, f"error: cannot read {infile}"
@@ -334,7 +352,7 @@ def get_histogram(infile, outfile, iwidth, iheight, hist_component, debug):
     # load the input image
     if hist_component in ("y", "v", "u"):
         inimg = read_image_file(
-            infile, return_type=Return_t.COLOR_YVU, iwidth=iwidth, iheight=iheight
+            infile, return_type=ProcColor.yvu, iwidth=iwidth, iheight=iheight
         )
     else:  # hist_component in ("r", "g", "b"):
         inimg = read_image_file(infile, iwidth=iwidth, iheight=iheight)
@@ -366,7 +384,7 @@ def get_histogram(infile, outfile, iwidth, iheight, hist_component, debug):
 def get_components(infile, outfile, iwidth, iheight, debug):
     # load the input image as both yuv and rgb
     inyvu = read_image_file(
-        infile, return_type=Return_t.COLOR_YVU, iwidth=iwidth, iheight=iheight
+        infile, return_type=ProcColor.yvu, iwidth=iwidth, iheight=iheight
     )
     inbgr = read_image_file(infile, iwidth=iwidth, iheight=iheight)
     # get the requested component: note that options are YVU or BGR
@@ -389,7 +407,10 @@ def get_components(infile, outfile, iwidth, iheight, debug):
 
 
 # rotates infile
-def rotate_image(infile, rotate_angle, outfile, iwidth, iheight, debug):
+def rotate_image(infile, rotate_angle, outfile, iwidth, iheight, proc_color, debug):
+    assert (
+        proc_color == ProcColor.bgr
+    ), f"error: rotate_image unsupported in {proc_color}"
     # load the input image
     inbgr = read_image_file(infile, iwidth=iwidth, iheight=iheight)
     assert inbgr is not None, f"error: cannot read {infile}"
@@ -402,7 +423,12 @@ def rotate_image(infile, rotate_angle, outfile, iwidth, iheight, debug):
 
 # composes infile2 on top of infile1, at (xloc, yloc)
 # uses alpha
-def compose_images(infile1, infile2, iwidth, iheight, xloc, yloc, outfile, debug):
+def compose_images(
+    infile1, infile2, iwidth, iheight, xloc, yloc, outfile, proc_color, debug
+):
+    assert (
+        proc_color == ProcColor.bgr
+    ), f"error: compose_images unsupported in {proc_color}"
     # load the input images
     inbgr1 = read_image_file(infile1, iwidth=iwidth, iheight=iheight)
     assert inbgr1 is not None, f"error: cannot read {infile1}"
@@ -437,7 +463,10 @@ def compose_images(infile1, infile2, iwidth, iheight, xloc, yloc, outfile, debug
     write_image_file(outfile, outbgr)
 
 
-def match_images(infile1, infile2, outfile, iwidth, iheight, debug):
+def match_images(infile1, infile2, outfile, iwidth, iheight, proc_color, debug):
+    assert (
+        proc_color == ProcColor.bgr
+    ), f"error: match_images unsupported in {proc_color}"
     # load the input images
     inbgr1 = read_image_file(infile1, iwidth=iwidth, iheight=iheight)
     assert inbgr1 is not None, f"error: cannot read {infile1}"
@@ -601,6 +630,20 @@ def get_options(argv):
         dest="dry_run",
         default=default_values["dry_run"],
         help="Dry run",
+    )
+    parser.add_argument(
+        "--proc-color",
+        action="store",
+        type=str,
+        default=default_values["proc_color"],
+        choices=PROC_COLOR_LIST,
+        metavar="[%s]"
+        % (
+            " | ".join(
+                PROC_COLOR_LIST,
+            )
+        ),
+        help="processing color",
     )
     parser.add_argument(
         "--noise-level",
@@ -983,6 +1026,7 @@ def main(argv):
             options.outfile,
             options.iwidth,
             options.iheight,
+            ProcColor[options.proc_color],
             options.debug,
         )
 
@@ -1003,7 +1047,11 @@ def main(argv):
 
     elif options.filter == "mse" or options.filter == "psnr":
         mse, psnr = mse_image(
-            options.infile, options.iwidth, options.iheight, options.debug
+            options.infile,
+            options.iwidth,
+            options.iheight,
+            ProcColor[options.proc_color],
+            options.debug,
         )
         print(f"{mse = }\n{psnr = }")
 
@@ -1033,6 +1081,7 @@ def main(argv):
             options.outfile,
             options.iwidth,
             options.iheight,
+            ProcColor[options.proc_color],
             options.debug,
         )
 
@@ -1045,6 +1094,7 @@ def main(argv):
             options.x,
             options.y,
             options.outfile,
+            ProcColor[options.proc_color],
             options.debug,
         )
 
@@ -1055,6 +1105,7 @@ def main(argv):
             options.outfile,
             options.iwidth,
             options.iheight,
+            ProcColor[options.proc_color],
             options.debug,
         )
 
@@ -1064,6 +1115,7 @@ def main(argv):
             options.outfile,
             options.iwidth,
             options.iheight,
+            ProcColor[options.proc_color],
             options.debug,
         )
 
@@ -1073,6 +1125,7 @@ def main(argv):
             options.outfile,
             options.iwidth,
             options.iheight,
+            ProcColor[options.proc_color],
             options.debug,
         )
 
@@ -1082,6 +1135,7 @@ def main(argv):
             options.outfile,
             options.iwidth,
             options.iheight,
+            ProcColor[options.proc_color],
             options.debug,
         )
 
@@ -1092,6 +1146,7 @@ def main(argv):
             options.iwidth,
             options.iheight,
             options.noise_level,
+            ProcColor[options.proc_color],
             options.debug,
         )
 
@@ -1109,6 +1164,7 @@ def main(argv):
             options.a11,
             options.b00,
             options.b10,
+            ProcColor[options.proc_color],
             options.debug,
         )
 
@@ -1132,6 +1188,7 @@ def main(argv):
             options.d1y,
             options.d2x,
             options.d2y,
+            ProcColor[options.proc_color],
             options.debug,
         )
 
