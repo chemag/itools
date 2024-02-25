@@ -225,12 +225,11 @@ def add_noise(infile, outfile, iwidth, iheight, noise_level, proc_color, debug):
 
 
 def copy_image(infile, outfile, iwidth, iheight, proc_color, debug):
-    assert proc_color == ProcColor.bgr, f"error: copy_image unsupported in {proc_color}"
     # load the input image
-    inbgr = read_image_file(infile, iwidth=iwidth, iheight=iheight)
-    assert inbgr is not None, f"error: cannot read {infile}"
+    inabc = read_image_file(infile, iwidth=iwidth, iheight=iheight, return_type=proc_color)
+    assert inabc is not None, f"error: cannot read {infile}"
     # write the output image
-    write_image_file(outfile, inbgr)
+    write_image_file(outfile, inabc, return_type=proc_color)
 
 
 def force_range(val):
