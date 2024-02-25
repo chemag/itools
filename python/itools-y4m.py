@@ -67,6 +67,46 @@ def chroma_subsample_direct(inmatrix, colorspace):
     return outmatrix
 
 
+def range_conversion(inarr, srcmin, srcmax, dstmin, dstmax):
+    # conversion function is $yout = a * yin + b$
+    # Conversion requirements:
+    # * (1) dstmin = a * srcmin + b
+    # * (2) dstmax = a * srcmax + b
+    a = (dstmax - dstmin) / (srcmax - srcmin)
+    b = dstmin - a * srcmin
+    f = lambda yin: np.round(a * yin + b)
+    outarr = f(inarr)
+    # look for invalid values
+    if (
+        len(outarr[outarr < np.iinfo(np.uint8).min]) > 0
+        or len(outarr[outarr > np.iinfo(np.uint8).max]) > 0
+    ):
+        raise AssertionError(
+            f"error: range conversion is producing invalid values: check your source"
+        )
+    # clip values
+    outarr[outarr < np.iinfo(np.uint8).min] = np.iinfo(np.uint8).min
+    outarr[outarr > np.iinfo(np.uint8).max] = np.iinfo(np.uint8).max
+    outarr = outarr.astype(np.uint8)
+    return outarr
+
+
+def luma_range_conversion(ya, src, dst):
+    srcmin = 0 if src == "FULL" else 16
+    dstmin = 0 if dst == "FULL" else 16
+    srcmax = 255 if src == "FULL" else 235
+    dstmax = 255 if dst == "FULL" else 235
+    return range_conversion(ya, srcmin, srcmax, dstmin, dstmax)
+
+
+def chroma_range_conversion(va, src, dst):
+    srcmin = 0 if src == "FULL" else 16
+    dstmin = 0 if dst == "FULL" else 16
+    srcmax = 255 if src == "FULL" else 240
+    dstmax = 255 if dst == "FULL" else 240
+    return range_conversion(va, srcmin, srcmax, dstmin, dstmax)
+
+
 class Y4MHeader:
     VALID_INTERLACED = ("p", "t", "b", "m")
     VALID_COLORSPACES = ("420", "420jpeg", "420paldv", "420mpeg2", "422", "444")
@@ -152,7 +192,7 @@ class Y4MHeader:
             return self.width * self.height * 3
         raise f"only support 420, 422, 444 colorspaces (not {self.colorspace})"
 
-    def read_frame(self, data):
+    def read_frame(self, data, colorrange):
         # read "FRAME\n" tidbit
         assert data[:6] == b"FRAME\n", f"error: invalid FRAME: starts with {data[:6]}"
         offset = 6
@@ -186,19 +226,32 @@ class Y4MHeader:
         # undo chroma subsample in order to combine same-size matrices
         ua_full = chroma_subsample_reverse(ua, self.colorspace)
         va_full = chroma_subsample_reverse(va, self.colorspace)
+        print(f"y4m frame read with {self.comment.get('COLORRANGE', None)}")
+        if colorrange is not None and colorrange.upper() != self.comment.get(
+            "COLORRANGE", None
+        ):
+            ya = luma_range_conversion(
+                ya, src=self.comment.get("COLORRANGE", None), dst=colorrange.upper()
+            )
+            ua = chroma_range_conversion(
+                ua, src=self.comment.get("COLORRANGE", None), dst=colorrange.upper()
+            )
+            va = chroma_range_conversion(
+                va, src=self.comment.get("COLORRANGE", None), dst=colorrange.upper()
+            )
         # note that OpenCV conversions use YCrCb (YVU) instead of YCbCr (YUV)
         outyvu = np.stack((ya, va_full, ua_full), axis=2)
         return outyvu, offset
 
 
-def read_y4m(infile):
+def read_y4m(infile, colorrange=None):
     # read the y4m frame
     with open(infile, "rb") as fin:
         # read y4m header
         data = fin.read()
         header, offset = Y4MHeader.read(data)
         # read y4m frame
-        frame, offset = header.read_frame(data[offset:])
+        frame, offset = header.read_frame(data[offset:], colorrange)
         return frame, header, offset
 
 
