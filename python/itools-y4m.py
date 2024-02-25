@@ -241,14 +241,14 @@ class Y4MHeader:
                 dst=colorrange.upper(),
                 strict=strict,
             )
-            ua = chroma_range_conversion(
-                ua,
+            ua_full = chroma_range_conversion(
+                ua_full,
                 src=self.comment.get("COLORRANGE", None),
                 dst=colorrange.upper(),
                 strict=strict,
             )
-            va = chroma_range_conversion(
-                va,
+            va_full = chroma_range_conversion(
+                va_full,
                 src=self.comment.get("COLORRANGE", None),
                 dst=colorrange.upper(),
                 strict=strict,
