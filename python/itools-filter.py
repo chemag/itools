@@ -123,7 +123,7 @@ def read_image_file(
 ):
     if os.path.splitext(infile)[1] == ".y4m":
         try:
-            outyvu, _, _ = itools_y4m.read_y4m(infile, colorrange="full")
+            outyvu, _, _ = itools_y4m.read_y4m(infile, colorrange="full", debug=1)
         except AssertionError as ae:
             errmsg = ae.args[0] + f": {infile}"
             raise AssertionError(errmsg)
@@ -226,7 +226,9 @@ def add_noise(infile, outfile, iwidth, iheight, noise_level, proc_color, debug):
 
 def copy_image(infile, outfile, iwidth, iheight, proc_color, debug):
     # load the input image
-    inabc = read_image_file(infile, iwidth=iwidth, iheight=iheight, return_type=proc_color)
+    inabc = read_image_file(
+        infile, iwidth=iwidth, iheight=iheight, return_type=proc_color
+    )
     assert inabc is not None, f"error: cannot read {infile}"
     # write the output image
     write_image_file(outfile, inabc, return_type=proc_color)
