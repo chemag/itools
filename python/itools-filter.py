@@ -116,7 +116,7 @@ def read_image_file(
     infile, flags=None, return_type=Return_t.COLOR_BGR, iwidth=None, iheight=None
 ):
     if os.path.splitext(infile)[1] == ".y4m":
-        outyvu = itools_y4m.read_y4m(infile)
+        outyvu, _, _ = itools_y4m.read_y4m(infile)
         if return_type == Return_t.COLOR_YVU:
             return outyvu
         outbgr = cv2.cvtColor(outyvu, cv2.COLOR_YCrCb2BGR)
