@@ -12,6 +12,14 @@ import subprocess
 import sys
 
 
+class ProcColor(enum.Enum):
+    bgr = 0
+    yvu = 1
+
+
+PROC_COLOR_LIST = list(c.name for c in ProcColor)
+
+
 def run(command, **kwargs):
     debug = kwargs.get("debug", 0)
     dry_run = kwargs.get("dry_run", False)

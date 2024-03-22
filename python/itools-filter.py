@@ -18,6 +18,7 @@ import pandas as pd
 import sys
 import importlib
 
+itools_common = importlib.import_module("itools-common")
 itools_rgb = importlib.import_module("itools-rgb")
 itools_y4m = importlib.import_module("itools-y4m")
 
@@ -54,12 +55,7 @@ FILTER_CHOICES = {
 }
 
 
-class ProcColor(enum.Enum):
-    bgr = 0
-    yvu = 1
-
-
-PROC_COLOR_LIST = list(c.name for c in ProcColor)
+PROC_COLOR_LIST = list(c.name for c in itools_common.ProcColor)
 
 default_values = {
     "debug": 0,
@@ -104,13 +100,17 @@ default_values = {
 
 
 def read_image_file(
-    infile, flags=None, return_type=ProcColor.bgr, iwidth=None, iheight=None
+    infile,
+    flags=None,
+    return_type=itools_common.ProcColor.bgr,
+    iwidth=None,
+    iheight=None,
 ):
     if os.path.splitext(infile)[1] == ".y4m":
         outyvu, _, _, status = itools_y4m.read_y4m(infile, colorrange="full", debug=1)
         if status is not None and status["broken"]:
             print(f"error: file {infile} is broken")
-        if return_type == ProcColor.yvu:
+        if return_type == itools_common.ProcColor.yvu:
             return outyvu, status
         outbgr = cv2.cvtColor(outyvu, cv2.COLOR_YCrCb2BGR)
         return outbgr, status
@@ -121,33 +121,33 @@ def read_image_file(
     else:
         outbgr = cv2.imread(cv2.samples.findFile(infile, flags))
 
-    if return_type == ProcColor.bgr:
+    if return_type == itools_common.ProcColor.bgr:
         return outbgr, None
-    elif return_type == ProcColor.yvu:
+    elif return_type == itools_common.ProcColor.yvu:
         outyvu = cv2.cvtColor(outbgr, cv2.COLOR_BGR2YCrCb)
         return outyvu, None
 
 
-def write_image_file(outfile, outimg, return_type=ProcColor.bgr):
+def write_image_file(outfile, outimg, return_type=itools_common.ProcColor.bgr):
     if os.path.splitext(outfile)[1] == ".y4m":
         # y4m writer requires YVU
-        if return_type == ProcColor.yvu:
+        if return_type == itools_common.ProcColor.yvu:
             outyvu = outimg
-        elif return_type == ProcColor.bgr:
+        elif return_type == itools_common.ProcColor.bgr:
             outyvu = cv2.cvtColor(outimg, cv2.COLOR_BGR2YCrCb)
         itools_y4m.write_y4m(outfile, outyvu)
     else:
         # cv2 writer requires BGR
-        if return_type == ProcColor.yvu:
+        if return_type == itools_common.ProcColor.yvu:
             outbgr = cv2.cvtColor(outimg, cv2.COLOR_YCrCb2BGR)
-        elif return_type == ProcColor.bgr:
+        elif return_type == itools_common.ProcColor.bgr:
             outbgr = outimg
         cv2.imwrite(outfile, outbgr)
 
 
 def image_to_gray(infile, outfile, iwidth, iheight, proc_color, debug):
     assert (
-        proc_color == ProcColor.bgr
+        proc_color == itools_common.ProcColor.bgr
     ), f"error: image_to_gray unsupported in {proc_color}"
     # load the input image
     inbgr, _ = read_image_file(infile, iwidth=iwidth, iheight=iheight)
@@ -161,7 +161,7 @@ def image_to_gray(infile, outfile, iwidth, iheight, proc_color, debug):
 
 def swap_xchroma(infile, outfile, iwidth, iheight, proc_color, debug):
     assert (
-        proc_color == ProcColor.bgr
+        proc_color == itools_common.ProcColor.bgr
     ), f"error: swap_xchroma unsupported in {proc_color}"
     # load the input image
     inbgr, _ = read_image_file(infile, iwidth=iwidth, iheight=iheight)
@@ -176,7 +176,7 @@ def swap_xchroma(infile, outfile, iwidth, iheight, proc_color, debug):
 
 def swap_xrgb2yuv(infile, outfile, iwidth, iheight, proc_color, debug):
     assert (
-        proc_color == ProcColor.bgr
+        proc_color == itools_common.ProcColor.bgr
     ), f"error: swap_xrgb2yuv unsupported in {proc_color}"
     # load the input image
     inbgr, _ = read_image_file(infile, iwidth=iwidth, iheight=iheight)
@@ -191,7 +191,9 @@ def swap_xrgb2yuv(infile, outfile, iwidth, iheight, proc_color, debug):
 
 
 def add_noise(infile, outfile, iwidth, iheight, noise_level, proc_color, debug):
-    assert proc_color == ProcColor.bgr, f"error: add_noise unsupported in {proc_color}"
+    assert (
+        proc_color == itools_common.ProcColor.bgr
+    ), f"error: add_noise unsupported in {proc_color}"
     # load the input image
     inbgr, _ = read_image_file(infile, iwidth=iwidth, iheight=iheight)
     assert inbgr is not None, f"error: cannot read {infile}"
@@ -243,10 +245,10 @@ def diff_images(
 ):
     # load the input images as YVU
     inyvu1, instatus1 = read_image_file(
-        infile1, iwidth=iwidth, iheight=iheight, return_type=ProcColor.yvu
+        infile1, iwidth=iwidth, iheight=iheight, return_type=itools_common.ProcColor.yvu
     )
     inyvu2, instatus2 = read_image_file(
-        infile2, iwidth=iwidth, iheight=iheight, return_type=ProcColor.yvu
+        infile2, iwidth=iwidth, iheight=iheight, return_type=itools_common.ProcColor.yvu
     )
     assert inyvu1 is not None, f"error: cannot read {infile1}"
     assert inyvu2 is not None, f"error: cannot read {infile2}"
@@ -324,12 +326,14 @@ def diff_images(
     outyvu = np.stack((yd, vd, ud), axis=2)
     outbgr = cv2.cvtColor(outyvu, cv2.COLOR_YCrCb2BGR)
     # write the output image
-    write_image_file(outfile, outyvu, return_type=ProcColor.yvu)
+    write_image_file(outfile, outyvu, return_type=itools_common.ProcColor.yvu)
     return df
 
 
 def mse_image(infile, iwidth, iheight, proc_color, debug):
-    assert proc_color == ProcColor.bgr, f"error: mse_image unsupported in {proc_color}"
+    assert (
+        proc_color == itools_common.ProcColor.bgr
+    ), f"error: mse_image unsupported in {proc_color}"
     # load the input image
     inbgr, _ = read_image_file(infile, iwidth=iwidth, iheight=iheight)
     assert inbgr is not None, f"error: cannot read {infile}"
@@ -349,7 +353,10 @@ def get_histogram(infile, outfile, iwidth, iheight, hist_component, debug):
     # load the input image
     if hist_component in ("y", "v", "u"):
         inimg, _ = read_image_file(
-            infile, return_type=ProcColor.yvu, iwidth=iwidth, iheight=iheight
+            infile,
+            return_type=itools_common.ProcColor.yvu,
+            iwidth=iwidth,
+            iheight=iheight,
         )
     else:  # hist_component in ("r", "g", "b"):
         inimg, _ = read_image_file(infile, iwidth=iwidth, iheight=iheight)
@@ -381,7 +388,7 @@ def get_histogram(infile, outfile, iwidth, iheight, hist_component, debug):
 def get_components(infile, outfile, iwidth, iheight, debug):
     # load the input image as both yuv and rgb
     inyvu, _ = read_image_file(
-        infile, return_type=ProcColor.yvu, iwidth=iwidth, iheight=iheight
+        infile, return_type=itools_common.ProcColor.yvu, iwidth=iwidth, iheight=iheight
     )
     inbgr, _ = read_image_file(infile, iwidth=iwidth, iheight=iheight)
     # get the requested component: note that options are YVU or BGR
@@ -406,7 +413,7 @@ def get_components(infile, outfile, iwidth, iheight, debug):
 # rotates infile
 def rotate_image(infile, rotate_angle, outfile, iwidth, iheight, proc_color, debug):
     assert (
-        proc_color == ProcColor.bgr
+        proc_color == itools_common.ProcColor.bgr
     ), f"error: rotate_image unsupported in {proc_color}"
     # load the input image
     inbgr, _ = read_image_file(infile, iwidth=iwidth, iheight=iheight)
@@ -424,7 +431,7 @@ def compose_images(
     infile1, infile2, iwidth, iheight, xloc, yloc, outfile, proc_color, debug
 ):
     assert (
-        proc_color == ProcColor.bgr
+        proc_color == itools_common.ProcColor.bgr
     ), f"error: compose_images unsupported in {proc_color}"
     # load the input images
     inbgr1, _ = read_image_file(infile1, iwidth=iwidth, iheight=iheight)
@@ -462,7 +469,7 @@ def compose_images(
 
 def match_images(infile1, infile2, outfile, iwidth, iheight, proc_color, debug):
     assert (
-        proc_color == ProcColor.bgr
+        proc_color == itools_common.ProcColor.bgr
     ), f"error: match_images unsupported in {proc_color}"
     # load the input images
     inbgr1, _ = read_image_file(infile1, iwidth=iwidth, iheight=iheight)
@@ -1023,7 +1030,7 @@ def main(argv):
             options.outfile,
             options.iwidth,
             options.iheight,
-            ProcColor[options.proc_color],
+            itools_common.ProcColor[options.proc_color],
             options.debug,
         )
 
@@ -1047,7 +1054,7 @@ def main(argv):
             options.infile,
             options.iwidth,
             options.iheight,
-            ProcColor[options.proc_color],
+            itools_common.ProcColor[options.proc_color],
             options.debug,
         )
         print(f"{mse = }\n{psnr = }")
@@ -1078,7 +1085,7 @@ def main(argv):
             options.outfile,
             options.iwidth,
             options.iheight,
-            ProcColor[options.proc_color],
+            itools_common.ProcColor[options.proc_color],
             options.debug,
         )
 
@@ -1091,7 +1098,7 @@ def main(argv):
             options.x,
             options.y,
             options.outfile,
-            ProcColor[options.proc_color],
+            itools_common.ProcColor[options.proc_color],
             options.debug,
         )
 
@@ -1102,7 +1109,7 @@ def main(argv):
             options.outfile,
             options.iwidth,
             options.iheight,
-            ProcColor[options.proc_color],
+            itools_common.ProcColor[options.proc_color],
             options.debug,
         )
 
@@ -1112,7 +1119,7 @@ def main(argv):
             options.outfile,
             options.iwidth,
             options.iheight,
-            ProcColor[options.proc_color],
+            itools_common.ProcColor[options.proc_color],
             options.debug,
         )
 
@@ -1122,7 +1129,7 @@ def main(argv):
             options.outfile,
             options.iwidth,
             options.iheight,
-            ProcColor[options.proc_color],
+            itools_common.ProcColor[options.proc_color],
             options.debug,
         )
 
@@ -1132,7 +1139,7 @@ def main(argv):
             options.outfile,
             options.iwidth,
             options.iheight,
-            ProcColor[options.proc_color],
+            itools_common.ProcColor[options.proc_color],
             options.debug,
         )
 
@@ -1143,7 +1150,7 @@ def main(argv):
             options.iwidth,
             options.iheight,
             options.noise_level,
-            ProcColor[options.proc_color],
+            itools_common.ProcColor[options.proc_color],
             options.debug,
         )
 
@@ -1161,7 +1168,7 @@ def main(argv):
             options.a11,
             options.b00,
             options.b10,
-            ProcColor[options.proc_color],
+            itools_common.ProcColor[options.proc_color],
             options.debug,
         )
 
@@ -1185,7 +1192,7 @@ def main(argv):
             options.d1y,
             options.d2x,
             options.d2y,
-            ProcColor[options.proc_color],
+            itools_common.ProcColor[options.proc_color],
             options.debug,
         )
 
