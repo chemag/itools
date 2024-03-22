@@ -18,6 +18,7 @@ import pandas as pd
 import sys
 import importlib
 
+itools_rgb = importlib.import_module("itools-rgb")
 itools_y4m = importlib.import_module("itools-y4m")
 
 
@@ -102,22 +103,6 @@ default_values = {
 }
 
 
-# rgba is packed, R/G/B/A components
-def read_rgba(infile, iwidth, iheight):
-    with open(infile, "rb") as fin:
-        data = fin.read()
-    outrgba = np.frombuffer(data, dtype=np.uint8)
-    # extract the 3x components (ignore alpha channel)
-    outr, outg, outb = outrgba[0::4], outrgba[1::4], outrgba[2::4]
-    # reshape them to the width and height
-    outr = outr.reshape(iwidth, iheight)
-    outg = outg.reshape(iwidth, iheight)
-    outb = outb.reshape(iwidth, iheight)
-    # stack components
-    outbgr = np.stack((outb, outg, outr), axis=2)
-    return outbgr
-
-
 def read_image_file(
     infile, flags=None, return_type=ProcColor.bgr, iwidth=None, iheight=None
 ):
@@ -131,7 +116,7 @@ def read_image_file(
         return outbgr, status
 
     elif os.path.splitext(infile)[1] == ".rgba":
-        outbgr = read_rgba(infile, iwidth, iheight)
+        outbgr = itools_rgb.read_rgba(infile, iwidth, iheight)
 
     else:
         outbgr = cv2.imread(cv2.samples.findFile(infile, flags))
