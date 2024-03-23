@@ -23,16 +23,15 @@ def read_image_file(
     iheight=None,
     debug=0,
 ):
+    outyvu = None
+    outbgr = None
+    status = None
     if os.path.splitext(infile)[1] == ".y4m":
         outyvu, _, _, status = itools_y4m.read_y4m(
             infile, colorrange="full", debug=debug
         )
         if status is not None and status["broken"]:
             print(f"error: file {infile} is broken")
-        if return_type == itools_common.ProcColor.yvu:
-            return outyvu, status
-        outbgr = cv2.cvtColor(outyvu, cv2.COLOR_YCrCb2BGR)
-        return outbgr, status
 
     elif os.path.splitext(infile)[1] == ".rgba":
         outbgr = itools_rgb.read_rgba(infile, iwidth, iheight)
@@ -40,11 +39,19 @@ def read_image_file(
     else:
         outbgr = cv2.imread(cv2.samples.findFile(infile, flags))
 
-    if return_type == itools_common.ProcColor.bgr:
-        return outbgr, None
-    elif return_type == itools_common.ProcColor.yvu:
-        outyvu = cv2.cvtColor(outbgr, cv2.COLOR_BGR2YCrCb)
-        return outyvu, None
+    if return_type == itools_common.ProcColor.yvu:
+        if outyvu is None:
+            outyvu = cv2.cvtColor(outbgr, cv2.COLOR_BGR2YCrCb)
+            return outyvu, status
+        else:
+            return outyvu, status
+
+    else:  # if return_type == itools_common.ProcColor.bgr:
+        if outbgr is None:
+            outbgr = cv2.cvtColor(outyvu, cv2.COLOR_YCrCb2BGR)
+            return outbgr, status
+        else:
+            return outbgr, status
 
 
 def write_image_file(outfile, outimg, return_type=itools_common.ProcColor.bgr):
