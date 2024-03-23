@@ -47,7 +47,6 @@ FILTER_CHOICES = {
     "mse": "get the MSE/PSNR of a frame",
     "psnr": "get the MSE/PSNR of a frame",
     "histogram": "get a histogram of the values of a given component",
-    "components": "get the average/stddev of all the components",
     "compose": "compose 2 frames",
     "rotate": "rotate a frame (90, 180, 270)",
     "match": "match 2 frames (needle and haystack problem -- only shift)",
@@ -337,32 +336,6 @@ def get_histogram(infile, outfile, iwidth, iheight, hist_component, debug):
         fout.write("value,hist,norm\n")
         for k in range(VALUE_RANGE):
             fout.write(f"{k},{histogram[k]},{histogram_normalized[k]}\n")
-
-
-# calculates the average/stddev of all components
-def get_components(infile, outfile, iwidth, iheight, debug):
-    # load the input image as both yuv and rgb
-    inyvu, _ = itools_io.read_image_file(
-        infile, return_type=itools_common.ProcColor.yvu, iwidth=iwidth, iheight=iheight
-    )
-    inbgr, _ = itools_io.read_image_file(infile, iwidth=iwidth, iheight=iheight)
-    # get the requested component: note that options are YVU or BGR
-    yd, vd, ud = inyvu[:, :, 0], inyvu[:, :, 1], inyvu[:, :, 2]
-    ymean, ystddev = yd.mean(), yd.std()
-    umean, ustddev = ud.mean(), ud.std()
-    vmean, vstddev = vd.mean(), vd.std()
-    bd, gd, rd = inbgr[:, :, 0], inbgr[:, :, 1], inbgr[:, :, 2]
-    bmean, bstddev = bd.mean(), bd.std()
-    gmean, gstddev = gd.mean(), gd.std()
-    rmean, rstddev = rd.mean(), rd.std()
-    # store results as csv
-    with open(outfile, "w") as fout:
-        fout.write(
-            "filename,ymean,ystddev,umean,ustddev,vmean,vstddev,rmean,rstddev,gmean,gstddev,bmean,bstddev\n"
-        )
-        fout.write(
-            f"{infile},{ymean},{ystddev},{umean},{ustddev},{vmean},{vstddev},{rmean},{rstddev},{gmean},{gstddev},{bmean},{bstddev}\n"
-        )
 
 
 # rotates infile
@@ -1021,15 +994,6 @@ def main(argv):
             options.iwidth,
             options.iheight,
             options.hist_component,
-            options.debug,
-        )
-
-    elif options.filter == "components":
-        get_components(
-            options.infile,
-            options.outfile,
-            options.iwidth,
-            options.iheight,
             options.debug,
         )
 
