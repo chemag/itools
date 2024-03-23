@@ -21,9 +21,12 @@ def read_image_file(
     return_type=itools_common.ProcColor.bgr,
     iwidth=None,
     iheight=None,
+    debug=0,
 ):
     if os.path.splitext(infile)[1] == ".y4m":
-        outyvu, _, _, status = itools_y4m.read_y4m(infile, colorrange="full", debug=1)
+        outyvu, _, _, status = itools_y4m.read_y4m(
+            infile, colorrange="full", debug=debug
+        )
         if status is not None and status["broken"]:
             print(f"error: file {infile} is broken")
         if return_type == itools_common.ProcColor.yvu:

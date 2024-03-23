@@ -227,7 +227,7 @@ class Y4MHeader:
         ua_full = chroma_subsample_reverse(ua, self.colorspace)
         va_full = chroma_subsample_reverse(va, self.colorspace)
         if debug > 0:
-            print(f"y4m frame read with {self.comment.get('COLORRANGE', None)}")
+            print(f"debug: y4m frame read with {self.comment.get('COLORRANGE', None)}")
         status = {
             "colorrange": self.comment.get("COLORRANGE", "default").lower(),
             "broken": 0,
