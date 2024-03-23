@@ -15,7 +15,7 @@ itools_common = importlib.import_module("itools-common")
 itools_y4m = importlib.import_module("itools-y4m")
 
 
-def parse_item_list(output):
+def parse_mp4box_info(output):
     primary_id = None
     df = pd.DataFrame(columns=("item_id", "id", "type", "size", "rem", "primary"))
     for line in output.decode("ascii").split("\n"):
@@ -56,7 +56,7 @@ def get_item_list(infile, debug=0):
     command = f"MP4Box -info {infile}"
     returncode, out, err = itools_common.run(command, debug=debug)
     assert returncode == 0, f"error in {command}\n{err}"
-    return parse_item_list(err)
+    return parse_mp4box_info(err)
 
 
 COLOR_PARAMETER_LIST = {
