@@ -45,7 +45,7 @@ SUMMARY_FIELDS_AVERAGE = ("delta_timestamp_ms",)
 # calculate average/stddev of all components
 def get_components(infile, debug):
     # load the input image as both yuv and rgb
-    inyvu, _ = itools_io.read_image_file(
+    inyvu, status = itools_io.read_image_file(
         infile,
         return_type=itools_common.ProcColor.yvu,
         debug=debug,
@@ -76,6 +76,7 @@ def get_components(infile, debug):
             "gstddev",
             "bmean",
             "bstddev",
+            "status",
         )
     )
     df.loc[df.size] = [
@@ -92,6 +93,7 @@ def get_components(infile, debug):
         gstddev,
         bmean,
         bstddev,
+        "|".join(f"{k}={v}" for k, v in status.items()),
     ]
     return df
 
