@@ -11,6 +11,7 @@ import os.path
 import importlib
 
 itools_common = importlib.import_module("itools-common")
+itools_heif = importlib.import_module("itools-heif")
 itools_rgb = importlib.import_module("itools-rgb")
 itools_y4m = importlib.import_module("itools-y4m")
 
@@ -35,6 +36,9 @@ def read_image_file(
 
     elif os.path.splitext(infile)[1] == ".rgba":
         outbgr = itools_rgb.read_rgba(infile, iwidth, iheight)
+
+    elif os.path.splitext(infile)[1] == ".heic":
+        outyvu, status = itools_heif.read_heif(infile, debug)
 
     else:
         outbgr = cv2.imread(cv2.samples.findFile(infile, flags))
