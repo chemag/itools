@@ -7,6 +7,7 @@ Runs generic HEIF analysis. Requires access to heif-convert (libheif), MP4Box (g
 
 
 import importlib
+import json
 import pandas as pd
 import re
 import tempfile
@@ -79,13 +80,14 @@ def parse_ffmpeg_bsf_colorimetry(output):
     return colorimetry
 
 
-def get_h265_colorimetry(infile, debug):
+def get_heif_colorimetry(infile, get_exif_colorimetry, debug):
     df_item = get_item_list(infile, debug)
+    # 1. get the HEVC (h265) SPS colorimetry
     # select the first hvc1 type
-    the_id = df_item[df_item.type == "hvc1"]["id"][0]
+    hvc1_id = df_item[df_item.type == "hvc1"]["id"].iloc[0]
     # extract the 265 file of the first tile
     tmp265 = tempfile.NamedTemporaryFile(suffix=".265").name
-    command = f"MP4Box -dump-item {the_id}:path={tmp265} {infile}"
+    command = f"MP4Box -dump-item {hvc1_id}:path={tmp265} {infile}"
     returncode, out, err = itools_common.run(command, debug=debug)
     assert returncode == 0, f"error in {command}\n{err}"
     # extract the 265 file of the first tile
@@ -93,6 +95,21 @@ def get_h265_colorimetry(infile, debug):
     returncode, out, err = itools_common.run(command, debug=debug)
     assert returncode == 0, f"error in {command}\n{err}"
     colorimetry = parse_ffmpeg_bsf_colorimetry(err)
+    # 2. get the Exif colorimetry
+    if get_exif_colorimetry and len(df_item[df_item.type == "Exif"]["id"]) > 0:
+        exif_id = df_item[df_item.type == "Exif"]["id"].iloc[0]
+        # extract the exif file of the first tile
+        tmpexif = tempfile.NamedTemporaryFile(suffix=".exif").name
+        command = f"MP4Box -dump-item {exif_id}:path={tmpexif} {infile}"
+        returncode, out, err = itools_common.run(command, debug=debug)
+        assert returncode == 0, f"error in {command}\n{err}"
+        # parse the exif file of the first tile
+        command = f"exiftool -g -j -b {tmpexif}"
+        returncode, out, err = itools_common.run(command, debug=debug)
+        assert returncode == 0, f"error in {command}\n{err}"
+        exif_info = json.loads(out)
+        exif_dict = exif_info[0]["EXIF"]
+        colorimetry.update(exif_dict)
     return colorimetry
 
 
@@ -111,7 +128,7 @@ def read_heif(infile, debug=0):
     assert returncode == 0, f"error in {command}\n{err}"
     # read the y4m frame
     outyvu, _, _, status = itools_y4m.read_y4m(tmpy4m2, colorrange="full", debug=debug)
-    # get the h265 colorimetry
-    colorimetry = get_h265_colorimetry(infile, debug)
+    # get the heif colorimetry
+    colorimetry = get_heif_colorimetry(infile, get_exif_colorimetry=False, debug=debug)
     status.update(colorimetry)
     return outyvu, status
