@@ -74,7 +74,8 @@ def parse_ffmpeg_bsf_colorimetry(output):
         for color_parameter in COLOR_PARAMETER_LIST.keys():
             if color_parameter in line:
                 rem = line[line.index(color_parameter) + len(color_parameter) :].strip()
-                colorimetry[COLOR_PARAMETER_LIST[color_parameter]] = int(
+                # prefix all keys
+                colorimetry["hevc:" + COLOR_PARAMETER_LIST[color_parameter]] = int(
                     rem.split("=")[1]
                 )
     return colorimetry
@@ -109,6 +110,8 @@ def get_heif_colorimetry(infile, get_exif_colorimetry, debug):
         assert returncode == 0, f"error in {command}\n{err}"
         exif_info = json.loads(out)
         exif_dict = exif_info[0]["EXIF"]
+        # prefix all keys
+        exif_dict = {("exif:" + k): v for k, v in exif_dict.items()}
         colorimetry.update(exif_dict)
     return colorimetry
 
