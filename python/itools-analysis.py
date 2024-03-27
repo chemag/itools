@@ -30,6 +30,7 @@ default_values = {
     "debug": 0,
     "dry_run": False,
     "header": True,
+    "read_exif_info": True,
     "filter": "components",
     "infile_list": [],
     "outfile": None,
@@ -43,11 +44,12 @@ SUMMARY_FIELDS_AVERAGE = ("delta_timestamp_ms",)
 
 
 # calculate average/stddev of all components
-def get_components(infile, debug):
+def get_components(infile, read_exif_info, debug):
     # load the input image as both yuv and rgb
     inyvu, status = itools_io.read_image_file(
         infile,
         return_type=itools_common.ProcColor.yvu,
+        read_exif_info=read_exif_info,
         debug=debug,
     )
     inbgr, _ = itools_io.read_image_file(infile)
@@ -162,6 +164,21 @@ def get_options(argv):
         help="Do not read CSV header from first row (even if no #)",
     )
     parser.add_argument(
+        "--exif",
+        dest="read_exif_info",
+        action="store_true",
+        default=default_values["read_exif_info"],
+        help="Parse EXIF Info%s"
+        % (" [default]" if default_values["read_exif_info"] else ""),
+    )
+    parser.add_argument(
+        "--no-exif",
+        dest="read_exif_info",
+        action="store_false",
+        help="Do not parse EXIF Info%s"
+        % (" [default]" if not default_values["read_exif_info"] else ""),
+    )
+    parser.add_argument(
         "--filter",
         action="store",
         type=str,
@@ -210,7 +227,7 @@ def main(argv):
         # process input files
         df = None
         for infile in options.infile_list:
-            dftmp = get_components(infile, options.debug)
+            dftmp = get_components(infile, options.read_exif_info, options.debug)
             df = dftmp if df is None else pd.concat([df, dftmp])
         df.to_csv(options.outfile, header=options.header, index=False)
 

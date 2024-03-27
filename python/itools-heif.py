@@ -81,7 +81,7 @@ def parse_ffmpeg_bsf_colorimetry(output):
     return colorimetry
 
 
-def get_heif_colorimetry(infile, get_exif_colorimetry, debug):
+def get_heif_colorimetry(infile, read_exif_info, debug):
     df_item = get_item_list(infile, debug)
     # 1. get the HEVC (h265) SPS colorimetry
     # select the first hvc1 type
@@ -97,7 +97,7 @@ def get_heif_colorimetry(infile, get_exif_colorimetry, debug):
     assert returncode == 0, f"error in {command}\n{err}"
     colorimetry = parse_ffmpeg_bsf_colorimetry(err)
     # 2. get the Exif colorimetry
-    if get_exif_colorimetry and len(df_item[df_item.type == "Exif"]["id"]) > 0:
+    if read_exif_info and len(df_item[df_item.type == "Exif"]["id"]) > 0:
         exif_id = df_item[df_item.type == "Exif"]["id"].iloc[0]
         # extract the exif file of the first tile
         tmpexif = tempfile.NamedTemporaryFile(suffix=".exif").name
@@ -116,7 +116,7 @@ def get_heif_colorimetry(infile, get_exif_colorimetry, debug):
     return colorimetry
 
 
-def read_heif(infile, debug=0):
+def read_heif(infile, read_exif_info, debug=0):
     tmpy4m1 = tempfile.NamedTemporaryFile(suffix=".y4m").name
     tmpy4m2 = tempfile.NamedTemporaryFile(suffix=".y4m").name
     if debug > 0:
@@ -132,6 +132,6 @@ def read_heif(infile, debug=0):
     # read the y4m frame
     outyvu, _, _, status = itools_y4m.read_y4m(tmpy4m2, colorrange="full", debug=debug)
     # get the heif colorimetry
-    colorimetry = get_heif_colorimetry(infile, get_exif_colorimetry=False, debug=debug)
+    colorimetry = get_heif_colorimetry(infile, read_exif_info, debug=debug)
     status.update(colorimetry)
     return outyvu, status

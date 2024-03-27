@@ -22,6 +22,7 @@ def read_image_file(
     return_type=itools_common.ProcColor.bgr,
     iwidth=None,
     iheight=None,
+    read_exif_info=False,
     debug=0,
 ):
     outyvu = None
@@ -38,7 +39,7 @@ def read_image_file(
         outbgr = itools_rgb.read_rgba(infile, iwidth, iheight)
 
     elif os.path.splitext(infile)[1] == ".heic":
-        outyvu, status = itools_heif.read_heif(infile, debug)
+        outyvu, status = itools_heif.read_heif(infile, read_exif_info, debug)
 
     else:
         outbgr = cv2.imread(cv2.samples.findFile(infile, flags))
