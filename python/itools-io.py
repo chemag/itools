@@ -32,7 +32,7 @@ def read_image_file(
         outyvu, _, _, status = itools_y4m.read_y4m(
             infile, colorrange="full", debug=debug
         )
-        if status is not None and status["broken"]:
+        if status is not None and status.get("broken", False):
             print(f"error: file {infile} is broken")
 
     elif os.path.splitext(infile)[1] == ".rgba":
