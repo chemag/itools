@@ -229,8 +229,8 @@ class Y4MHeader:
         if debug > 0:
             print(f"debug: y4m frame read with {self.comment.get('COLORRANGE', None)}")
         status = {
-            "colorrange": self.comment.get("COLORRANGE", "default").lower(),
-            "broken": 0,
+            "y4m:colorrange": self.comment.get("COLORRANGE", "default").lower(),
+            "y4m:broken": 0,
         }
         if colorrange is not None and colorrange.upper() != self.comment.get(
             "COLORRANGE", None
@@ -250,10 +250,10 @@ class Y4MHeader:
                 src=self.comment.get("COLORRANGE", None),
                 dst=colorrange.upper(),
             )
-            status["ybroken"] = int(ya_broken)
-            status["ubroken"] = int(ua_broken)
-            status["vbroken"] = int(va_broken)
-            status["broken"] = int(ya_broken or ua_broken or va_broken)
+            status["y4m:ybroken"] = int(ya_broken)
+            status["y4m:ubroken"] = int(ua_broken)
+            status["y4m:vbroken"] = int(va_broken)
+            status["y4m:broken"] = int(ya_broken or ua_broken or va_broken)
         # note that OpenCV conversions use YCrCb (YVU) instead of YCbCr (YUV)
         outyvu = np.stack((ya, va_full, ua_full), axis=2)
         return outyvu, offset, status
