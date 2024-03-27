@@ -8,6 +8,7 @@ Runs generic HEIF analysis. Requires access to heif-convert (libheif), MP4Box (g
 
 import importlib
 import json
+import xml.dom.minidom
 import pandas as pd
 import re
 import tempfile
@@ -82,6 +83,42 @@ def parse_ffmpeg_bsf_colorimetry(output):
     return colorimetry
 
 
+def parse_isomediafile_xml(tmpxml):
+    xml_doc = xml.dom.minidom.parse(tmpxml)
+    try:
+        colour_information_box = (
+            xml_doc.getElementsByTagName("IsoMediaFile")[0]
+            .getElementsByTagName("MetaBox")[0]
+            .getElementsByTagName("ItemPropertiesBox")[0]
+            .getElementsByTagName("ItemPropertyContainerBox")[0]
+            .getElementsByTagName("ColourInformationBox")[0]
+        )
+    except:
+        # no colr box
+        return {}
+    colour_type = colour_information_box.getAttribute("colour_type")
+    colorimetry = {}
+    colorimetry["colr:colour_type"] = colour_type
+    if colour_type == "nclx":
+        # on-screen colours, per ISO/IEC 23091-2/h273
+        # unsigned int(16) colour_primaries;
+        # unsigned int(16) transfer_characteristics;
+        # unsigned int(16) matrix_coefficients;
+        # unsigned int(1) full_range_flag;
+        # unsigned int(7) reserved = 0;
+        assert False, f"error: implement colour_type nclx"
+        colorimetry["colr:colour_type"] = colour_type
+        # prefix all keys
+        # colorimetry["colr:" + COLOR_PARAMETER_LIST[color_parameter]]
+        return (colour_type, cp, tc, mc, fr)
+    elif colour_type == "prof":
+        # unrestricted ICC profile (ISO 15076-1 or ICC.1:2010)
+        profile = colour_information_box.getElementsByTagName("profile")[0]
+        # TODO(chema): parse this
+        colorimetry["colr:profile"] = profile.toxml()
+    return colorimetry
+
+
 def get_heif_colorimetry(infile, read_exif_info, debug):
     df_item = get_item_list(infile, debug)
     # 1. get the HEVC (h265) SPS colorimetry
@@ -114,6 +151,13 @@ def get_heif_colorimetry(infile, read_exif_info, debug):
         # prefix all keys
         exif_dict = {("exif:" + k): v for k, v in exif_dict.items()}
         colorimetry.update(exif_dict)
+    # 3. get the `colr` colorimetry
+    tmpxml = tempfile.NamedTemporaryFile(suffix=".xml").name
+    command = f"MP4Box -std -dxml {infile} > {tmpxml}"
+    returncode, out, err = itools_common.run(command, debug=debug)
+    assert returncode == 0, f"error in {command}\n{err}"
+    colr_dict = parse_isomediafile_xml(tmpxml)
+    colorimetry.update(colr_dict)
     return colorimetry
 
 
