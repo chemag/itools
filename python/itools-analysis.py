@@ -61,24 +61,23 @@ def get_components(infile, debug):
     gmean, gstddev = gd.mean(), gd.std()
     rmean, rstddev = rd.mean(), rd.std()
     # store results
-    df = pd.DataFrame(
-        columns=(
-            "filename",
-            "ymean",
-            "ystddev",
-            "umean",
-            "ustddev",
-            "vmean",
-            "vstddev",
-            "rmean",
-            "rstddev",
-            "gmean",
-            "gstddev",
-            "bmean",
-            "bstddev",
-            "status",
-        )
-    )
+    columns = [
+        "filename",
+        "ymean",
+        "ystddev",
+        "umean",
+        "ustddev",
+        "vmean",
+        "vstddev",
+        "rmean",
+        "rstddev",
+        "gmean",
+        "gstddev",
+        "bmean",
+        "bstddev",
+    ]
+    columns += list(status.keys())
+    df = pd.DataFrame(columns=columns)
     df.loc[df.size] = [
         infile,
         ymean,
@@ -93,7 +92,7 @@ def get_components(infile, debug):
         gstddev,
         bmean,
         bstddev,
-        "|".join(f"{k}={v}" for k, v in status.items()),
+        *status.values(),
     ]
     return df
 
