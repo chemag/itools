@@ -24,6 +24,7 @@ def parse_mp4box_info(output):
             primary_id = int(line[len("Primary Item - ID ") :])
         elif line.startswith("Item #"):
             # 'Item #1: ID 10000 type hvc1 size 512x512 Hidden'
+            # 'Item #51: ID 51 type Exif Hidden'
             pattern = (
                 r"Item #(?P<item_id>\d+): ID (?P<id>\d+) type (?P<type>\w*)(?P<rem>.*)"
             )
@@ -34,13 +35,13 @@ def parse_mp4box_info(output):
             the_id = int(res.group("id"))
             the_type = res.group("type")
             rem = res.group("rem")
+            size = None
             if rem:
                 pattern = r" *size (?P<size>\S*)(?P<rem>.*)"
                 res = re.search(pattern, line)
-                size = res.group("size")
-                rem = res.group("rem")
-            else:
-                size = None
+                if res:
+                    size = res.group("size")
+                    rem = res.group("rem")
             df.loc[df.size] = [
                 item_id,
                 the_id,
