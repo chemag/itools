@@ -45,6 +45,8 @@ SUMMARY_FIELDS_AVERAGE = ("delta_timestamp_ms",)
 
 # calculate average/stddev of all components
 def get_components(infile, read_exif_info, debug):
+    if debug > 0:
+        print(f"analyzing {infile}")
     # load the input image as both yuv and rgb
     inyvu, status = itools_io.read_image_file(
         infile,
