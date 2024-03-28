@@ -6,6 +6,7 @@ Runs generic HEIF analysis. Requires access to heif-convert (libheif), MP4Box (g
 """
 
 
+import base64
 import importlib
 import json
 import xml.dom.minidom
@@ -91,6 +92,11 @@ NCLX_COLOR_PARAMETER_LIST = {
 }
 
 
+def parse_icc_profile(profile_text_bin):
+    # TODO(chema): parse this
+    import code; code.interact(local=locals())  # python gdb/debugging
+
+
 def parse_isomediafile_xml(tmpxml):
     xml_doc = xml.dom.minidom.parse(tmpxml)
     try:
@@ -123,8 +129,17 @@ def parse_isomediafile_xml(tmpxml):
     elif colour_type == "prof":
         # unrestricted ICC profile (ISO 15076-1 or ICC.1:2010)
         profile = colour_information_box.getElementsByTagName("profile")[0]
-        # TODO(chema): parse this
-        colorimetry["colr:profile"] = profile.toxml()
+        # parse CDATA
+        profile_text = profile.toxml()
+        CDStart = "<![CDATA["
+        CDEnd = "]]>"
+        if CDStart in profile_text and CDEnd in profile_text:
+            profile_text_base64 = profile_text[
+                profile_text.index(CDStart) + len(CDStart) : profile_text.index(CDEnd)
+            ]
+            profile_text_bin = base64.b64decode(profile_text_base64)
+            icc_dict = parse_icc_profile(profile_text_bin)
+            colorimetry.update(icc_dict)
     return colorimetry
 
 
