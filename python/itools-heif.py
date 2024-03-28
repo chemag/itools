@@ -107,7 +107,7 @@ def parse_icc_profile(profile_text_bin):
     return colorimetry
 
 
-def parse_isomediafile_xml(tmpxml):
+def parse_isomediafile_xml(tmpxml, read_icc_info):
     xml_doc = xml.dom.minidom.parse(tmpxml)
     try:
         colour_information_box = (
@@ -136,7 +136,7 @@ def parse_isomediafile_xml(tmpxml):
             colorimetry["colr:" + NCLX_COLOR_PARAMETER_LIST[color_parameter]] = int(
                 colour_information_box.getAttribute(color_parameter)
             )
-    elif colour_type == "prof":
+    elif colour_type == "prof" and read_icc_info:
         # unrestricted ICC profile (ISO 15076-1 or ICC.1:2010)
         profile = colour_information_box.getElementsByTagName("profile")[0]
         # parse CDATA
@@ -153,7 +153,7 @@ def parse_isomediafile_xml(tmpxml):
     return colorimetry
 
 
-def get_heif_colorimetry(infile, read_exif_info, debug):
+def get_heif_colorimetry(infile, read_exif_info, read_icc_info, debug):
     df_item = get_item_list(infile, debug)
     file_type = df_item.type.iloc[0]
     colorimetry = {}
@@ -194,7 +194,7 @@ def get_heif_colorimetry(infile, read_exif_info, debug):
     command = f"MP4Box -std -dxml {infile} > {tmpxml}"
     returncode, out, err = itools_common.run(command, debug=debug)
     assert returncode == 0, f"error in {command}\n{err}"
-    colr_dict = parse_isomediafile_xml(tmpxml)
+    colr_dict = parse_isomediafile_xml(tmpxml, read_icc_info)
     colorimetry.update(colr_dict)
     return colorimetry
 
@@ -215,7 +215,7 @@ def parse_heif_convert_output(tmpy4m1, output, debug):
     return tmpy4m1
 
 
-def read_heif(infile, read_exif_info, debug=0):
+def read_heif(infile, read_exif_info, read_icc_info, debug=0):
     tmpy4m1 = tempfile.NamedTemporaryFile(suffix=".y4m").name
     tmpy4m2 = tempfile.NamedTemporaryFile(suffix=".y4m").name
     if debug > 0:
@@ -232,6 +232,8 @@ def read_heif(infile, read_exif_info, debug=0):
     # read the y4m frame
     outyvu, _, _, status = itools_y4m.read_y4m(tmpy4m2, colorrange="full", debug=debug)
     # get the heif colorimetry
-    colorimetry = get_heif_colorimetry(infile, read_exif_info, debug=debug)
+    colorimetry = get_heif_colorimetry(
+        infile, read_exif_info, read_icc_info, debug=debug
+    )
     status.update(colorimetry)
     return outyvu, status
