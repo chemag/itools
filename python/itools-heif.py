@@ -83,6 +83,14 @@ def parse_ffmpeg_bsf_colorimetry(output):
     return colorimetry
 
 
+NCLX_COLOR_PARAMETER_LIST = {
+    "colour_primaries": "cp",
+    "transfer_characteristics": "tc",
+    "matrix_coefficients": "mc",
+    "full_range_flag": "fr",
+}
+
+
 def parse_isomediafile_xml(tmpxml):
     xml_doc = xml.dom.minidom.parse(tmpxml)
     try:
@@ -106,11 +114,12 @@ def parse_isomediafile_xml(tmpxml):
         # unsigned int(16) matrix_coefficients;
         # unsigned int(1) full_range_flag;
         # unsigned int(7) reserved = 0;
-        assert False, f"error: implement colour_type nclx"
         colorimetry["colr:colour_type"] = colour_type
-        # prefix all keys
-        # colorimetry["colr:" + COLOR_PARAMETER_LIST[color_parameter]]
-        return (colour_type, cp, tc, mc, fr)
+        for color_parameter in NCLX_COLOR_PARAMETER_LIST.keys():
+            # prefix all keys
+            colorimetry["colr:" + NCLX_COLOR_PARAMETER_LIST[color_parameter]] = int(
+                colour_information_box.getAttribute(color_parameter)
+            )
     elif colour_type == "prof":
         # unrestricted ICC profile (ISO 15076-1 or ICC.1:2010)
         profile = colour_information_box.getElementsByTagName("profile")[0]
