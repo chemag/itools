@@ -38,7 +38,7 @@ def read_image_file(
     elif os.path.splitext(infile)[1] == ".rgba":
         outbgr = itools_rgb.read_rgba(infile, iwidth, iheight)
 
-    elif os.path.splitext(infile)[1] == ".heic":
+    elif os.path.splitext(infile)[1] in (".heic", ".avif"):
         outyvu, status = itools_heif.read_heif(infile, read_exif_info, debug)
 
     else:

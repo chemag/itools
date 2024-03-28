@@ -130,19 +130,23 @@ def parse_isomediafile_xml(tmpxml):
 
 def get_heif_colorimetry(infile, read_exif_info, debug):
     df_item = get_item_list(infile, debug)
+    file_type = df_item.type.iloc[0]
+    colorimetry = {}
     # 1. get the HEVC (h265) SPS colorimetry
-    # select the first hvc1 type
-    hvc1_id = df_item[df_item.type == "hvc1"]["id"].iloc[0]
-    # extract the 265 file of the first tile
-    tmp265 = tempfile.NamedTemporaryFile(suffix=".265").name
-    command = f"MP4Box -dump-item {hvc1_id}:path={tmp265} {infile}"
-    returncode, out, err = itools_common.run(command, debug=debug)
-    assert returncode == 0, f"error in {command}\n{err}"
-    # extract the 265 file of the first tile
-    command = f"ffmpeg -i {tmp265} -c:v copy -bsf:v trace_headers -f null -"
-    returncode, out, err = itools_common.run(command, debug=debug)
-    assert returncode == 0, f"error in {command}\n{err}"
-    colorimetry = parse_ffmpeg_bsf_colorimetry(err)
+    if file_type == "hvc1":
+        # select the first hvc1 type
+        hvc1_id = df_item[df_item.type == file_type]["id"].iloc[0]
+        # extract the 265 file of the first tile
+        tmp265 = tempfile.NamedTemporaryFile(suffix=".265").name
+        command = f"MP4Box -dump-item {hvc1_id}:path={tmp265} {infile}"
+        returncode, out, err = itools_common.run(command, debug=debug)
+        assert returncode == 0, f"error in {command}\n{err}"
+        # extract the 265 file of the first tile
+        command = f"ffmpeg -i {tmp265} -c:v copy -bsf:v trace_headers -f null -"
+        returncode, out, err = itools_common.run(command, debug=debug)
+        assert returncode == 0, f"error in {command}\n{err}"
+        hevc_dict = parse_ffmpeg_bsf_colorimetry(err)
+        colorimetry.update(hevc_dict)
     # 2. get the Exif colorimetry
     if read_exif_info and len(df_item[df_item.type == "Exif"]["id"]) > 0:
         exif_id = df_item[df_item.type == "Exif"]["id"].iloc[0]
