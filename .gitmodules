@@ -1,0 +1,3 @@
+[submodule "python/icctool"]
+	path = python/icctool
+	url = https://github.com/chemag/icctool

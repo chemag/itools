@@ -9,13 +9,19 @@ Runs generic HEIF analysis. Requires access to heif-convert (libheif), MP4Box (g
 import base64
 import importlib
 import json
-import xml.dom.minidom
+import os
 import pandas as pd
 import re
+import sys
 import tempfile
+import xml.dom.minidom
 
 itools_common = importlib.import_module("itools-common")
 itools_y4m = importlib.import_module("itools-y4m")
+
+# https://stackoverflow.com/a/7506029
+sys.path.append(os.path.join(os.path.dirname(__file__), "icctool"))
+icctool = importlib.import_module("icctool.icctool")
 
 
 def parse_mp4box_info(output):
@@ -93,8 +99,12 @@ NCLX_COLOR_PARAMETER_LIST = {
 
 
 def parse_icc_profile(profile_text_bin):
-    # TODO(chema): parse this
-    import code; code.interact(local=locals())  # python gdb/debugging
+    # parse the ICC profile into a dictionary
+    profile = icctool.ICCProfile.parse(profile_text_bin, force_version_number=None)
+    profile_dict = profile.todict(short=True)
+    # prefix all keys
+    colorimetry = {"icc:" + k: v for k, v in profile_dict.items()}
+    return colorimetry
 
 
 def parse_isomediafile_xml(tmpxml):
