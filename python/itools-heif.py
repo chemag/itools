@@ -199,6 +199,22 @@ def get_heif_colorimetry(infile, read_exif_info, debug):
     return colorimetry
 
 
+def parse_heif_convert_output(tmpy4m1, output, debug):
+    # count the number of images
+    num_images = None
+    output_files = []
+    for line in output.decode("ascii").split("\n"):
+        if line.startswith("File contains "):
+            num_images = int(line[len("File contains ") : -len(" image")])
+        elif line.startswith("Written to "):
+            output_files.append(line[len("Written to ") :])
+    if tmpy4m1 in output_files:
+        return tmpy4m1
+    elif num_images > 1:
+        return output_files[0]
+    return tmpy4m1
+
+
 def read_heif(infile, read_exif_info, debug=0):
     tmpy4m1 = tempfile.NamedTemporaryFile(suffix=".y4m").name
     tmpy4m2 = tempfile.NamedTemporaryFile(suffix=".y4m").name
@@ -208,6 +224,7 @@ def read_heif(infile, read_exif_info, debug=0):
     command = f"heif-convert {infile} {tmpy4m1}"
     returncode, out, err = itools_common.run(command, debug=debug)
     assert returncode == 0, f"error in {command}\n{err}"
+    tmpy4m1 = parse_heif_convert_output(tmpy4m1, out, debug)
     # fix the color range
     command = f"ffmpeg -y -i {tmpy4m1} -color_range full {tmpy4m2}"
     itools_common.run(command, debug=debug)
