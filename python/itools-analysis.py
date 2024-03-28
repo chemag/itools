@@ -19,6 +19,7 @@ import importlib
 itools_common = importlib.import_module("itools-common")
 itools_io = importlib.import_module("itools-io")
 itools_heif = importlib.import_module("itools-heif")
+itools_version = importlib.import_module("itools-version")
 
 
 FILTER_CHOICES = {
@@ -132,10 +133,8 @@ def get_options(argv):
     parser.add_argument(
         "-v",
         "--version",
-        action="store_true",
-        dest="version",
-        default=False,
-        help="Print version",
+        action="version",
+        version=itools_version.__version__,
     )
     parser.add_argument(
         "-d",
@@ -227,8 +226,6 @@ def get_options(argv):
     )
     # do the parsing
     options = parser.parse_args(argv[1:])
-    if options.version:
-        return options
     return options
 
 
