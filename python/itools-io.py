@@ -11,6 +11,7 @@ import os.path
 import importlib
 
 itools_common = importlib.import_module("itools-common")
+itools_exiftool = importlib.import_module("itools-exiftool")
 itools_heif = importlib.import_module("itools-heif")
 itools_rgb = importlib.import_module("itools-rgb")
 itools_y4m = importlib.import_module("itools-y4m")
@@ -46,6 +47,10 @@ def read_image_file(
 
     else:
         outbgr = cv2.imread(cv2.samples.findFile(infile, flags))
+        # use exiftool to get the metadata
+        status = itools_exiftool.get_exiftool(
+            infile, read_exif_info=True, read_icc_info=True, short=True, debug=debug
+        )
 
     if return_type == itools_common.ProcColor.yvu:
         if outyvu is None:
