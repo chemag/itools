@@ -6,10 +6,17 @@ Runs exiftool on the file, and parses the output.
 """
 
 
+import base64
 import importlib
 import json
+import os
+import sys
 
 itools_common = importlib.import_module("itools-common")
+
+# https://stackoverflow.com/a/7506029
+sys.path.append(os.path.join(os.path.dirname(__file__), "icctool"))
+icctool = importlib.import_module("icctool.icctool")
 
 
 EXIFTOOL_KEYS = {
@@ -59,9 +66,65 @@ KEY_BLACKLIST = [
     "exif:ThumbnailLength",
     "exif:ThumbnailImage",
     "exif:MakerNoteUnknownText",
+    "icc:ProfileCMMType",
+    "icc:ProfileDateTime",
+    "icc:ProfileFileSignature",
+    "icc:PrimaryPlatform",
+    "icc:CMMFlags",
+    "icc:DeviceManufacturer",
+    "icc:DeviceModel",
+    "icc:DeviceAttributes",
+    "icc:RenderingIntent",
+    "icc:ProfileCreator",
+    "icc:ProfileID",
 ]
 
 
+KEY_RENAME = {
+    "icc:ProfileVersion": "icc:profile_version",
+    "icc:ProfileClass": "icc:profile_class",
+    "icc:ProfileCopyright": "icc:profile_copyright",
+    "icc:ColorSpaceData": "icc:color_space",
+    "icc:ProfileConnectionSpace": "icc:profile_connection_space",
+    "icc:ProfileDescription": "icc:profile_description",
+    "icc:ChromaticAdaptation": "icc:chromatic_adaptation",
+    "icc:MediaWhitePoint": "icc:media_white_point",
+    "icc:ConnectionSpaceIlluminant": "icc:xyz_illuminant",
+    "icc:RedMatrixColumn": "icc:red_matrix_column",
+    "icc:GreenMatrixColumn": "icc:green_matrix_column",
+    "icc:BlueMatrixColumn": "icc:blue_matrix_column",
+    "icc:RedTRC": "icc:red_trc",
+    "icc:BlueTRC": "icc:green_trc",
+    "icc:GreenTRC": "icc:blue_trc",
+}
+
+
+def base64_decode(string):
+    t, v = string.split(":")
+    assert t == "base64", f"error: unknown item '{string}'"
+    blob = base64.b64decode(v)
+    header_signature = "gTRC"  # does not matter
+    header_offset = 0
+    header_size = len(blob)
+    tag = icctool.ICCTag.parse(header_signature, header_offset, header_size, blob, None)
+    return " ".join(str(f) for f in tag.todict()["parameters"])
+
+
+def identity(string):
+    return string
+
+
+VAL_TRANSFORM = {
+    "icc:green_trc": base64_decode,
+    "icc:blue_trc": base64_decode,
+    "icc:red_trc": base64_decode,
+}
+
+
 def reduce_info(status):
-    status = {k: v for k, v in status.items() if k not in KEY_BLACKLIST}
+    status = {
+        KEY_RENAME.get(k, k): VAL_TRANSFORM.get(KEY_RENAME.get(k, k), identity)(v)
+        for k, v in status.items()
+        if k not in KEY_BLACKLIST
+    }
     return status
