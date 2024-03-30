@@ -17,6 +17,7 @@ import tempfile
 import xml.dom.minidom
 
 itools_common = importlib.import_module("itools-common")
+itools_exiftool = importlib.import_module("itools-exiftool")
 itools_y4m = importlib.import_module("itools-y4m")
 
 # https://stackoverflow.com/a/7506029
@@ -181,14 +182,10 @@ def get_heif_colorimetry(infile, read_exif_info, read_icc_info, debug):
         returncode, out, err = itools_common.run(command, debug=debug)
         assert returncode == 0, f"error in {command}\n{err}"
         # parse the exif file of the first tile
-        command = f"exiftool -g -j -b {tmpexif}"
-        returncode, out, err = itools_common.run(command, debug=debug)
-        assert returncode == 0, f"error in {command}\n{err}"
-        exif_info = json.loads(out)
-        exif_dict = exif_info[0]["EXIF"]
-        # prefix all keys
-        exif_dict = {("exif:" + k): v for k, v in exif_dict.items()}
-        colorimetry.update(exif_dict)
+        exiftool_dict = itools_exiftool.get_exiftool(
+            tmpexif, read_exif_info, read_icc_info, short=True, debug=debug
+        )
+        colorimetry.update(exiftool_dict)
     # 3. get the `colr` colorimetry
     tmpxml = tempfile.NamedTemporaryFile(suffix=".xml").name
     command = f"MP4Box -std -dxml {infile} > {tmpxml}"
