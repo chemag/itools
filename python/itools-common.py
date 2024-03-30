@@ -15,6 +15,7 @@ import sys
 class ProcColor(enum.Enum):
     bgr = 0
     yvu = 1
+    both = 2
 
 
 PROC_COLOR_LIST = list(c.name for c in ProcColor)

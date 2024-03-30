@@ -50,14 +50,13 @@ def get_components(infile, read_exif_info, read_icc_info, debug):
     if debug > 0:
         print(f"analyzing {infile}")
     # load the input image as both yuv and rgb
-    inyvu, status = itools_io.read_image_file(
+    inbgr, inyvu, status = itools_io.read_image_file(
         infile,
-        return_type=itools_common.ProcColor.yvu,
+        return_type=itools_common.ProcColor.both,
         read_exif_info=read_exif_info,
         read_icc_info=read_icc_info,
         debug=debug,
     )
-    inbgr, _ = itools_io.read_image_file(infile)
     # get the requested component: note that options are YVU or BGR
     yd, vd, ud = inyvu[:, :, 0], inyvu[:, :, 1], inyvu[:, :, 2]
     ymean, ystddev = yd.mean(), yd.std()

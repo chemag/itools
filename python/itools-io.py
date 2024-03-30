@@ -59,12 +59,20 @@ def read_image_file(
         else:
             return outyvu, status
 
-    else:  # if return_type == itools_common.ProcColor.bgr:
+    elif return_type == itools_common.ProcColor.bgr:
         if outbgr is None:
             outbgr = cv2.cvtColor(outyvu, cv2.COLOR_YCrCb2BGR)
             return outbgr, status
         else:
             return outbgr, status
+
+    else:  # if return_type == itools_common.ProcColor.both:
+        if outyvu is None:
+            outyvu = cv2.cvtColor(outbgr, cv2.COLOR_BGR2YCrCb)
+            return outbgr, outyvu, status
+        else:  # outbgr is None:
+            outbgr = cv2.cvtColor(outyvu, cv2.COLOR_YCrCb2BGR)
+            return outbgr, outyvu, status
 
 
 def write_image_file(outfile, outimg, return_type=itools_common.ProcColor.bgr):
