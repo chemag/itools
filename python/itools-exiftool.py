@@ -29,6 +29,8 @@ EXIFTOOL_KEYS = {
     "ICC_Profile": "icc",
     "APP14": "ignore",
     "Composite": "ignore",
+    "MakerNotes": "ignore",
+    "QuickTime": "ignore",
 }
 
 
