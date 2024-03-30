@@ -28,7 +28,7 @@ def read_image_file(
 ):
     outyvu = None
     outbgr = None
-    status = None
+    status = {}
     if os.path.splitext(infile)[1] == ".y4m":
         outyvu, _, _, status = itools_y4m.read_y4m(
             infile, colorrange="full", debug=debug
