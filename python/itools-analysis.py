@@ -19,6 +19,7 @@ import importlib
 itools_common = importlib.import_module("itools-common")
 itools_io = importlib.import_module("itools-io")
 itools_heif = importlib.import_module("itools-heif")
+itools_y4m = importlib.import_module("itools-y4m")
 itools_version = importlib.import_module("itools-version")
 
 
@@ -35,6 +36,7 @@ default_values = {
     "roi_y0": None,
     "roi_x1": None,
     "roi_y1": None,
+    "roi_dump": None,
     "read_exif_info": True,
     "read_icc_info": True,
     "filter": "components",
@@ -50,7 +52,7 @@ SUMMARY_FIELDS_AVERAGE = ("delta_timestamp_ms",)
 
 
 # calculate average/stddev of all components
-def get_components(infile, read_exif_info, read_icc_info, roi, debug):
+def get_components(infile, read_exif_info, read_icc_info, roi, roi_dump, debug):
     if debug > 0:
         print(f"analyzing {infile}")
     # load the input image as both yuv and rgb
@@ -120,6 +122,10 @@ def get_components(infile, read_exif_info, read_icc_info, roi, debug):
         bstddev,
         *status.values(),
     ]
+    if roi_dump is not None:
+        outyvu = np.stack((yd, vd, ud), axis=2)
+        itools_y4m.write_y4m(roi_dump, outyvu, colorspace="444")
+
     return df
 
 
@@ -214,6 +220,14 @@ def get_options(argv):
         help="ROI y1",
     )
     parser.add_argument(
+        "--roi-dump",
+        action="store",
+        type=str,
+        dest="roi_dump",
+        default=default_values["roi_dump"],
+        help="File where to dump ROI array",
+    )
+    parser.add_argument(
         "--exif",
         dest="read_exif_info",
         action="store_true",
@@ -296,6 +310,7 @@ def main(argv):
                 options.read_exif_info,
                 options.read_icc_info,
                 roi,
+                options.roi_dump,
                 options.debug,
             )
             df = dftmp if df is None else pd.concat([df, dftmp])
