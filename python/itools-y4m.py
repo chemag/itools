@@ -111,6 +111,7 @@ class Y4MHeader:
     VALID_INTERLACED = ("p", "t", "b", "m")
     VALID_COLORSPACES = ("420", "420jpeg", "420paldv", "420mpeg2", "422", "444")
     VALID_COLORRANGES = ("FULL", "LIMITED")
+    DEFAULT_COLORSPACE = "420"
 
     def __init__(
         self, width, height, framerate, interlaced, aspect, colorspace, comment
@@ -120,7 +121,9 @@ class Y4MHeader:
         self.framerate = framerate
         self.interlaced = interlaced
         self.aspect = aspect
-        self.colorspace = colorspace
+        self.colorspace = (
+            colorspace if colorspace is not None else self.DEFAULT_COLORSPACE
+        )
         self.comment = comment
 
     @classmethod
