@@ -105,10 +105,7 @@ def base64_decode(string):
     t, v = string.split(":")
     assert t == "base64", f"error: unknown item '{string}'"
     blob = base64.b64decode(v)
-    header_signature = "gTRC"  # does not matter
-    header_offset = 0
-    header_size = len(blob)
-    tag = icctool.ICCTag.parse(header_signature, header_offset, header_size, blob, None)
+    tag = icctool.ICCTag.parse(blob)
     return " ".join(str(f) for f in tag.todict()["parameters"])
 
 
