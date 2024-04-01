@@ -31,6 +31,10 @@ default_values = {
     "debug": 0,
     "dry_run": False,
     "header": True,
+    "roi_x0": None,
+    "roi_y0": None,
+    "roi_x1": None,
+    "roi_y1": None,
     "read_exif_info": True,
     "read_icc_info": True,
     "filter": "components",
@@ -46,7 +50,7 @@ SUMMARY_FIELDS_AVERAGE = ("delta_timestamp_ms",)
 
 
 # calculate average/stddev of all components
-def get_components(infile, read_exif_info, read_icc_info, debug):
+def get_components(infile, read_exif_info, read_icc_info, roi, debug):
     if debug > 0:
         print(f"analyzing {infile}")
     # load the input image as both yuv and rgb
@@ -57,18 +61,33 @@ def get_components(infile, read_exif_info, read_icc_info, debug):
         read_icc_info=read_icc_info,
         debug=debug,
     )
+    # calculate the coordinates
+    (roi_x0, roi_y0), (roi_x1, roi_y1) = roi
+    roi_x0 = 0 if roi_x0 is None else roi_x0
+    roi_y0 = 0 if roi_y0 is None else roi_y0
+    roi_x1 = inbgr.shape[1] if roi_x1 is None else roi_x1
+    roi_y1 = inbgr.shape[0] if roi_y1 is None else roi_y1
     # get the requested component: note that options are YVU or BGR
-    yd, vd, ud = inyvu[:, :, 0], inyvu[:, :, 1], inyvu[:, :, 2]
+    yd, vd, ud = (
+        inyvu[roi_y0:roi_y1, roi_x0:roi_x1, 0],
+        inyvu[roi_y0:roi_y1, roi_x0:roi_x1, 1],
+        inyvu[roi_y0:roi_y1, roi_x0:roi_x1, 2],
+    )
     ymean, ystddev = yd.mean(), yd.std()
     umean, ustddev = ud.mean(), ud.std()
     vmean, vstddev = vd.mean(), vd.std()
-    bd, gd, rd = inbgr[:, :, 0], inbgr[:, :, 1], inbgr[:, :, 2]
+    bd, gd, rd = (
+        inbgr[roi_y0:roi_y1, roi_x0:roi_x1, 0],
+        inbgr[roi_y0:roi_y1, roi_x0:roi_x1, 1],
+        inbgr[roi_y0:roi_y1, roi_x0:roi_x1, 2],
+    )
     bmean, bstddev = bd.mean(), bd.std()
     gmean, gstddev = gd.mean(), gd.std()
     rmean, rstddev = rd.mean(), rd.std()
     # store results
     columns = [
         "filename",
+        "roi",
         "ymean",
         "ystddev",
         "umean",
@@ -86,6 +105,7 @@ def get_components(infile, read_exif_info, read_icc_info, debug):
     df = pd.DataFrame(columns=columns)
     df.loc[df.size] = [
         infile,
+        f"({roi_x0} {roi_y0}) ({roi_x1} {roi_y1})",
         ymean,
         ystddev,
         umean,
@@ -166,6 +186,34 @@ def get_options(argv):
         help="Do not read CSV header from first row (even if no #)",
     )
     parser.add_argument(
+        "--roi-x0",
+        dest="roi_x0",
+        type=int,
+        default=default_values["roi_x0"],
+        help="ROI x0",
+    )
+    parser.add_argument(
+        "--roi-y0",
+        dest="roi_y0",
+        type=int,
+        default=default_values["roi_y0"],
+        help="ROI y0",
+    )
+    parser.add_argument(
+        "--roi-x1",
+        dest="roi_x1",
+        type=int,
+        default=default_values["roi_x1"],
+        help="ROI x1",
+    )
+    parser.add_argument(
+        "--roi-y1",
+        dest="roi_y1",
+        type=int,
+        default=default_values["roi_y1"],
+        help="ROI y1",
+    )
+    parser.add_argument(
         "--exif",
         dest="read_exif_info",
         action="store_true",
@@ -241,9 +289,14 @@ def main(argv):
     if options.filter == "components":
         # process input files
         df = None
+        roi = ((options.roi_x0, options.roi_y0), (options.roi_x1, options.roi_y1))
         for infile in options.infile_list:
             dftmp = get_components(
-                infile, options.read_exif_info, options.read_icc_info, options.debug
+                infile,
+                options.read_exif_info,
+                options.read_icc_info,
+                roi,
+                options.debug,
             )
             df = dftmp if df is None else pd.concat([df, dftmp])
         df.to_csv(options.outfile, header=options.header, index=False)
