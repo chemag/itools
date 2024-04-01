@@ -196,7 +196,7 @@ def get_heif_colorimetry(infile, read_exif_info, read_icc_info, debug):
     return colorimetry
 
 
-def parse_heif_convert_output(tmpy4m1, output, debug):
+def parse_heif_convert_output(tmpy4m, output, debug):
     # count the number of images
     num_images = None
     output_files = []
@@ -205,29 +205,24 @@ def parse_heif_convert_output(tmpy4m1, output, debug):
             num_images = int(line[len("File contains ") : -len(" image")])
         elif line.startswith("Written to "):
             output_files.append(line[len("Written to ") :])
-    if tmpy4m1 in output_files:
-        return tmpy4m1
+    if tmpy4m in output_files:
+        return tmpy4m
     elif num_images > 1:
         return output_files[0]
-    return tmpy4m1
+    return tmpy4m
 
 
 def read_heif(infile, read_exif_info, read_icc_info, debug=0):
-    tmpy4m1 = tempfile.NamedTemporaryFile(suffix=".y4m").name
-    tmpy4m2 = tempfile.NamedTemporaryFile(suffix=".y4m").name
+    tmpy4m = tempfile.NamedTemporaryFile(suffix=".y4m").name
     if debug > 0:
-        print(f"using {tmpy4m1} and {tmpy4m2}")
+        print(f"using {tmpy4m}")
     # decode the file using libheif
-    command = f"heif-convert {infile} {tmpy4m1}"
+    command = f"heif-convert {infile} {tmpy4m}"
     returncode, out, err = itools_common.run(command, debug=debug)
     assert returncode == 0, f"error in {command}\n{err}"
-    tmpy4m1 = parse_heif_convert_output(tmpy4m1, out, debug)
-    # fix the color range
-    command = f"ffmpeg -y -i {tmpy4m1} -color_range full {tmpy4m2}"
-    itools_common.run(command, debug=debug)
-    assert returncode == 0, f"error in {command}\n{err}"
-    # read the y4m frame
-    outyvu, _, _, status = itools_y4m.read_y4m(tmpy4m2, colorrange="full", debug=debug)
+    tmpy4m = parse_heif_convert_output(tmpy4m, out, debug)
+    # read the y4m frame ignoring the color range
+    outyvu, _, _, status = itools_y4m.read_y4m(tmpy4m, colorrange=None, debug=debug)
     # get the heif colorimetry
     colorimetry = get_heif_colorimetry(
         infile, read_exif_info, read_icc_info, debug=debug
