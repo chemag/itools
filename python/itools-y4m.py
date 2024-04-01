@@ -203,7 +203,7 @@ class Y4MHeader:
         dt = np.dtype(np.uint8)
         luma_size = self.width * self.height
         ya = np.frombuffer(data[offset : offset + luma_size], dtype=dt).reshape(
-            self.width, self.height
+            self.height, self.width
         )
         offset += luma_size
         # read chromas
@@ -218,11 +218,11 @@ class Y4MHeader:
             chroma_h = self.height
         chroma_size = chroma_w * chroma_h
         ua = np.frombuffer(data[offset : offset + chroma_size], dtype=dt).reshape(
-            chroma_w, chroma_h
+            chroma_h, chroma_w
         )
         offset += chroma_size
         va = np.frombuffer(data[offset : offset + chroma_size], dtype=dt).reshape(
-            chroma_w, chroma_h
+            chroma_h, chroma_w
         )
         offset += chroma_size
         # combine the color components
@@ -280,7 +280,7 @@ def write_header(width, height, colorspace, colorrange="FULL"):
 def write_y4m(outfile, outyvu, colorspace="420"):
     with open(outfile, "wb") as fout:
         # write header
-        width, height, _ = outyvu.shape
+        height, width, _ = outyvu.shape
         header = write_header(width, height, colorspace)
         fout.write(header.encode("utf-8"))
         # write frame line
