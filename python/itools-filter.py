@@ -99,12 +99,12 @@ default_values = {
 }
 
 
-def image_to_gray(infile, outfile, iwidth, iheight, proc_color, debug):
+def image_to_gray(infile, outfile, iinfo, proc_color, debug):
     assert (
         proc_color == itools_common.ProcColor.bgr
     ), f"error: image_to_gray unsupported in {proc_color}"
     # load the input image
-    inbgr, _ = itools_io.read_image_file(infile, iwidth=iwidth, iheight=iheight)
+    inbgr, _ = itools_io.read_image_file(infile, iinfo=iinfo)
     assert inbgr is not None, f"error: cannot read {infile}"
     # convert to gray
     tmpgray = cv2.cvtColor(inbgr, cv2.COLOR_BGR2GRAY)
@@ -113,12 +113,12 @@ def image_to_gray(infile, outfile, iwidth, iheight, proc_color, debug):
     itools_io.write_image_file(outfile, outbgr)
 
 
-def swap_xchroma(infile, outfile, iwidth, iheight, proc_color, debug):
+def swap_xchroma(infile, outfile, iinfo, proc_color, debug):
     assert (
         proc_color == itools_common.ProcColor.bgr
     ), f"error: swap_xchroma unsupported in {proc_color}"
     # load the input image
-    inbgr, _ = itools_io.read_image_file(infile, iwidth=iwidth, iheight=iheight)
+    inbgr, _ = itools_io.read_image_file(infile, iinfo=iinfo)
     assert inbgr is not None, f"error: cannot read {infile}"
     # swap chromas
     tmpyvu = cv2.cvtColor(inbgr, cv2.COLOR_BGR2YCrCb)
@@ -128,12 +128,12 @@ def swap_xchroma(infile, outfile, iwidth, iheight, proc_color, debug):
     itools_io.write_image_file(outfile, outbgr)
 
 
-def swap_xrgb2yuv(infile, outfile, iwidth, iheight, proc_color, debug):
+def swap_xrgb2yuv(infile, outfile, iinfo, proc_color, debug):
     assert (
         proc_color == itools_common.ProcColor.bgr
     ), f"error: swap_xrgb2yuv unsupported in {proc_color}"
     # load the input image
-    inbgr, _ = itools_io.read_image_file(infile, iwidth=iwidth, iheight=iheight)
+    inbgr, _ = itools_io.read_image_file(infile, iinfo=iinfo)
     assert inbgr is not None, f"error: cannot read {infile}"
     inrgb = inbgr[:, :, [2, 1, 0]]
     # swap RGB to YUV
@@ -144,12 +144,12 @@ def swap_xrgb2yuv(infile, outfile, iwidth, iheight, proc_color, debug):
     itools_io.write_image_file(outfile, outbgr)
 
 
-def add_noise(infile, outfile, iwidth, iheight, noise_level, proc_color, debug):
+def add_noise(infile, outfile, iinfo, noise_level, proc_color, debug):
     assert (
         proc_color == itools_common.ProcColor.bgr
     ), f"error: add_noise unsupported in {proc_color}"
     # load the input image
-    inbgr, _ = itools_io.read_image_file(infile, iwidth=iwidth, iheight=iheight)
+    inbgr, _ = itools_io.read_image_file(infile, iinfo=iinfo)
     assert inbgr is not None, f"error: cannot read {infile}"
     # convert to gray
     noiseimg = np.random.randint(
@@ -163,11 +163,9 @@ def add_noise(infile, outfile, iwidth, iheight, noise_level, proc_color, debug):
     itools_io.write_image_file(outfile, outbgr)
 
 
-def copy_image(infile, outfile, iwidth, iheight, proc_color, debug):
+def copy_image(infile, outfile, iinfo, proc_color, debug):
     # load the input image
-    inabc, _ = itools_io.read_image_file(
-        infile, iwidth=iwidth, iheight=iheight, return_type=proc_color
-    )
+    inabc, _ = itools_io.read_image_file(infile, iinfo=iinfo, return_type=proc_color)
     assert inabc is not None, f"error: cannot read {infile}"
     # write the output image
     itools_io.write_image_file(outfile, inabc, return_type=proc_color)
@@ -189,8 +187,7 @@ def diff_images(
     infile1,
     infile2,
     outfile,
-    iwidth,
-    iheight,
+    iinfo,
     diff_factor,
     diff_component,
     diff_color,
@@ -199,10 +196,10 @@ def diff_images(
 ):
     # load the input images as YVU
     inyvu1, instatus1 = itools_io.read_image_file(
-        infile1, iwidth=iwidth, iheight=iheight, return_type=itools_common.ProcColor.yvu
+        infile1, iinfo=iinfo, return_type=itools_common.ProcColor.yvu
     )
     inyvu2, instatus2 = itools_io.read_image_file(
-        infile2, iwidth=iwidth, iheight=iheight, return_type=itools_common.ProcColor.yvu
+        infile2, iinfo=iinfo, return_type=itools_common.ProcColor.yvu
     )
     assert inyvu1 is not None, f"error: cannot read {infile1}"
     assert inyvu2 is not None, f"error: cannot read {infile2}"
@@ -284,12 +281,12 @@ def diff_images(
     return df
 
 
-def mse_image(infile, iwidth, iheight, proc_color, debug):
+def mse_image(infile, iinfo, proc_color, debug):
     assert (
         proc_color == itools_common.ProcColor.bgr
     ), f"error: mse_image unsupported in {proc_color}"
     # load the input image
-    inbgr, _ = itools_io.read_image_file(infile, iwidth=iwidth, iheight=iheight)
+    inbgr, _ = itools_io.read_image_file(infile, iinfo=iinfo)
     assert inbgr is not None, f"error: cannot read {infile}"
     # careful with number ranges
     inyvu = cv2.cvtColor(inbgr, cv2.COLOR_BGR2YCrCb).astype(np.int32)
@@ -303,17 +300,16 @@ def mse_image(infile, iwidth, iheight, proc_color, debug):
 
 
 # calculates a histogram of the luminance values
-def get_histogram(infile, outfile, iwidth, iheight, hist_component, debug):
+def get_histogram(infile, outfile, iinfo, hist_component, debug):
     # load the input image
     if hist_component in ("y", "v", "u"):
         inimg, _ = itools_io.read_image_file(
             infile,
             return_type=itools_common.ProcColor.yvu,
-            iwidth=iwidth,
-            iheight=iheight,
+            iinfo=iinfo,
         )
     else:  # hist_component in ("r", "g", "b"):
-        inimg, _ = itools_io.read_image_file(infile, iwidth=iwidth, iheight=iheight)
+        inimg, _ = itools_io.read_image_file(infile, iinfo=iinfo)
     assert inimg is not None, f"error: cannot read {infile}"
     # get the requested component: note that options are YVU or BGR
     if hist_component == "y" or hist_component == "b":
@@ -339,12 +335,12 @@ def get_histogram(infile, outfile, iwidth, iheight, hist_component, debug):
 
 
 # rotates infile
-def rotate_image(infile, rotate_angle, outfile, iwidth, iheight, proc_color, debug):
+def rotate_image(infile, rotate_angle, outfile, iinfo, proc_color, debug):
     assert (
         proc_color == itools_common.ProcColor.bgr
     ), f"error: rotate_image unsupported in {proc_color}"
     # load the input image
-    inbgr, _ = itools_io.read_image_file(infile, iwidth=iwidth, iheight=iheight)
+    inbgr, _ = itools_io.read_image_file(infile, iinfo=iinfo)
     assert inbgr is not None, f"error: cannot read {infile}"
     # rotate it
     num_rotations = ROTATE_ANGLE_LIST[rotate_angle]
@@ -355,18 +351,14 @@ def rotate_image(infile, rotate_angle, outfile, iwidth, iheight, proc_color, deb
 
 # composes infile2 on top of infile1, at (xloc, yloc)
 # uses alpha
-def compose_images(
-    infile1, infile2, iwidth, iheight, xloc, yloc, outfile, proc_color, debug
-):
+def compose_images(infile1, infile2, iinfo, xloc, yloc, outfile, proc_color, debug):
     assert (
         proc_color == itools_common.ProcColor.bgr
     ), f"error: compose_images unsupported in {proc_color}"
     # load the input images
-    inbgr1, _ = itools_io.read_image_file(infile1, iwidth=iwidth, iheight=iheight)
+    inbgr1, _ = itools_io.read_image_file(infile1, iinfo=iinfo)
     assert inbgr1 is not None, f"error: cannot read {infile1}"
-    inbgr2, _ = itools_io.read_image_file(
-        infile2, cv2.IMREAD_UNCHANGED, iwidth=iwidth, iheight=iheight
-    )
+    inbgr2, _ = itools_io.read_image_file(infile2, cv2.IMREAD_UNCHANGED, iinfo=iinfo)
     assert inbgr2 is not None, f"error: cannot read {infile2}"
     # compose them
     width1, height1, _ = inbgr1.shape
@@ -395,16 +387,14 @@ def compose_images(
     itools_io.write_image_file(outfile, outbgr)
 
 
-def match_images(infile1, infile2, outfile, iwidth, iheight, proc_color, debug):
+def match_images(infile1, infile2, outfile, iinfo, proc_color, debug):
     assert (
         proc_color == itools_common.ProcColor.bgr
     ), f"error: match_images unsupported in {proc_color}"
     # load the input images
-    inbgr1, _ = itools_io.read_image_file(infile1, iwidth=iwidth, iheight=iheight)
+    inbgr1, _ = itools_io.read_image_file(infile1, iinfo=iinfo)
     assert inbgr1 is not None, f"error: cannot read {infile1}"
-    inbgr2, _ = itools_io.read_image_file(
-        infile2, cv2.IMREAD_UNCHANGED, iwidth=iwidth, iheight=iheight
-    )
+    inbgr2, _ = itools_io.read_image_file(infile2, cv2.IMREAD_UNCHANGED, iinfo=iinfo)
     assert inbgr2 is not None, f"error: cannot read {infile2}"
     # we will do gray correlation image matching: Use only the lumas
     inluma1 = cv2.cvtColor(inbgr1, cv2.COLOR_BGR2GRAY)
@@ -457,10 +447,10 @@ def match_images(infile1, infile2, outfile, iwidth, iheight, proc_color, debug):
 
 
 def affine_transformation_matrix(
-    infile, iwidth, iheight, outfile, width, height, a00, a01, a10, a11, b00, b10, debug
+    infile, iinfo, outfile, width, height, a00, a01, a10, a11, b00, b10, debug
 ):
     # load the input image
-    inbgr, _ = itools_io.read_image_file(infile, iwidth=iwidth, iheight=iheight)
+    inbgr, _ = itools_io.read_image_file(infile, iinfo=iinfo)
     assert inbgr is not None, f"error: cannot read {infile}"
     # process the image
     m0 = [a00, a01, b00]
@@ -477,8 +467,7 @@ def affine_transformation_matrix(
 
 def affine_transformation_points(
     infile,
-    iwidth,
-    iheight,
+    iinfo,
     outfile,
     width,
     height,
@@ -497,7 +486,7 @@ def affine_transformation_points(
     debug,
 ):
     # load the input image
-    inbgr, _ = itools_io.read_image_file(infile, iwidth=iwidth, iheight=iheight)
+    inbgr, _ = itools_io.read_image_file(infile, iinfo=iinfo)
     assert inbgr is not None, f"error: cannot read {infile}"
     # process the image
     s0 = [s0x, s0y]
@@ -952,12 +941,13 @@ def main(argv):
     if options.debug > 0:
         print(options)
 
+    iinfo = itools_common.ImageInfo(options.iwidth, options.iheight)
+
     if options.filter == "copy":
         copy_image(
             options.infile,
             options.outfile,
-            options.iwidth,
-            options.iheight,
+            iinfo,
             itools_common.ProcColor[options.proc_color],
             options.debug,
         )
@@ -967,8 +957,7 @@ def main(argv):
             options.infile,
             options.infile2,
             options.outfile,
-            options.iwidth,
-            options.iheight,
+            iinfo,
             options.diff_factor,
             options.diff_component,
             options.diff_color,
@@ -980,8 +969,7 @@ def main(argv):
     elif options.filter == "mse" or options.filter == "psnr":
         mse, psnr = mse_image(
             options.infile,
-            options.iwidth,
-            options.iheight,
+            iinfo,
             itools_common.ProcColor[options.proc_color],
             options.debug,
         )
@@ -991,8 +979,7 @@ def main(argv):
         get_histogram(
             options.infile,
             options.outfile,
-            options.iwidth,
-            options.iheight,
+            iinfo,
             options.hist_component,
             options.debug,
         )
@@ -1002,8 +989,7 @@ def main(argv):
             options.infile,
             options.rotate_angle,
             options.outfile,
-            options.iwidth,
-            options.iheight,
+            iinfo,
             itools_common.ProcColor[options.proc_color],
             options.debug,
         )
@@ -1012,8 +998,7 @@ def main(argv):
         compose_images(
             options.infile,
             options.infile2,
-            options.iwidth,
-            options.iheight,
+            iinfo,
             options.x,
             options.y,
             options.outfile,
@@ -1026,8 +1011,7 @@ def main(argv):
             options.infile,
             options.infile2,
             options.outfile,
-            options.iwidth,
-            options.iheight,
+            iinfo,
             itools_common.ProcColor[options.proc_color],
             options.debug,
         )
@@ -1036,8 +1020,7 @@ def main(argv):
         image_to_gray(
             options.infile,
             options.outfile,
-            options.iwidth,
-            options.iheight,
+            iinfo,
             itools_common.ProcColor[options.proc_color],
             options.debug,
         )
@@ -1046,8 +1029,7 @@ def main(argv):
         swap_xchroma(
             options.infile,
             options.outfile,
-            options.iwidth,
-            options.iheight,
+            iinfo,
             itools_common.ProcColor[options.proc_color],
             options.debug,
         )
@@ -1056,8 +1038,7 @@ def main(argv):
         swap_xrgb2yuv(
             options.infile,
             options.outfile,
-            options.iwidth,
-            options.iheight,
+            iinfo,
             itools_common.ProcColor[options.proc_color],
             options.debug,
         )
@@ -1066,8 +1047,7 @@ def main(argv):
         add_noise(
             options.infile,
             options.outfile,
-            options.iwidth,
-            options.iheight,
+            iinfo,
             options.noise_level,
             itools_common.ProcColor[options.proc_color],
             options.debug,
@@ -1076,8 +1056,7 @@ def main(argv):
     elif options.filter == "affine":
         affine_transformation_matrix(
             options.infile,
-            options.iwidth,
-            options.iheight,
+            iinfo,
             options.outfile,
             options.width,
             options.height,
@@ -1094,8 +1073,7 @@ def main(argv):
     elif options.filter == "affine-points":
         affine_transformation_points(
             options.infile,
-            options.iwidth,
-            options.iheight,
+            iinfo,
             options.outfile,
             options.width,
             options.height,

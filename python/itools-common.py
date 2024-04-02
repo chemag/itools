@@ -21,6 +21,15 @@ class ProcColor(enum.Enum):
 PROC_COLOR_LIST = list(c.name for c in ProcColor)
 
 
+class ImageInfo:
+    width = None
+    height = None
+
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+
+
 def run(command, **kwargs):
     debug = kwargs.get("debug", 0)
     dry_run = kwargs.get("dry_run", False)

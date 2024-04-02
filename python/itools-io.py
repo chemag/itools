@@ -21,8 +21,7 @@ def read_image_file(
     infile,
     flags=None,
     return_type=itools_common.ProcColor.bgr,
-    iwidth=None,
-    iheight=None,
+    iinfo=None,
     read_exif_info=False,
     read_icc_info=False,
     debug=0,
@@ -38,7 +37,7 @@ def read_image_file(
             print(f"error: file {infile} is broken")
 
     elif os.path.splitext(infile)[1] == ".rgba":
-        outbgr = itools_rgb.read_rgba(infile, iwidth, iheight)
+        outbgr = itools_rgb.read_rgba(infile, iinfo)
 
     elif os.path.splitext(infile)[1] in (".heic", ".avif"):
         outyvu, status = itools_heif.read_heif(
