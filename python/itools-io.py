@@ -15,6 +15,7 @@ itools_exiftool = importlib.import_module("itools-exiftool")
 itools_heif = importlib.import_module("itools-heif")
 itools_rgb = importlib.import_module("itools-rgb")
 itools_y4m = importlib.import_module("itools-y4m")
+itools_yuv = importlib.import_module("itools-yuv")
 
 
 def read_image_file(
@@ -35,6 +36,9 @@ def read_image_file(
         )
         if status is not None and status.get("broken", False):
             print(f"error: file {infile} is broken")
+
+    elif os.path.splitext(infile)[1] == ".yuv":
+        outyvu = itools_yuv.read_yuv(infile, iinfo)
 
     elif os.path.splitext(infile)[1] == ".rgba":
         outbgr = itools_rgb.read_rgba(infile, iinfo)
