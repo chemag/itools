@@ -8,6 +8,7 @@ Module that contains common code.
 
 
 import enum
+import numpy as np
 import subprocess
 import sys
 
@@ -69,3 +70,59 @@ def run(command, **kwargs):
     del p
     # return results
     return returncode, out, err
+
+
+# converts a chroma-subsampled matrix into a non-chroma subsampled one
+# Algo is very simple (just dup values)
+def chroma_subsample_reverse(inmatrix, colorspace):
+    in_w, in_h = inmatrix.shape
+    if colorspace in ("420jpeg", "420paldv", "420", "420mpeg2"):
+        out_w = in_w << 1
+        out_h = in_h << 1
+        outmatrix = np.zeros((out_w, out_h), dtype=np.uint8)
+        outmatrix[::2, ::2] = inmatrix
+        outmatrix[1::2, ::2] = inmatrix
+        outmatrix[::2, 1::2] = inmatrix
+        outmatrix[1::2, 1::2] = inmatrix
+    elif colorspace in ("422",):
+        out_w = in_w << 1
+        out_h = in_h
+        outmatrix = np.zeros((out_w, out_h), dtype=np.uint8)
+        outmatrix[::, ::2] = inmatrix
+        outmatrix[::, 1::2] = inmatrix
+    elif colorspace in ("444",):
+        out_w = in_w
+        out_h = in_h
+        outmatrix = np.zeros((out_w, out_h), dtype=np.uint8)
+        outmatrix = inmatrix
+    return outmatrix
+
+
+# converts a non-chroma-subsampled matrix into a chroma subsampled one
+# Algo is very simple (just average values)
+def chroma_subsample_direct(inmatrix, colorspace):
+    in_w, in_h = inmatrix.shape
+    if colorspace in ("420jpeg", "420paldv", "420", "420mpeg2"):
+        out_w = in_w >> 1
+        out_h = in_h >> 1
+        outmatrix = np.zeros((out_w, out_h), dtype=np.uint16)
+        outmatrix += inmatrix[::2, ::2]
+        outmatrix += inmatrix[1::2, ::2]
+        outmatrix += inmatrix[::2, 1::2]
+        outmatrix += inmatrix[1::2, 1::2]
+        outmatrix = outmatrix / 4
+        outmatrix = outmatrix.astype(np.uint8)
+    elif colorspace in ("422",):
+        out_w = in_w >> 1
+        out_h = in_h
+        outmatrix = np.zeros((out_w, out_h), dtype=np.uint16)
+        outmatrix += inmatrix[::, ::2]
+        outmatrix += inmatrix[::, 1::2]
+        outmatrix = outmatrix / 2
+        outmatrix = outmatrix.astype(np.uint8)
+    elif colorspace in ("444",):
+        out_w = in_w
+        out_h = in_h
+        outmatrix = np.zeros((out_w, out_h), dtype=np.uint8)
+        outmatrix = inmatrix
+    return outmatrix

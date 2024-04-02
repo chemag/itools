@@ -7,64 +7,11 @@ Runs generic y4m I/O. Similar to python-y4m.
 # https://docs.opencv.org/3.4/d4/d61/tutorial_warp_affine.html
 
 
+import importlib
 import numpy as np
 import os.path
 
-
-# converts a chroma-subsampled matrix into a non-chroma subsampled one
-# Algo is very simple (just dup values)
-def chroma_subsample_reverse(inmatrix, colorspace):
-    in_w, in_h = inmatrix.shape
-    if colorspace in ("420jpeg", "420paldv", "420", "420mpeg2"):
-        out_w = in_w << 1
-        out_h = in_h << 1
-        outmatrix = np.zeros((out_w, out_h), dtype=np.uint8)
-        outmatrix[::2, ::2] = inmatrix
-        outmatrix[1::2, ::2] = inmatrix
-        outmatrix[::2, 1::2] = inmatrix
-        outmatrix[1::2, 1::2] = inmatrix
-    elif colorspace in ("422",):
-        out_w = in_w << 1
-        out_h = in_h
-        outmatrix = np.zeros((out_w, out_h), dtype=np.uint8)
-        outmatrix[::, ::2] = inmatrix
-        outmatrix[::, 1::2] = inmatrix
-    elif colorspace in ("444",):
-        out_w = in_w
-        out_h = in_h
-        outmatrix = np.zeros((out_w, out_h), dtype=np.uint8)
-        outmatrix = inmatrix
-    return outmatrix
-
-
-# converts a non-chroma-subsampled matrix into a chroma subsampled one
-# Algo is very simple (just average values)
-def chroma_subsample_direct(inmatrix, colorspace):
-    in_w, in_h = inmatrix.shape
-    if colorspace in ("420jpeg", "420paldv", "420", "420mpeg2"):
-        out_w = in_w >> 1
-        out_h = in_h >> 1
-        outmatrix = np.zeros((out_w, out_h), dtype=np.uint16)
-        outmatrix += inmatrix[::2, ::2]
-        outmatrix += inmatrix[1::2, ::2]
-        outmatrix += inmatrix[::2, 1::2]
-        outmatrix += inmatrix[1::2, 1::2]
-        outmatrix = outmatrix / 4
-        outmatrix = outmatrix.astype(np.uint8)
-    elif colorspace in ("422",):
-        out_w = in_w >> 1
-        out_h = in_h
-        outmatrix = np.zeros((out_w, out_h), dtype=np.uint16)
-        outmatrix += inmatrix[::, ::2]
-        outmatrix += inmatrix[::, 1::2]
-        outmatrix = outmatrix / 2
-        outmatrix = outmatrix.astype(np.uint8)
-    elif colorspace in ("444",):
-        out_w = in_w
-        out_h = in_h
-        outmatrix = np.zeros((out_w, out_h), dtype=np.uint8)
-        outmatrix = inmatrix
-    return outmatrix
+itools_common = importlib.import_module("itools-common")
 
 
 def range_conversion(inarr, srcmin, srcmax, dstmin, dstmax):
@@ -227,8 +174,8 @@ class Y4MHeader:
         offset += chroma_size
         # combine the color components
         # undo chroma subsample in order to combine same-size matrices
-        ua_full = chroma_subsample_reverse(ua, self.colorspace)
-        va_full = chroma_subsample_reverse(va, self.colorspace)
+        ua_full = itools_common.chroma_subsample_reverse(ua, self.colorspace)
+        va_full = itools_common.chroma_subsample_reverse(va, self.colorspace)
         if debug > 0:
             print(f"debug: y4m frame read with {self.comment.get('COLORRANGE', None)}")
         status = {
@@ -291,9 +238,9 @@ def write_y4m(outfile, outyvu, colorspace="420"):
         fout.write(ya.flatten())
         # write u (implementing chroma subsample)
         ua_full = outyvu[:, :, 2]
-        ua = chroma_subsample_direct(ua_full, colorspace)
+        ua = itools_common.chroma_subsample_direct(ua_full, colorspace)
         fout.write(ua.flatten())
         # write v (implementing chroma subsample)
         va_full = outyvu[:, :, 1]
-        va = chroma_subsample_direct(va_full, colorspace)
+        va = itools_common.chroma_subsample_direct(va_full, colorspace)
         fout.write(va.flatten())
