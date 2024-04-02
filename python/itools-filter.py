@@ -73,6 +73,8 @@ default_values = {
     "y": 20,
     "iwidth": 0,
     "iheight": 0,
+    "istride": None,
+    "iscanline": None,
     "width": 0,
     "height": 0,
     "a00": 1,
@@ -680,6 +682,25 @@ def get_options(argv):
     )
 
     parser.add_argument(
+        "--istride",
+        action="store",
+        type=int,
+        dest="istride",
+        default=default_values["istride"],
+        metavar="WIDTH",
+        help=("input WIDTH stride"),
+    )
+    parser.add_argument(
+        "--iscanline",
+        action="store",
+        type=int,
+        dest="iscanline",
+        default=default_values["iscanline"],
+        metavar="HEIGHT",
+        help=("input HEIGHT scanline"),
+    )
+
+    parser.add_argument(
         "--width",
         action="store",
         type=int,
@@ -941,7 +962,9 @@ def main(argv):
     if options.debug > 0:
         print(options)
 
-    iinfo = itools_common.ImageInfo(options.iwidth, options.iheight)
+    iinfo = itools_common.ImageInfo(
+        options.iwidth, options.iheight, options.istride, options.iscanline
+    )
 
     if options.filter == "copy":
         copy_image(

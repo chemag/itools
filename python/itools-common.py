@@ -25,9 +25,13 @@ class ImageInfo:
     width = None
     height = None
 
-    def __init__(self, width, height):
+    def __init__(self, width, height, stride=None, scanline=None):
+        self.stride = stride
+        self.scanline = scanline
         self.width = width
         self.height = height
+        self.stride = stride
+        self.scanline = scanline
 
 
 def run(command, **kwargs):
