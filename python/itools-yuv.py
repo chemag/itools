@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-"""itools-rgb.py module description.
+"""itools-yuv.py module description.
 
-Runs generic RGB I/O.
+Runs generic YUV I/O.
 """
 
 
