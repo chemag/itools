@@ -27,13 +27,31 @@ def read_yuv(infile, iinfo):
     # extract the luma
     luma_size = iinfo.stride * iinfo.scanline
     iny = inyuv[0:luma_size]
-    outy = iny.reshape(iinfo.scanline, iinfo.stride)
+    try:
+        outy = iny.reshape(iinfo.scanline, iinfo.stride)
+    except ValueError as e:
+        print(
+            f"warn: pad before reshaping Y component: {len(iny)} != {(iinfo.scanline) * (iinfo.stride)} {iinfo.scanline}x{iinfo.stride}"
+        )
+        outy = np.resize(iny, (iinfo.scanline, iinfo.stride))
     # extract the chromas
     chroma_size = (iinfo.stride * iinfo.scanline) // 2
     inuv = inyuv[luma_size : luma_size + chroma_size]
     inu, inv = inuv[0::2], inuv[1::2]
-    outu = inu.reshape(iinfo.scanline // 2, iinfo.stride // 2)
-    outv = inv.reshape(iinfo.scanline // 2, iinfo.stride // 2)
+    try:
+        outu = inu.reshape(iinfo.scanline // 2, iinfo.stride // 2)
+    except ValueError as e:
+        print(
+            f"warn: pad before reshaping U component: {len(inu)} != {(iinfo.scanline // 2) * (iinfo.stride // 2)} {iinfo.scanline // 2}x{iinfo.stride // 2}"
+        )
+        outu = np.resize(inu, (iinfo.scanline // 2, iinfo.stride // 2))
+    try:
+        outv = inv.reshape(iinfo.scanline // 2, iinfo.stride // 2)
+    except ValueError as e:
+        print(
+            f"warn: pad before reshaping V component: {len(inv)} != {(iinfo.scanline // 2) * (iinfo.stride // 2)} {iinfo.scanline // 2}x{iinfo.stride // 2}"
+        )
+        outv = np.resize(inv, (iinfo.scanline // 2, iinfo.stride // 2))
     # undo the chroma subsample
     outu_full = itools_common.chroma_subsample_reverse(outu, "420")
     outv_full = itools_common.chroma_subsample_reverse(outv, "420")
