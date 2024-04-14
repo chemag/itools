@@ -25,6 +25,7 @@ def read_image_file(
     iinfo=None,
     read_exif_info=False,
     read_icc_info=False,
+    qpextract_bin=None,
     debug=0,
 ):
     outyvu = None
@@ -45,7 +46,7 @@ def read_image_file(
 
     elif os.path.splitext(infile)[1] in (".heic", ".avif"):
         outyvu, status = itools_heif.read_heif(
-            infile, read_exif_info, read_icc_info, debug
+            infile, read_exif_info, read_icc_info, qpextract_bin, debug
         )
 
     else:

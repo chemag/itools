@@ -8,6 +8,7 @@ Runs generic HEIF analysis. Requires access to heif-convert (libheif), MP4Box (g
 
 import base64
 import importlib
+import io
 import json
 import os
 import pandas as pd
@@ -212,7 +213,49 @@ def parse_heif_convert_output(tmpy4m, output, debug):
     return tmpy4m
 
 
-def read_heif(infile, read_exif_info, read_icc_info, debug=0):
+def parse_qpextract_bin_output(output):
+    df = pd.read_csv(io.StringIO(output.decode("ascii")))
+    QPEXTRACT_FIELDS = ("qp_avg", "qp_stddev", "qp_num", "qp_min", "qp_max")
+    return {key: df.iloc[0][key] for key in QPEXTRACT_FIELDS}
+
+
+def get_h265_values(infile, qpextract_bin, debug):
+    if qpextract_bin is None:
+        return {}
+    qp_dict = {}
+    df_item = get_item_list(infile, debug)
+    file_type = df_item.type.iloc[0]
+    # 1. get the HEVC (h265) weighted QP distribution
+    if file_type == "hvc1":
+        # select the first hvc1 type
+        hvc1_id = df_item[df_item.type == file_type]["id"].iloc[0]
+        # extract the 265 file of the first tile
+        tmp265 = tempfile.NamedTemporaryFile(suffix=".265").name
+        command = f"MP4Box -dump-item {hvc1_id}:path={tmp265} {infile}"
+        returncode, out, err = itools_common.run(command, debug=debug)
+        assert returncode == 0, f"error in {command}\n{err}"
+        # extract the QP-Y info for the first tile
+        command = f"{qpextract_bin} --qpymode -w -i {tmp265}"
+        returncode, out, err = itools_common.run(command, debug=debug)
+        assert returncode == 0, f"error in {command}\n{err}"
+        qp_dict_y = parse_qpextract_bin_output(out)
+        qp_dict.update({f"qpwy:{k}": v for k, v in qp_dict_y.items()})
+        # extract the QP-Cb info for the first tile
+        command = f"{qpextract_bin} --qpcbmode -w -i {tmp265}"
+        returncode, out, err = itools_common.run(command, debug=debug)
+        assert returncode == 0, f"error in {command}\n{err}"
+        qp_dict_cb = parse_qpextract_bin_output(out)
+        qp_dict.update({f"qpwcb:{k}": v for k, v in qp_dict_cb.items()})
+        # extract the QP-Cr info for the first tile
+        command = f"{qpextract_bin} --qpcrmode -w -i {tmp265}"
+        returncode, out, err = itools_common.run(command, debug=debug)
+        assert returncode == 0, f"error in {command}\n{err}"
+        qp_dict_cr = parse_qpextract_bin_output(out)
+        qp_dict.update({f"qpwcr:{k}": v for k, v in qp_dict_cr.items()})
+    return qp_dict
+
+
+def read_heif(infile, read_exif_info, read_icc_info, qpextract_bin, debug=0):
     tmpy4m = tempfile.NamedTemporaryFile(suffix=".y4m").name
     if debug > 0:
         print(f"using {tmpy4m}")
@@ -228,4 +271,7 @@ def read_heif(infile, read_exif_info, read_icc_info, debug=0):
         infile, read_exif_info, read_icc_info, debug=debug
     )
     status.update(colorimetry)
+    # get the heif QP distribution
+    qp_dict = get_h265_values(infile, qpextract_bin, debug=debug)
+    status.update(qp_dict)
     return outyvu, status

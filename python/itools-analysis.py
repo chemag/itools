@@ -39,6 +39,7 @@ default_values = {
     "roi_dump": None,
     "read_exif_info": True,
     "read_icc_info": True,
+    "qpextract_bin": None,
     "filter": "components",
     "infile_list": [],
     "outfile": None,
@@ -52,7 +53,9 @@ SUMMARY_FIELDS_AVERAGE = ("delta_timestamp_ms",)
 
 
 # calculate average/stddev of all components
-def get_components(infile, read_exif_info, read_icc_info, roi, roi_dump, debug):
+def get_components(
+    infile, read_exif_info, read_icc_info, roi, roi_dump, qpextract_bin, debug
+):
     if debug > 0:
         print(f"analyzing {infile}")
     # load the input image as both yuv and rgb
@@ -61,6 +64,7 @@ def get_components(infile, read_exif_info, read_icc_info, roi, roi_dump, debug):
         return_type=itools_common.ProcColor.both,
         read_exif_info=read_exif_info,
         read_icc_info=read_icc_info,
+        qpextract_bin=qpextract_bin,
         debug=debug,
     )
     # calculate the coordinates
@@ -258,6 +262,14 @@ def get_options(argv):
         % (" [default]" if not default_values["read_icc_info"] else ""),
     )
     parser.add_argument(
+        "--qpextract-bin",
+        action="store",
+        type=str,
+        dest="qpextract_bin",
+        default=default_values["qpextract_bin"],
+        help="Path to the qpextract bin",
+    )
+    parser.add_argument(
         "--filter",
         action="store",
         type=str,
@@ -311,6 +323,7 @@ def main(argv):
                 options.read_icc_info,
                 roi,
                 options.roi_dump,
+                options.qpextract_bin,
                 options.debug,
             )
             df = dftmp if df is None else pd.concat([df, dftmp])
