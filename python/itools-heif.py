@@ -169,7 +169,7 @@ def get_heif_colorimetry(infile, read_exif_info, read_icc_info, debug):
         returncode, out, err = itools_common.run(command, debug=debug)
         assert returncode == 0, f"error in {command}\n{err}"
         # extract the 265 file of the first tile
-        command = f"ffmpeg -i {tmp265} -c:v copy -bsf:v trace_headers -f null -"
+        command = f"{itools_common.FFMPEG_SILENT} -i {tmp265} -c:v copy -bsf:v trace_headers -f null -"
         returncode, out, err = itools_common.run(command, debug=debug)
         assert returncode == 0, f"error in {command}\n{err}"
         hevc_dict = parse_ffmpeg_bsf_colorimetry(err)

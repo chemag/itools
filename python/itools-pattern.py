@@ -248,7 +248,7 @@ def diff(
     write_ndarray_to_yuv420p10le(outfile, yd, ud, vd, num_cols, num_rows)
     # write the diff as a png file
     outfile_png = f"{outfile}.png"
-    command = f"ffmpeg -y -f rawvideo -pixel_format yuv420p10le -s {num_cols}x{num_rows} -i {outfile} {outfile_png}"
+    command = f"{itools_common.FFMPEG_SILENT} -f rawvideo -pixel_format yuv420p10le -s {num_cols}x{num_rows} -i {outfile} {outfile_png}"
     itools_common.run(command, debug=debug)
     print(f"output: {outfile} png: {outfile_png}")
 

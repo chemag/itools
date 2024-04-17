@@ -10,7 +10,10 @@ ffmpeg access to generic Bayer formats.
 
 
 import argparse
+import importlib
 import sys
+
+itools_common = importlib.import_module("itools-common")
 
 
 __version__ = "0.1"
@@ -868,7 +871,7 @@ def rfun_image_file(infile, i_pix_fmt, width, height, outfile, o_pix_fmt, debug)
             # TODO(chema): enforce input width (width % iclen == 0)
 
         print(
-            f"ffmpeg -f rawvideo -pixel_format {o_pix_fmt} "
+            f"{itools_common.FFMPEG_SILENT} -f rawvideo -pixel_format {o_pix_fmt} "
             f"-s {width}x{height} -i {outfile} {outfile}.png"
         )
 

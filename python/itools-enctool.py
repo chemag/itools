@@ -29,6 +29,7 @@ import subprocess
 import sys
 import tempfile
 
+itools_common = importlib.import_module("itools-common")
 itools_version = importlib.import_module("itools-version")
 
 
@@ -66,8 +67,6 @@ COLUMN_LIST = [
     "psnr",
     "ssim",
 ]
-
-FFMPEG_SILENT = "ffmpeg -hide_banner -y"
 
 
 def run(command, **kwargs):
@@ -173,7 +172,9 @@ def vmaf_get(distorted, reference, debug, vmaf_model=None):
     vmaf_file = tempfile.NamedTemporaryFile(prefix="vmaf.", suffix=".json").name
     # 1. calculate the score
     command = (
-        f"{FFMPEG_SILENT} -i {distorted} -i {reference} " "-filter_complex " "'libvmaf="
+        f"{itools_common.FFMPEG_SILENT} -i {distorted} -i {reference} "
+        "-filter_complex "
+        "'libvmaf="
     )
     if vmaf_model is not None:
         command += f"model=path={vmaf_model}:"
@@ -191,7 +192,7 @@ def psnr_get(distorted, reference, debug):
     psnr_file = "/tmp/psnr.txt"
     # 1. calculate the score
     command = (
-        f"{FFMPEG_SILENT} -i {distorted} -i {reference} "
+        f"{itools_common.FFMPEG_SILENT} -i {distorted} -i {reference} "
         "-filter_complex "
         f'"psnr=stats_file={psnr_file}" '
         f"-f null - 2>&1"
@@ -206,7 +207,7 @@ def ssim_get(distorted, reference, debug):
     ssim_file = "/tmp/ssim.txt"
     # 1. calculate the score
     command = (
-        f"{FFMPEG_SILENT} -i {distorted} -i {reference} "
+        f"{itools_common.FFMPEG_SILENT} -i {distorted} -i {reference} "
         "-filter_complex "
         f'"ssim=stats_file={ssim_file}" '
         f"-f null - 2>&1"
@@ -265,7 +266,7 @@ def process_file(
     )
     ref_basename = f"{os.path.basename(infile)}.{width}x{height}.y4m"
     ref_path = os.path.join(tmpdir, ref_basename)
-    command = f'{FFMPEG_SILENT} -i {infile} -vf "crop={width}:{height}:(iw-ow)/2:(ih-oh)/2" {ref_path}'
+    command = f'{itools_common.FFMPEG_SILENT} -i {infile} -vf "crop={width}:{height}:(iw-ow)/2:(ih-oh)/2" {ref_path}'
     returncode, out, err = run(command, debug=debug)
     assert returncode == 0, f"error: {out = } {err = }"
     # 2. select a codec
@@ -291,13 +292,13 @@ def process_file(
             returncode, out, err = run(command, debug=debug)
             assert returncode == 0, f"error: {out = } {err = }"
             # fix the color range
-            command = f"ffmpeg -y -i {tmpy4m} -color_range full {distorted_path}"
+            command = f"{itools_common.FFMPEG_SILENT} -i {tmpy4m} -color_range full {distorted_path}"
             returncode, out, err = run(command, debug=debug)
             assert returncode == 0, f"error: {out = } {err = }"
         elif codec == "jpeg":
-            command = f"{FFMPEG_SILENT} -i {enc_path} {distorted_path}"
-            # command = f"{FFMPEG_SILENT} -i {enc_path} -pix_fmt yuv420p {distorted_path}"
-            # command = f"{FFMPEG_SILENT} -i {enc_path} -pix_fmt yuv420p -vf scale=out_range=full {distorted_path}"
+            command = f"{itools_common.FFMPEG_SILENT} -i {enc_path} {distorted_path}"
+            # command = f"{itools_common.FFMPEG_SILENT} -i {enc_path} -pix_fmt yuv420p {distorted_path}"
+            # command = f"{itools_common.FFMPEG_SILENT} -i {enc_path} -pix_fmt yuv420p -vf scale=out_range=full {distorted_path}"
             returncode, out, err = run(command, debug=debug)
             assert returncode == 0, f"error: {out = } {err = }"
         # 7. analyze encoded file

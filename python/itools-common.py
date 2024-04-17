@@ -13,6 +13,9 @@ import subprocess
 import sys
 
 
+FFMPEG_SILENT = "ffmpeg -hide_banner -y"
+
+
 class ProcColor(enum.Enum):
     bgr = 0
     yvu = 1
