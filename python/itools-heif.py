@@ -213,10 +213,24 @@ def parse_heif_convert_output(tmpy4m, output, debug):
     return tmpy4m
 
 
-def parse_qpextract_bin_output(output):
+QPEXTRACT_FIELDS = ("qp_avg", "qp_stddev", "qp_num", "qp_min", "qp_max")
+CTU_SIZE_VALUES = (8, 16, 32, 64)
+
+
+def parse_qpextract_bin_output(output, mode):
     df = pd.read_csv(io.StringIO(output.decode("ascii")))
-    QPEXTRACT_FIELDS = ("qp_avg", "qp_stddev", "qp_num", "qp_min", "qp_max")
-    return {key: df.iloc[0][key] for key in QPEXTRACT_FIELDS}
+    if mode == "qp":
+        return {key: df.iloc[0][key] for key in QPEXTRACT_FIELDS}
+    elif mode == "ctu":
+        # get statistics
+        ctu_dict = {"mean": df["size"].mean(), "stddev": df["size"].std()}
+        ctu_dict.update(
+            {
+                f"ratio_{ctu_size}": (len(df[df["size"] == ctu_size]) / len(df))
+                for ctu_size in CTU_SIZE_VALUES
+            }
+        )
+        return ctu_dict
 
 
 def get_h265_values(infile, qpextract_bin, debug):
@@ -238,20 +252,26 @@ def get_h265_values(infile, qpextract_bin, debug):
         command = f"{qpextract_bin} --qpymode -w -i {tmp265}"
         returncode, out, err = itools_common.run(command, debug=debug)
         assert returncode == 0, f"error in {command}\n{err}"
-        qp_dict_y = parse_qpextract_bin_output(out)
+        qp_dict_y = parse_qpextract_bin_output(out, "qp")
         qp_dict.update({f"qpwy:{k}": v for k, v in qp_dict_y.items()})
         # extract the QP-Cb info for the first tile
         command = f"{qpextract_bin} --qpcbmode -w -i {tmp265}"
         returncode, out, err = itools_common.run(command, debug=debug)
         assert returncode == 0, f"error in {command}\n{err}"
-        qp_dict_cb = parse_qpextract_bin_output(out)
+        qp_dict_cb = parse_qpextract_bin_output(out, "qp")
         qp_dict.update({f"qpwcb:{k}": v for k, v in qp_dict_cb.items()})
         # extract the QP-Cr info for the first tile
         command = f"{qpextract_bin} --qpcrmode -w -i {tmp265}"
         returncode, out, err = itools_common.run(command, debug=debug)
         assert returncode == 0, f"error in {command}\n{err}"
-        qp_dict_cr = parse_qpextract_bin_output(out)
+        qp_dict_cr = parse_qpextract_bin_output(out, "qp")
         qp_dict.update({f"qpwcr:{k}": v for k, v in qp_dict_cr.items()})
+        # extract the CTU info for the first tile
+        command = f"{qpextract_bin} --ctumode -w -i {tmp265}"
+        returncode, out, err = itools_common.run(command, debug=debug)
+        assert returncode == 0, f"error in {command}\n{err}"
+        ctu_dict = parse_qpextract_bin_output(out, "ctu")
+        qp_dict.update({f"ctu:{k}": v for k, v in ctu_dict.items()})
     return qp_dict
 
 
