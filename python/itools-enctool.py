@@ -35,6 +35,7 @@ itools_common = importlib.import_module("itools-common")
 itools_version = importlib.import_module("itools-version")
 
 
+HEIF_ENC = "heif-enc"
 VMAF_DEF_MODEL = "/usr/share/model/vmaf_v0.6.1.json"
 VMAF_NEG_MODEL = "/usr/share/model/vmaf_v0.6.1neg.json"
 VMAF_4K_MODEL = "/usr/share/model/vmaf_4k_v0.6.1.json"
@@ -232,8 +233,9 @@ def escape_float(f):
 def heif_enc_encode_fun(
     infile_path, width, height, codec, quality, outfile_path, debug
 ):
-    command = f"heif-enc {infile_path} -e {codec} -q {quality} {outfile_path}"
+    command = f"{HEIF_ENC} {infile_path} -e {codec} -q {quality} {outfile_path}"
     returncode, out, err = run(command, debug=debug)
+    assert returncode == 0, f"error: {out = } {err = }"
 
 
 # TODO(chema): better value here
