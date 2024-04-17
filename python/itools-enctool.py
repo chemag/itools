@@ -26,7 +26,6 @@ import math
 import os
 import pandas as pd
 import re
-import subprocess
 import sys
 import tempfile
 
@@ -75,46 +74,9 @@ COLUMN_LIST = [
 ]
 
 
-def run(command, **kwargs):
-    debug = kwargs.get("debug", 0)
-    dry_run = kwargs.get("dry_run", False)
-    env = kwargs.get("env", None)
-    stdin = subprocess.PIPE if kwargs.get("stdin", False) else None
-    bufsize = kwargs.get("bufsize", 0)
-    universal_newlines = kwargs.get("universal_newlines", False)
-    default_close_fds = True if sys.platform == "linux2" else False
-    close_fds = kwargs.get("close_fds", default_close_fds)
-    shell = type(command) in (type(""), type(""))
-    if debug > 0:
-        print("running $ %s" % command)
-    if dry_run:
-        return 0, b"stdout", b"stderr"
-    p = subprocess.Popen(  # noqa: E501
-        command,
-        stdin=stdin,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        bufsize=bufsize,
-        universal_newlines=universal_newlines,
-        env=env,
-        close_fds=close_fds,
-        shell=shell,
-    )
-    # wait for the command to terminate
-    if stdin is not None:
-        out, err = p.communicate(stdin)
-    else:
-        out, err = p.communicate()
-    returncode = p.returncode
-    # clean up
-    del p
-    # return results
-    return returncode, out, err
-
-
 def get_video_dimensions(infile, debug):
     command = f"ffprobe -v 0 -of csv='p=0' -select_streams v:0 -show_entries stream=width,height {infile}"
-    returncode, out, err = run(command, debug=debug)
+    returncode, out, err = itools_common.run(command, debug=debug)
     assert returncode == 0, f"error: {out = } {err = }"
     return [int(v) for v in out.decode("ascii").strip().split(",")]
 
@@ -189,7 +151,7 @@ def vmaf_get(distorted, reference, debug, vmaf_model=None):
         "feature=name=psnr|name=psnr_hvs|name=float_ssim|name=float_ms_ssim|name=cambi|name=ciede'"
         " -f null - 2>&1 "
     )
-    returncode, out, err = run(command, debug=debug)
+    returncode, out, err = itools_common.run(command, debug=debug)
     # 2. parse the output
     return vmaf_parse(out, vmaf_file)
 
@@ -203,7 +165,7 @@ def psnr_get(distorted, reference, debug):
         f'"psnr=stats_file={psnr_file}" '
         f"-f null - 2>&1"
     )
-    returncode, out, err = run(command, debug=debug)
+    returncode, out, err = itools_common.run(command, debug=debug)
     assert returncode == 0, f"error: {out = } {err = }"
     # 2. parse the output
     return psnr_parse(out)
@@ -218,7 +180,7 @@ def ssim_get(distorted, reference, debug):
         f'"ssim=stats_file={ssim_file}" '
         f"-f null - 2>&1"
     )
-    returncode, out, err = run(command, debug=debug)
+    returncode, out, err = itools_common.run(command, debug=debug)
     assert returncode == 0, f"error: {out = } {err = }"
     # 2. parse the output
     return ssim_parse(out)
@@ -234,7 +196,7 @@ def heif_enc_encode_fun(
     infile_path, width, height, codec, quality, outfile_path, debug
 ):
     command = f"{HEIF_ENC} {infile_path} -e {codec} -q {quality} {outfile_path}"
-    returncode, out, err = run(command, debug=debug)
+    returncode, out, err = itools_common.run(command, debug=debug)
     assert returncode == 0, f"error: {out = } {err = }"
 
 
@@ -276,7 +238,7 @@ def process_file(
     ref_basename = f"{os.path.basename(infile)}.{width}x{height}.codec_{codec}.y4m"
     ref_path = os.path.join(tmpdir, ref_basename)
     command = f'{itools_common.FFMPEG_SILENT} -i {infile} -vf "crop={width}:{height}:(iw-ow)/2:(ih-oh)/2" {ref_path}'
-    returncode, out, err = run(command, debug=debug)
+    returncode, out, err = itools_common.run(command, debug=debug)
     assert returncode == 0, f"error: {out = } {err = }"
     # 2. select a codec
     extension, (config_fun, init_fun, encode_fun, fini_fun) = codec_choices[codec]
@@ -298,17 +260,17 @@ def process_file(
             tmpy4m = tempfile.NamedTemporaryFile(prefix="xnova.", suffix=".y4m").name
             # decode the heic file
             command = f"heif-convert {enc_path} {tmpy4m}"
-            returncode, out, err = run(command, debug=debug)
+            returncode, out, err = itools_common.run(command, debug=debug)
             assert returncode == 0, f"error: {out = } {err = }"
             # fix the color range
             command = f"{itools_common.FFMPEG_SILENT} -i {tmpy4m} -color_range full {distorted_path}"
-            returncode, out, err = run(command, debug=debug)
+            returncode, out, err = itools_common.run(command, debug=debug)
             assert returncode == 0, f"error: {out = } {err = }"
         elif codec == "jpeg":
             command = f"{itools_common.FFMPEG_SILENT} -i {enc_path} {distorted_path}"
             # command = f"{itools_common.FFMPEG_SILENT} -i {enc_path} -pix_fmt yuv420p {distorted_path}"
             # command = f"{itools_common.FFMPEG_SILENT} -i {enc_path} -pix_fmt yuv420p -vf scale=out_range=full {distorted_path}"
-            returncode, out, err = run(command, debug=debug)
+            returncode, out, err = itools_common.run(command, debug=debug)
             assert returncode == 0, f"error: {out = } {err = }"
         # 7. analyze encoded file
         vmaf_def = vmaf_get(distorted_path, ref_path, debug, VMAF_DEF_MODEL)
