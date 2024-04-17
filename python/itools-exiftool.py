@@ -24,6 +24,7 @@ EXIFTOOL_KEYS = {
     "File": "ignore",
     "ExifTool": "ignore",
     "EXIF": "exif",
+    "JFIF": "ignore",
     "Photoshop": "ignore",
     "XMP": "ignore",
     "ICC_Profile": "icc",
