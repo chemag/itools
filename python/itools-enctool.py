@@ -271,7 +271,7 @@ def process_file(
         if (height % vertical_alignment == 0)
         else (vertical_alignment * math.floor(height / vertical_alignment))
     )
-    ref_basename = f"{os.path.basename(infile)}.{width}x{height}.y4m"
+    ref_basename = f"{os.path.basename(infile)}.{width}x{height}.codec_{codec}.y4m"
     ref_path = os.path.join(tmpdir, ref_basename)
     command = f'{itools_common.FFMPEG_SILENT} -i {infile} -vf "crop={width}:{height}:(iw-ow)/2:(ih-oh)/2" {ref_path}'
     returncode, out, err = run(command, debug=debug)
@@ -284,7 +284,7 @@ def process_file(
         # 4. encode the file
         enc_path = os.path.join(
             tmpdir,
-            f"{exp_basename}.codec_{codec}.quality_{escape_float(quality)}.{extension}",
+            f"{exp_basename}.quality_{escape_float(quality)}.{extension}",
         )
         encode_fun(exp_path, width, height, codec, quality, enc_path, debug)
         # 5. calculate the encoded size
