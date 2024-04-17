@@ -93,6 +93,7 @@ def get_components(
     # store results
     columns = [
         "filename",
+        "size",
         "roi",
         "ymean",
         "ystddev",
@@ -109,8 +110,10 @@ def get_components(
     ]
     columns += list(status.keys())
     df = pd.DataFrame(columns=columns)
+    size = os.path.getsize(infile)
     df.loc[df.size] = [
         infile,
+        size,
         f"({roi_x0} {roi_y0}) ({roi_x1} {roi_y1})",
         ymean,
         ystddev,
