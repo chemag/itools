@@ -20,6 +20,7 @@ Features:
 
 import argparse
 import importlib
+import itertools
 import json
 import math
 import os
@@ -222,6 +223,8 @@ def escape_float(f):
     return str(int(f)) if f.is_integer() else str(f).replace(".", "_")
 
 
+# encoding backends
+# 1. heif-enc
 def heif_enc_encode_fun(
     infile_path, width, height, codec, quality, outfile_path, debug
 ):
@@ -344,39 +347,29 @@ def process_file(
 def get_derived_results(df):
     # import the results
     new_df = pd.DataFrame(columns=list(df.columns.values))
-    for codec in list(df["codec"].unique()):
-        for quality in sorted(list(df["quality"].unique())):
-            # average a few values
-            encoded_bpp = df[df["codec"] == codec][df["quality"] == quality][
-                "encoded_bpp"
-            ].mean()
-            psnr = df[df["codec"] == codec][df["quality"] == quality]["psnr"].mean()
-            ssim = df[df["codec"] == codec][df["quality"] == quality]["ssim"].mean()
-            vmaf_keys = list(
-                key for key in df.columns.values if key.startswith("vmaf:")
-            )
-            vmaf_dict = {
-                key: df[df["codec"] == codec][df["quality"] == quality][key].mean()
-                for key in vmaf_keys
-            }
-            infile = "average"
-            width = df[df["codec"] == codec][df["quality"] == quality]["width"].mean()
-            height = df[df["codec"] == codec][df["quality"] == quality]["height"].mean()
-            encoded_size = df[df["codec"] == codec][df["quality"] == quality][
-                "encoded_size"
-            ].mean()
-            new_df.loc[new_df.size] = (
-                infile,
-                width,
-                height,
-                codec,
-                quality,
-                encoded_size,
-                encoded_bpp,
-                psnr,
-                ssim,
-                *vmaf_dict.values(),
-            )
+    for codec, quality in itertools.product(
+        list(df["codec"].unique()), sorted(list(df["quality"].unique()))
+    ):
+        # select interesting data
+        tmp_fd = df[(df["codec"] == codec) & (df["quality"] == quality)]
+        derived_dict = {key: None for key in list(df.columns.values)}
+        derived_dict["infile"] = "average"
+        # copy a few columns
+        for col in ("quality", "codec"):
+            derived_dict[col] = tmp_fd[col].values[0]
+        # average a few columns
+        vmaf_keys = list(key for key in df.columns.values if key.startswith("vmaf:"))
+        mean_keys = [
+            "width",
+            "height",
+            "encoded_size",
+            "encoded_bpp",
+            "psnr",
+            "ssim",
+        ] + vmaf_keys
+        for key in mean_keys:
+            derived_dict[key] = tmp_fd[key].mean()
+        new_df.loc[new_df.size] = list(derived_dict.values())
     return new_df
 
 
@@ -392,14 +385,20 @@ def process_data(
     debug,
 ):
     df = None
-    # 1. configure codec/device
-    _, (config_fun, _, _, _) = codec_choices[codec]
-    if config_fun is not None:
-        config_fun(debug)
-    # 2. run the experiments
+    # 1. get a codec list (if present)
+    codec_list = codec.split(",") if codec != "all" else codec_choices.keys()
+    codec_valid_list = list(codec_choices.keys())
+    assert set(codec_list) <= set(
+        codec_valid_list
+    ), f"error: invalid codec in list: {codec_list}"
     quality_list = list(float(v) for v in quality_list.split(","))
     results = ()
-    for infile in infile_list:
+    for codec, infile in itertools.product(codec_list, infile_list):
+        # 2. configure codec/device
+        _, (config_fun, _, _, _) = codec_choices[codec]
+        if config_fun is not None:
+            config_fun(debug)
+        # 3. run the experiments
         tmp_df = process_file(
             infile,
             codec,
@@ -411,11 +410,11 @@ def process_data(
             debug,
         )
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
-    # 3. get derived results
+    # 3. reindex per-file dataframe
+    df = df.reindex()
+    # 4. get derived results
     tmp_df = get_derived_results(df)
     df = pd.concat([df, tmp_df], ignore_index=True)
-    # 4. TODO(chema): aggregate results
-
     # 5. write the results
     df.to_csv(outfile, index=False)
 
@@ -471,19 +470,16 @@ def get_options(argv, codec_choices):
         default=default_values["quality_list"],
         help="Quality list (comma-separated list)",
     )
+    codec_list = list(codec_choices.keys()) + [
+        "all",
+    ]
     parser.add_argument(
         "--codec",
         action="store",
         type=str,
         dest="codec",
         default=default_values["codec"],
-        choices=codec_choices.keys(),
-        metavar="[%s]"
-        % (
-            " | ".join(
-                codec_choices.keys(),
-            )
-        ),
+        metavar="[%s]" % (" | ".join(codec_list)),
         help="codec arg",
     )
     parser.add_argument(
