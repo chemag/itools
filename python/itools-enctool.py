@@ -30,6 +30,7 @@ import subprocess
 import sys
 import tempfile
 
+itools_analysis = importlib.import_module("itools-analysis")
 itools_common = importlib.import_module("itools-common")
 itools_version = importlib.import_module("itools-version")
 
@@ -53,12 +54,15 @@ default_values = {
     "quality_list": ",".join(str(v) for v in DEFAULT_QUALITY_LIST),
     "codec": "heic",
     "tmpdir": tempfile.gettempdir(),
+    "analysis": False,
+    "qpextract_bin": None,
     "infile_list": None,
     "outfile": None,
 }
 
 COLUMN_LIST = [
     "infile",
+    "outfile",
     "width",
     "height",
     "codec",
@@ -325,6 +329,7 @@ def process_file(
             )
         df.loc[df.size] = (
             infile,
+            enc_path,
             width,
             height,
             codec,
@@ -352,6 +357,7 @@ def get_derived_results(df):
     ):
         # select interesting data
         tmp_fd = df[(df["codec"] == codec) & (df["quality"] == quality)]
+        # start with empty data
         derived_dict = {key: None for key in list(df.columns.values)}
         derived_dict["infile"] = "average"
         # copy a few columns
@@ -359,14 +365,25 @@ def get_derived_results(df):
             derived_dict[col] = tmp_fd[col].values[0]
         # average a few columns
         vmaf_keys = list(key for key in df.columns.values if key.startswith("vmaf:"))
-        mean_keys = [
-            "width",
-            "height",
-            "encoded_size",
-            "encoded_bpp",
-            "psnr",
-            "ssim",
-        ] + vmaf_keys
+        qpwy_keys = list(key for key in df.columns.values if key.startswith("qpwy:"))
+        qpwcb_keys = list(key for key in df.columns.values if key.startswith("qpwcb:"))
+        qpwcr_keys = list(key for key in df.columns.values if key.startswith("qpwcr:"))
+        ctu_keys = list(key for key in df.columns.values if key.startswith("ctu:"))
+        mean_keys = (
+            [
+                "width",
+                "height",
+                "encoded_size",
+                "encoded_bpp",
+                "psnr",
+                "ssim",
+            ]
+            + vmaf_keys
+            + qpwy_keys
+            + qpwcb_keys
+            + qpwcr_keys
+            + ctu_keys
+        )
         for key in mean_keys:
             derived_dict[key] = tmp_fd[key].mean()
         new_df.loc[new_df.size] = list(derived_dict.values())
@@ -380,8 +397,10 @@ def process_data(
     horizontal_alignment,
     vertical_alignment,
     tmpdir,
+    analysis,
+    qpextract_bin,
     codec_choices,
-    outfile,
+    outfile_csv,
     debug,
 ):
     df = None
@@ -412,11 +431,35 @@ def process_data(
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
     # 3. reindex per-file dataframe
     df = df.reindex()
-    # 4. get derived results
-    tmp_df = get_derived_results(df)
-    df = pd.concat([df, tmp_df], ignore_index=True)
-    # 5. write the results
-    df.to_csv(outfile, index=False)
+    # 4. add per-output analysis
+    if analysis:
+        df_analysis = None
+        for outfile in df.outfile:
+            df_tmp_analysis = itools_analysis.get_components(
+                outfile,
+                read_exif_info=True,
+                read_icc_info=True,
+                roi=((None, None), (None, None)),
+                roi_dump=None,
+                qpextract_bin=qpextract_bin,
+                debug=debug,
+            )
+            df_analysis = (
+                df_tmp_analysis
+                if df_analysis is None
+                else pd.concat([df_analysis, df_tmp_analysis])
+            )
+        df = pd.merge(df, df_analysis, left_on="outfile", right_on="filename")
+    # 5. get derived results
+    derived_df = get_derived_results(df)
+    # TODO(chemag): fix this warning
+    # Likely cause is that some of the derived_df columns are dtype object
+    # ('dtype("O")') but have only null values (e.g. "ymean" column).
+    # \ref https://stackoverflow.com/a/60802429
+    # df = pd.concat([df, derived_df], ignore_index=True)
+    df = pd.concat([df, derived_df], ignore_index=True, axis=0)
+    # 6. write the results
+    df.to_csv(outfile_csv, index=False)
 
 
 def get_options(argv, codec_choices):
@@ -508,6 +551,27 @@ def get_options(argv, codec_choices):
         help="temporal dir",
     )
     parser.add_argument(
+        "--analysis",
+        action="store_true",
+        dest="analysis",
+        default=default_values["analysis"],
+        help="Full analysis",
+    )
+    parser.add_argument(
+        "--noanalysis",
+        action="store_false",
+        dest="analysis",
+        help="No full analysis",
+    )
+    parser.add_argument(
+        "--qpextract-bin",
+        action="store",
+        type=str,
+        dest="qpextract_bin",
+        default=default_values["qpextract_bin"],
+        help="Path to the qpextract bin",
+    )
+    parser.add_argument(
         "infile_list",
         nargs="+",
         default=default_values["infile_list"],
@@ -545,6 +609,8 @@ def main(argv):
         options.horizontal_alignment,
         options.vertical_alignment,
         options.tmpdir,
+        options.analysis,
+        options.qpextract_bin,
         CODEC_CHOICES,
         options.outfile,
         options.debug,
