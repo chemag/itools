@@ -34,7 +34,7 @@ itools_common = importlib.import_module("itools-common")
 itools_version = importlib.import_module("itools-version")
 
 
-HEIF_ENC = "heif-enc"
+HEIF_ENC = os.environ.get("HEIF_ENC", "heif-enc")
 VMAF_DEF_MODEL = "/usr/share/model/vmaf_v0.6.1.json"
 VMAF_NEG_MODEL = "/usr/share/model/vmaf_v0.6.1neg.json"
 VMAF_4K_MODEL = "/usr/share/model/vmaf_4k_v0.6.1.json"
