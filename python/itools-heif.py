@@ -164,7 +164,7 @@ def get_heif_colorimetry(infile, read_exif_info, read_icc_info, debug):
         # select the first hvc1 type
         hvc1_id = df_item[df_item.type == file_type]["id"].iloc[0]
         # extract the 265 file of the first tile
-        tmp265 = tempfile.NamedTemporaryFile(suffix=".265").name
+        tmp265 = tempfile.NamedTemporaryFile(prefix="itools.tile.", suffix=".265").name
         command = f"MP4Box -dump-item {hvc1_id}:path={tmp265} {infile}"
         returncode, out, err = itools_common.run(command, debug=debug)
         assert returncode == 0, f"error in {command}\n{err}"
@@ -178,7 +178,7 @@ def get_heif_colorimetry(infile, read_exif_info, read_icc_info, debug):
     if read_exif_info and len(df_item[df_item.type == "Exif"]["id"]) > 0:
         exif_id = df_item[df_item.type == "Exif"]["id"].iloc[0]
         # extract the exif file of the first tile
-        tmpexif = tempfile.NamedTemporaryFile(suffix=".exif").name
+        tmpexif = tempfile.NamedTemporaryFile(prefix="itools.exif.", suffix=".bin").name
         command = f"MP4Box -dump-item {exif_id}:path={tmpexif} {infile}"
         returncode, out, err = itools_common.run(command, debug=debug)
         assert returncode == 0, f"error in {command}\n{err}"
@@ -188,7 +188,7 @@ def get_heif_colorimetry(infile, read_exif_info, read_icc_info, debug):
         )
         colorimetry.update(exiftool_dict)
     # 3. get the `colr` colorimetry
-    tmpxml = tempfile.NamedTemporaryFile(suffix=".xml").name
+    tmpxml = tempfile.NamedTemporaryFile(prefix="itools.xml.", suffix=".xml").name
     command = f"MP4Box -std -dxml {infile} > {tmpxml}"
     returncode, out, err = itools_common.run(command, debug=debug)
     assert returncode == 0, f"error in {command}\n{err}"
@@ -244,7 +244,7 @@ def get_h265_values(infile, qpextract_bin, debug):
         # select the first hvc1 type
         hvc1_id = df_item[df_item.type == file_type]["id"].iloc[0]
         # extract the 265 file of the first tile
-        tmp265 = tempfile.NamedTemporaryFile(suffix=".265").name
+        tmp265 = tempfile.NamedTemporaryFile(prefix="itools.hvc1.", suffix=".265").name
         command = f"MP4Box -dump-item {hvc1_id}:path={tmp265} {infile}"
         returncode, out, err = itools_common.run(command, debug=debug)
         assert returncode == 0, f"error in {command}\n{err}"
@@ -276,7 +276,7 @@ def get_h265_values(infile, qpextract_bin, debug):
 
 
 def read_heif(infile, read_exif_info, read_icc_info, qpextract_bin, debug=0):
-    tmpy4m = tempfile.NamedTemporaryFile(suffix=".y4m").name
+    tmpy4m = tempfile.NamedTemporaryFile(prefix="itools.raw.", suffix=".y4m").name
     if debug > 0:
         print(f"using {tmpy4m}")
     # decode the file using libheif
