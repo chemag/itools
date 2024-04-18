@@ -32,6 +32,7 @@ import tempfile
 
 itools_analysis = importlib.import_module("itools-analysis")
 itools_common = importlib.import_module("itools-common")
+itools_filter = importlib.import_module("itools-filter")
 itools_version = importlib.import_module("itools-version")
 
 
@@ -56,6 +57,7 @@ default_values = {
     "analysis": False,
     "qpextract_bin": None,
     "encoded_infile": None,
+    "encoded_rotate": 0,
     "infile_list": None,
     "outfile": None,
 }
@@ -223,6 +225,7 @@ def process_file(
     codec_choices,
     debug,
     encoded_infile=None,
+    encoded_rotate=None,
 ):
     df = None
     # 1. select a codec
@@ -294,6 +297,11 @@ def process_file(
             if debug > 0:
                 print(f"running $ cp {encoded_infile} {distorted_path}")
             shutil.copyfile(encoded_infile, distorted_path)
+        if encoded_rotate is not None and encoded_rotate != 0:
+            # rotate the encoded output
+            iinfo = None
+            proc_color = itools_common.ProcColor.yvu
+            itools_filter.rotate_image(distorted_path, encoded_rotate, distorted_path, iinfo, proc_color, debug)
         # 7. analyze encoded file
         vmaf_def = vmaf_get(distorted_path, ref_path, debug, VMAF_DEF_MODEL)
         vmaf_neg = vmaf_get(distorted_path, ref_path, debug, VMAF_NEG_MODEL)
@@ -389,6 +397,7 @@ def process_data(
     outfile_csv,
     debug,
     encoded_infile=None,
+    encoded_rotate=None,
 ):
     df = None
     # 1. get a codec list (if present)
@@ -415,6 +424,7 @@ def process_data(
             codec_choices,
             debug,
             encoded_infile=encoded_infile,
+            encoded_rotate=encoded_rotate,
         )
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
     # 3. reindex per-file dataframe
@@ -575,6 +585,16 @@ def get_options(argv, codec_choices):
         help="use encoded filename (for empty codec)",
     )
     parser.add_argument(
+        "--encoded-rotate",
+        action="store",
+        type=int,
+        dest="encoded_rotate",
+        choices=itools_filter.ROTATE_ANGLE_LIST.keys(),
+        default=default_values["encoded_rotate"],
+        metavar="ENCODED-ROTATE",
+        help="use encoded rotation (for empty codec)",
+    )
+    parser.add_argument(
         "-o",
         "--output",
         action="store",
@@ -611,6 +631,7 @@ def main(argv):
         options.outfile,
         options.debug,
         encoded_infile=options.encoded_infile,
+        encoded_rotate=options.encoded_rotate,
     )
 
 
