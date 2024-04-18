@@ -42,15 +42,13 @@ VMAF_4K_MODEL = "/usr/share/model/vmaf_4k_v0.6.1.json"
 
 DEFAULT_QUALITIES = [25, 75, 85, 95, 96, 97, 97.5, 98, 99]
 DEFAULT_QUALITY_LIST = sorted(set(list(range(0, 101, 10)) + DEFAULT_QUALITIES))
-DEFAULT_HORIZONTAL_ALIGNMENT = 32
-DEFAULT_VERTICAL_ALIGNMENT = 32
 
 
 default_values = {
     "debug": 0,
     "dry_run": False,
-    "horizontal_alignment": DEFAULT_HORIZONTAL_ALIGNMENT,
-    "vertical_alignment": DEFAULT_VERTICAL_ALIGNMENT,
+    "horizontal_alignment": None,
+    "vertical_alignment": None,
     "quality_list": ",".join(str(v) for v in DEFAULT_QUALITY_LIST),
     "codec": "heic",
     "tmpdir": tempfile.gettempdir(),
@@ -201,14 +199,14 @@ def heif_enc_encode_fun(
 
 
 # TODO(chema): use better mechanism here
-# codec: (extension, (config_fun, init_fun, encode_fun, fini_fun))
-# TODO(chema): add (alignment, decoder)
+# codec: (extension, (config_fun, init_fun, encode_fun, fini_fun), (horizontal_alignment, vertical_alignment))
+# TODO(chema): add (decoder)
 CODEC_CHOICES = {
-    "x265": ("heic", (None, None, heif_enc_encode_fun, None)),
-    "kvazaar": ("heic", (None, None, heif_enc_encode_fun, None)),
-    "aom": ("avif", (None, None, heif_enc_encode_fun, None)),
-    "svt": ("avif", (None, None, heif_enc_encode_fun, None)),
-    "openjpeg": ("jpeg2000", (None, None, heif_enc_encode_fun, None)),
+    "x265": (".heic", (None, None, heif_enc_encode_fun, None), (None, None)),
+    "kvazaar": (".heic", (None, None, heif_enc_encode_fun, None), (None, None)),
+    "aom": (".avif", (None, None, heif_enc_encode_fun, None), (None, None)),
+    "svt": (".avif", (None, None, heif_enc_encode_fun, None), (None, None)),
+    "openjpeg": (".jpeg2000", (None, None, heif_enc_encode_fun, None), (None, None)),
 }
 
 
@@ -223,17 +221,20 @@ def process_file(
     debug,
 ):
     df = None
-    # 0. get input dimensions
+    # 1. select a codec
+    extension, (config_fun, init_fun, encode_fun, fini_fun), (ha, va) = codec_choices[codec]
+    horizontal_alignment = horizontal_alignment if horizontal_alignment is not None else ha
+    vertical_alignment = vertical_alignment if vertical_alignment is not None else va
+    # 2. crop input to alignment in vertical and horizontal
     width, height = get_video_dimensions(infile, debug)
-    # 1. crop input to alignment in vertical and horizontal
     width = (
         width
-        if (width % horizontal_alignment == 0)
+        if (horizontal_alignment is None or width % horizontal_alignment == 0)
         else (horizontal_alignment * math.floor(width / horizontal_alignment))
     )
     height = (
         height
-        if (height % vertical_alignment == 0)
+        if (vertical_alignment is None or height % vertical_alignment == 0)
         else (vertical_alignment * math.floor(height / vertical_alignment))
     )
     ref_basename = f"{os.path.basename(infile)}.{width}x{height}.codec_{codec}.y4m"
@@ -241,15 +242,15 @@ def process_file(
     command = f'{itools_common.FFMPEG_SILENT} -i {infile} -vf "crop={width}:{height}:(iw-ow)/2:(ih-oh)/2" {ref_path}'
     returncode, out, err = itools_common.run(command, debug=debug)
     assert returncode == 0, f"error: {out = } {err = }"
-    # 2. select a codec
-    extension, (config_fun, init_fun, encode_fun, fini_fun) = codec_choices[codec]
+
+    # 3. prepare the input (reference) file
     exp_path = init_fun(ref_path, tmpdir, debug) if init_fun is not None else ref_path
     exp_basename = os.path.basename(exp_path)
     for quality in quality_list:
         # 4. encode the file
         enc_path = os.path.join(
             tmpdir,
-            f"{exp_basename}.quality_{escape_float(quality)}.{extension}",
+            f"{exp_basename}.quality_{escape_float(quality)}{extension}",
         )
         encode_fun(exp_path, width, height, codec, quality, enc_path, debug)
         # 5. calculate the encoded size
@@ -382,7 +383,7 @@ def process_data(
     results = ()
     for codec, infile in itertools.product(codec_list, infile_list):
         # 2. configure codec/device
-        _, (config_fun, _, _, _) = codec_choices[codec]
+        _, (config_fun, _, _, _), (_, _) = codec_choices[codec]
         if config_fun is not None:
             config_fun(debug)
         # 3. run the experiments
