@@ -26,6 +26,7 @@ import math
 import os
 import pandas as pd
 import re
+import shutil
 import sys
 import tempfile
 
@@ -54,6 +55,7 @@ default_values = {
     "tmpdir": tempfile.gettempdir(),
     "analysis": False,
     "qpextract_bin": None,
+    "encoded_infile": None,
     "infile_list": None,
     "outfile": None,
 }
@@ -207,6 +209,7 @@ CODEC_CHOICES = {
     "aom": (".avif", (None, None, heif_enc_encode_fun, None), (None, None)),
     "svt": (".avif", (None, None, heif_enc_encode_fun, None), (None, None)),
     "openjpeg": (".jpeg2000", (None, None, heif_enc_encode_fun, None), (None, None)),
+    "empty": (None, (None, None, None, None), (None, None)),
 }
 
 
@@ -219,6 +222,7 @@ def process_file(
     tmpdir,
     codec_choices,
     debug,
+    encoded_infile=None,
 ):
     df = None
     # 1. select a codec
@@ -244,6 +248,8 @@ def process_file(
     assert returncode == 0, f"error: {out = } {err = }"
 
     # 3. prepare the input (reference) file
+    if extension is None and encoded_infile is not None:
+        extension = os.path.splitext(encoded_infile)[-1]
     exp_path = init_fun(ref_path, tmpdir, debug) if init_fun is not None else ref_path
     exp_basename = os.path.basename(exp_path)
     for quality in quality_list:
@@ -252,7 +258,13 @@ def process_file(
             tmpdir,
             f"{exp_basename}.quality_{escape_float(quality)}{extension}",
         )
-        encode_fun(exp_path, width, height, codec, quality, enc_path, debug)
+        if codec == "empty":
+            # copy the encoded file to the encoded path
+            if debug > 0:
+                print(f"running $ cp {encoded_infile} {enc_path}")
+            shutil.copyfile(encoded_infile, enc_path)
+        else:
+            encode_fun(exp_path, width, height, codec, quality, enc_path, debug)
         # 5. calculate the encoded size
         encoded_size = os.path.getsize(enc_path)
         encoded_bpp = (8 * encoded_size) / (width * height)
@@ -277,6 +289,11 @@ def process_file(
             # command = f"{itools_common.FFMPEG_SILENT} -i {enc_path} -pix_fmt yuv420p -vf scale=out_range=full {distorted_path}"
             returncode, out, err = itools_common.run(command, debug=debug)
             assert returncode == 0, f"error: {out = } {err = }"
+        elif enc_extension in (".y4m",):
+            # copy the encoded file to the distorted path
+            if debug > 0:
+                print(f"running $ cp {encoded_infile} {distorted_path}")
+            shutil.copyfile(encoded_infile, distorted_path)
         # 7. analyze encoded file
         vmaf_def = vmaf_get(distorted_path, ref_path, debug, VMAF_DEF_MODEL)
         vmaf_neg = vmaf_get(distorted_path, ref_path, debug, VMAF_NEG_MODEL)
@@ -371,6 +388,7 @@ def process_data(
     codec_choices,
     outfile_csv,
     debug,
+    encoded_infile=None,
 ):
     df = None
     # 1. get a codec list (if present)
@@ -396,6 +414,7 @@ def process_data(
             tmpdir,
             codec_choices,
             debug,
+            encoded_infile=encoded_infile,
         )
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
     # 3. reindex per-file dataframe
@@ -548,6 +567,14 @@ def get_options(argv, codec_choices):
         help="input file list",
     )
     parser.add_argument(
+        "--encoded-infile",
+        action="store",
+        dest="encoded_infile",
+        default=default_values["encoded_infile"],
+        metavar="ENCODED-INFILE",
+        help="use encoded filename (for empty codec)",
+    )
+    parser.add_argument(
         "-o",
         "--output",
         action="store",
@@ -583,6 +610,7 @@ def main(argv):
         CODEC_CHOICES,
         options.outfile,
         options.debug,
+        encoded_infile=options.encoded_infile,
     )
 
 
