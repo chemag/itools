@@ -157,7 +157,7 @@ def vmaf_get(distorted, reference, debug, vmaf_model=None):
 
 
 def psnr_get(distorted, reference, debug):
-    psnr_file = "/tmp/psnr.txt"
+    psnr_file = tempfile.NamedTemporaryFile(prefix="itools.", suffix=".psnr.txt").name
     # 1. calculate the score
     command = (
         f"{itools_common.FFMPEG_SILENT} -i {distorted} -i {reference} "
@@ -172,7 +172,7 @@ def psnr_get(distorted, reference, debug):
 
 
 def ssim_get(distorted, reference, debug):
-    ssim_file = "/tmp/ssim.txt"
+    ssim_file = tempfile.NamedTemporaryFile(prefix="itools.", suffix=".ssim.txt").name
     # 1. calculate the score
     command = (
         f"{itools_common.FFMPEG_SILENT} -i {distorted} -i {reference} "
@@ -257,7 +257,7 @@ def process_file(
         # 6. decode encoded file
         distorted_path = f"{enc_path}.y4m"
         if codec in ("heic", "x265", "kvazaar", "aom", "svt", "openjpeg"):
-            tmpy4m = tempfile.NamedTemporaryFile(prefix="xnova.", suffix=".y4m").name
+            tmpy4m = tempfile.NamedTemporaryFile(prefix="itools.", suffix=".y4m").name
             # decode the heic file
             command = f"heif-convert {enc_path} {tmpy4m}"
             returncode, out, err = itools_common.run(command, debug=debug)
