@@ -38,7 +38,7 @@ def read_image_file(
         if status is not None and status.get("broken", False):
             print(f"error: file {infile} is broken")
 
-    elif os.path.splitext(infile)[1] == ".yuv":
+    elif os.path.splitext(infile)[1] in (".yuv", ".YUV420NV12"):
         outyvu = itools_yuv.read_yuv(infile, iinfo)
 
     elif os.path.splitext(infile)[1] == ".rgba":
