@@ -47,7 +47,7 @@ def run(command, **kwargs):
     universal_newlines = kwargs.get("universal_newlines", False)
     default_close_fds = True if sys.platform == "linux2" else False
     close_fds = kwargs.get("close_fds", default_close_fds)
-    shell = type(command) in (type(""), type(""))
+    shell = kwargs.get("shell", type(command) in (type(""), type("")))
     if debug > 0:
         print(f"running $ {command}")
     if dry_run:
