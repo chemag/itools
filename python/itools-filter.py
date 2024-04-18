@@ -32,6 +32,7 @@ ROTATE_ANGLE_LIST = {
     180: 2,
     270: -1,
     -90: -1,
+    360: 4,
 }
 DIFF_COMPONENT_LIST = ("y", "u", "v")
 HIST_COMPONENT_LIST = ("y", "u", "v", "r", "g", "b")
@@ -338,17 +339,14 @@ def get_histogram(infile, outfile, iinfo, hist_component, debug):
 
 # rotates infile
 def rotate_image(infile, rotate_angle, outfile, iinfo, proc_color, debug):
-    assert (
-        proc_color == itools_common.ProcColor.bgr
-    ), f"error: rotate_image unsupported in {proc_color}"
     # load the input image
-    inbgr, _ = itools_io.read_image_file(infile, iinfo=iinfo)
-    assert inbgr is not None, f"error: cannot read {infile}"
+    inabc, _ = itools_io.read_image_file(infile, iinfo=iinfo, return_type=proc_color)
+    assert inabc is not None, f"error: cannot read {infile}"
     # rotate it
     num_rotations = ROTATE_ANGLE_LIST[rotate_angle]
-    outbgr = np.rot90(inbgr, k=num_rotations, axes=(0, 1))
+    outabc = np.rot90(inabc, k=num_rotations, axes=(0, 1))
     # write the output image
-    itools_io.write_image_file(outfile, outbgr)
+    itools_io.write_image_file(outfile, outabc, return_type=proc_color)
 
 
 # composes infile2 on top of infile1, at (xloc, yloc)
