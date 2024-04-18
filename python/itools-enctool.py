@@ -200,8 +200,9 @@ def heif_enc_encode_fun(
     assert returncode == 0, f"error: {out = } {err = }"
 
 
-# TODO(chema): better value here
-# codec: (extension, configure, init, main_fun, fini)  # (alignment, decoder)
+# TODO(chema): use better mechanism here
+# codec: (extension, (config_fun, init_fun, encode_fun, fini_fun))
+# TODO(chema): add (alignment, decoder)
 CODEC_CHOICES = {
     "x265": ("heic", (None, None, heif_enc_encode_fun, None)),
     "kvazaar": ("heic", (None, None, heif_enc_encode_fun, None)),
