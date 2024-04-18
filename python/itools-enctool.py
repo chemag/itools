@@ -257,7 +257,8 @@ def process_file(
         encoded_bpp = (8 * encoded_size) / (width * height)
         # 6. decode encoded file
         distorted_path = f"{enc_path}.y4m"
-        if codec in ("heic", "x265", "kvazaar", "aom", "svt", "openjpeg"):
+        enc_extension = os.path.splitext(enc_path)[-1]
+        if enc_extension in (".heic", ".avif", ".jp2", ".j2k"):
             tmpy4m = tempfile.NamedTemporaryFile(
                 prefix="itools.raw.", suffix=".y4m"
             ).name
@@ -269,7 +270,7 @@ def process_file(
             command = f"{itools_common.FFMPEG_SILENT} -i {tmpy4m} -color_range full {distorted_path}"
             returncode, out, err = itools_common.run(command, debug=debug)
             assert returncode == 0, f"error: {out = } {err = }"
-        elif codec == "jpeg":
+        elif enc_extension in (".jpg", ".jpeg"):
             command = f"{itools_common.FFMPEG_SILENT} -i {enc_path} {distorted_path}"
             # command = f"{itools_common.FFMPEG_SILENT} -i {enc_path} -pix_fmt yuv420p {distorted_path}"
             # command = f"{itools_common.FFMPEG_SILENT} -i {enc_path} -pix_fmt yuv420p -vf scale=out_range=full {distorted_path}"
