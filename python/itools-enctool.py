@@ -229,8 +229,12 @@ def process_file(
 ):
     df = None
     # 1. select a codec
-    extension, (config_fun, init_fun, encode_fun, fini_fun), (ha, va) = codec_choices[codec]
-    horizontal_alignment = horizontal_alignment if horizontal_alignment is not None else ha
+    extension, (config_fun, init_fun, encode_fun, fini_fun), (ha, va) = codec_choices[
+        codec
+    ]
+    horizontal_alignment = (
+        horizontal_alignment if horizontal_alignment is not None else ha
+    )
     vertical_alignment = vertical_alignment if vertical_alignment is not None else va
     # 2. crop input to alignment in vertical and horizontal
     width, height = get_video_dimensions(infile, debug)
@@ -301,7 +305,9 @@ def process_file(
             # rotate the encoded output
             iinfo = None
             proc_color = itools_common.ProcColor.yvu
-            itools_filter.rotate_image(distorted_path, encoded_rotate, distorted_path, iinfo, proc_color, debug)
+            itools_filter.rotate_image(
+                distorted_path, encoded_rotate, distorted_path, iinfo, proc_color, debug
+            )
         # 7. analyze encoded file
         vmaf_def = vmaf_get(distorted_path, ref_path, debug, VMAF_DEF_MODEL)
         vmaf_neg = vmaf_get(distorted_path, ref_path, debug, VMAF_NEG_MODEL)
