@@ -13,6 +13,7 @@ import json
 import os
 import pandas as pd
 import re
+import struct
 import sys
 import tempfile
 import xml.dom.minidom
@@ -155,7 +156,156 @@ def parse_isomediafile_xml(tmpxml, read_icc_info):
     return colorimetry
 
 
-def get_heif_colorimetry(infile, read_exif_info, read_icc_info, debug):
+# parse hvcC (hevc configuration record, HEVCDecoderConfigurationRecord) box,
+# per ISO/IEC 14496-15:2022, Section 8.3.2.1.2
+def parse_hvcC_box(infile, config_dict, debug):
+    with open(infile, "rb") as fin:
+        hvcC_bin = fin.read()
+    i = 0
+    # ensure this is a valid hvcC box
+    hvcC_len = struct.unpack(">I", hvcC_bin[i : i + 4])[0]
+    i += 4
+    assert hvcC_len == len(hvcC_bin), f"error: invalid hvcC len in {infile}"
+    hvcC_header = hvcC_bin[i : i + 4]
+    i += 4
+    assert hvcC_header == b"hvcC", f"error: invalid hvcC box in {infile}"
+    # parse the hevc configuration record
+    # unsigned int(8) configurationVersion = 1;
+    configurationVersion = struct.unpack("B", hvcC_bin[i : i + 1])[0]
+    i += 1
+    assert (
+        configurationVersion == 1
+    ), f"error: invalid hvcC configurationVersion in {infile}"
+    # unsigned int(2) general_profile_space;
+    # unsigned int(1) general_tier_flag;
+    # unsigned int(5) general_profile_idc;
+    tmp_byte = struct.unpack("B", hvcC_bin[i : i + 1])[0]
+    general_profile_space = tmp_byte >> 6
+    general_tier_flag = (tmp_byte >> 5) & 0x01
+    general_profile_idc = (tmp_byte) & 0x1F
+    i += 1
+    # unsigned int(32) general_profile_compatibility_flags;
+    general_profile_compatibility_flags = struct.unpack(">I", hvcC_bin[i : i + 4])[0]
+    i += 4
+    # unsigned int(48) general_constraint_indicator_flags;
+    tmp_short = struct.unpack(">H", hvcC_bin[i : i + 2])[0]
+    i += 2
+    tmp_int = struct.unpack(">I", hvcC_bin[i : i + 4])[0]
+    i += 4
+    general_constraint_indicator_flags = (tmp_short << 32) | tmp_int
+    # unsigned int(8) general_level_idc;
+    general_level_idc = struct.unpack("B", hvcC_bin[i : i + 1])[0]
+    i += 1
+    # bit(4) reserved = `1111'b;
+    # unsigned int(12) min_spatial_segmentation_idc;
+    tmp_short = struct.unpack(">H", hvcC_bin[i : i + 2])[0]
+    i += 2
+    reserved = tmp_short >> 12
+    min_spatial_segmentation_idc = (tmp_short) & 0xFFF
+    # bit(6) reserved = `111111'b;
+    # unsigned int(2) parallelismType;
+    tmp_byte = struct.unpack(">B", hvcC_bin[i : i + 1])[0]
+    i += 1
+    reserved = tmp_byte >> 2
+    parallelismType = (tmp_byte) & 0x3
+    # bit(6) reserved = `111111'b;
+    # unsigned int(2) chromaFormat;
+    tmp_byte = struct.unpack(">B", hvcC_bin[i : i + 1])[0]
+    i += 1
+    reserved = tmp_byte >> 2
+    chromaFormat = (tmp_byte) & 0x3
+    # bit(5) reserved = `11111'b;
+    # unsigned int(3) bitDepthLumaMinus8;
+    tmp_byte = struct.unpack(">B", hvcC_bin[i : i + 1])[0]
+    i += 1
+    reserved = tmp_byte >> 3
+    bitDepthLumaMinus8 = (tmp_byte) & 0x7
+    # bit(5) reserved = `11111'b;
+    # unsigned int(3) bitDepthChromaMinus8;
+    tmp_byte = struct.unpack(">B", hvcC_bin[i : i + 1])[0]
+    i += 1
+    reserved = tmp_byte >> 3
+    bitDepthChromaMinus8 = (tmp_byte) & 0x7
+    # bit(16) avgFrameRate;
+    avgFrameRate = struct.unpack(">H", hvcC_bin[i : i + 2])[0]
+    i += 2
+    # bit(2) constantFrameRate;
+    # bit(3) numTemporalLayers;
+    # bit(1) temporalIdNested;
+    # unsigned int(2) lengthSizeMinusOne;
+    tmp_byte = struct.unpack(">B", hvcC_bin[i : i + 1])[0]
+    i += 1
+    constantFrameRate = tmp_byte >> 6
+    numTemporalLayers = (tmp_byte >> 3) & 0x3
+    temporalIdNested = (tmp_byte >> 2) & 0x1
+    lengthSizeMinusOne = (tmp_byte) & 0x3
+    # unsigned int(8) numOfArrays;
+    numOfArrays = struct.unpack(">B", hvcC_bin[i : i + 1])[0]
+    i += 1
+    nal_units = {}
+    for j in range(numOfArrays):
+        # bit(1) array_completeness;
+        # unsigned int(1) reserved = 0;
+        # unsigned int(6) NAL_unit_type;
+        tmp_byte = struct.unpack(">B", hvcC_bin[i : i + 1])[0]
+        i += 1
+        array_completeness = tmp_byte >> 7
+        reserved = (tmp_byte >> 6) & 0x1
+        NAL_unit_type = tmp_byte & 0x3F
+        nal_units[NAL_unit_type] = []
+        # unsigned int(16) numNalus;
+        numNalus = struct.unpack(">H", hvcC_bin[i : i + 2])[0]
+        i += 2
+        for k in range(numNalus):
+            # unsigned int(16) nalUnitLength;
+            nalUnitLength = struct.unpack(">H", hvcC_bin[i : i + 2])[0]
+            i += 2
+            # bit(8*nalUnitLength) nalUnit;
+            nalUnit = hvcC_bin[i : i + nalUnitLength]
+            i += nalUnitLength
+            nal_units[NAL_unit_type].append(nalUnit)
+    if 33 not in nal_units.keys():
+        # no SPS: punt here
+        return {}
+    for sps in nal_units[33]:
+        tmpsps = tempfile.NamedTemporaryFile(
+            prefix="itools.nalu.sps.", suffix=".265"
+        ).name
+        #
+        with open(tmpsps, "wb") as fout:
+            fout.write(sps)
+        sps_dict = parse_hevc_sps(tmpsps, config_dict, debug)
+    # prefix all keys
+    sps_dict = {("hvcC:" + key): value for key, value in sps_dict.items()}
+    return sps_dict
+
+
+VUI_PARAMETERS = {
+    "video_full_range_flag": "fr",
+    "colour_primaries": "cp",
+    "transfer_characteristics": "tc",
+    "matrix_coeffs": "mc",
+}
+
+
+def parse_hevc_sps(tmpsps, config_dict, debug):
+    h265nal_parser = config_dict.get("h265nal_parser", None)
+    if h265nal_parser is None:
+        return {}
+    h265nal_parser = "~/proj/h265nal/build/tools/h265nal.nalu"
+    command = f"{h265nal_parser} --no-as-one-line -i {tmpsps}"
+    returncode, out, err = itools_common.run(command, debug=debug)
+    assert returncode == 0, f"error in {command}\n{err}"
+    # look for the colorimetry
+    sps_dict = {}
+    for line in out.decode("ascii").split("\n"):
+        for vui_parameter in VUI_PARAMETERS.keys():
+            if (vui_parameter + ":") in line:
+                sps_dict[VUI_PARAMETERS[vui_parameter]] = int(line.split()[-1])
+    return sps_dict
+
+
+def get_heif_colorimetry(infile, read_exif_info, read_icc_info, config_dict, debug):
     df_item = get_item_list(infile, debug)
     file_type = df_item.type.iloc[0]
     colorimetry = {}
@@ -175,7 +325,20 @@ def get_heif_colorimetry(infile, read_exif_info, read_icc_info, debug):
         hevc_dict = parse_ffmpeg_bsf_colorimetry(err)
         hevc_dict["hevc:ntiles"] = len(df_item[df_item.type == file_type]["id"])
         colorimetry.update(hevc_dict)
-    # 2. get the Exif colorimetry
+    # 2. get the hvcC colorimetry
+    isobmff_parser = config_dict.get("isobmff_parser", None)
+    if file_type == "hvc1" and isobmff_parser is not None:
+        # get the hvcC box
+        hvcC_box = "/meta/iprp/ipco/hvcC"
+        tmphvcC = tempfile.NamedTemporaryFile(prefix="itools.hvcC.", suffix=".bin").name
+        command = f"{isobmff_parser} -i {infile} --func extract-box --path {hvcC_box} -o {tmphvcC}"
+        returncode, out, err = itools_common.run(command, debug=debug)
+        assert returncode == 0, f"error in {command}\n{err}"
+        # parse the hvcC box
+        hvcC_dict = parse_hvcC_box(tmphvcC, config_dict, debug)
+        colorimetry.update(hvcC_dict)
+
+    # 3. get the Exif colorimetry
     if read_exif_info and len(df_item[df_item.type == "Exif"]["id"]) > 0:
         exif_id = df_item[df_item.type == "Exif"]["id"].iloc[0]
         # extract the exif file of the first tile
@@ -188,7 +351,7 @@ def get_heif_colorimetry(infile, read_exif_info, read_icc_info, debug):
             tmpexif, read_exif_info, read_icc_info, short=True, debug=debug
         )
         colorimetry.update(exiftool_dict)
-    # 3. get the `colr` colorimetry
+    # 4. get the `colr` colorimetry
     tmpxml = tempfile.NamedTemporaryFile(prefix="itools.xml.", suffix=".xml").name
     command = f"MP4Box -std -dxml {infile} > {tmpxml}"
     returncode, out, err = itools_common.run(command, debug=debug)
@@ -235,7 +398,7 @@ def parse_qpextract_bin_output(output, mode):
 
 
 def get_h265_values(infile, config_dict, debug):
-    qpextract_bin.get("qpextract_bin", None)
+    qpextract_bin = config_dict.get("qpextract_bin", None)
     if qpextract_bin is None:
         return {}
     qp_dict = {}
@@ -290,7 +453,7 @@ def read_heif(infile, read_exif_info, read_icc_info, config_dict, debug=0):
     outyvu, _, _, status = itools_y4m.read_y4m(tmpy4m, colorrange=None, debug=debug)
     # get the heif colorimetry
     colorimetry = get_heif_colorimetry(
-        infile, read_exif_info, read_icc_info, debug=debug
+        infile, read_exif_info, read_icc_info, config_dict, debug=debug
     )
     status.update(colorimetry)
     # get the heif QP distribution

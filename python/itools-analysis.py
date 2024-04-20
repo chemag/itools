@@ -39,7 +39,9 @@ default_values = {
     "roi_dump": None,
     "read_exif_info": True,
     "read_icc_info": True,
-    "qpextract_bin": None,
+    "qpextract_bin": {},
+    "isobmff_parser": {},
+    "h265nal_parser": {},
     "filter": "components",
     "infile_list": [],
     "outfile": None,
@@ -271,6 +273,22 @@ def get_options(argv):
         dest="qpextract_bin",
         default=default_values["qpextract_bin"],
         help="Path to the qpextract bin",
+    )
+    parser.add_argument(
+        "--isobmff-parser",
+        action="store",
+        type=str,
+        dest="isobmff_parser",
+        default=default_values["isobmff_parser"],
+        help="Path to the isobmff-parser bin",
+    )
+    parser.add_argument(
+        "--h265nal-parser",
+        action="store",
+        type=str,
+        dest="h265nal_parser",
+        default=default_values["h265nal_parser"],
+        help="Path to the h265nal NALU parser bin",
     )
     parser.add_argument(
         "--filter",
