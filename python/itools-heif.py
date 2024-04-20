@@ -173,6 +173,7 @@ def get_heif_colorimetry(infile, read_exif_info, read_icc_info, debug):
         returncode, out, err = itools_common.run(command, debug=debug)
         assert returncode == 0, f"error in {command}\n{err}"
         hevc_dict = parse_ffmpeg_bsf_colorimetry(err)
+        hevc_dict["hevc:ntiles"] = len(df_item[df_item.type == file_type]["id"])
         colorimetry.update(hevc_dict)
     # 2. get the Exif colorimetry
     if read_exif_info and len(df_item[df_item.type == "Exif"]["id"]) > 0:
