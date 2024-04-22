@@ -54,7 +54,7 @@ SUMMARY_FIELDS_AVERAGE = ("delta_timestamp_ms",)
 
 # calculate average/stddev of all components
 def get_components(
-    infile, read_exif_info, read_icc_info, roi, roi_dump, qpextract_bin, debug
+    infile, read_exif_info, read_icc_info, roi, roi_dump, config_dict, debug
 ):
     if debug > 0:
         print(f"analyzing {infile}")
@@ -64,7 +64,7 @@ def get_components(
         return_type=itools_common.ProcColor.both,
         read_exif_info=read_exif_info,
         read_icc_info=read_icc_info,
-        qpextract_bin=qpextract_bin,
+        config_dict=config_dict,
         debug=debug,
     )
     # calculate the coordinates
@@ -315,6 +315,9 @@ def main(argv):
     if options.debug > 0:
         print(options)
 
+    config_dict = {
+        k: v for (k, v) in vars(options).items() if k in itools_common.CONFIG_KEY_LIST
+    }
     if options.filter == "components":
         # process input files
         df = None
@@ -326,7 +329,7 @@ def main(argv):
                 options.read_icc_info,
                 roi,
                 options.roi_dump,
-                options.qpextract_bin,
+                config_dict,
                 options.debug,
             )
             df = dftmp if df is None else pd.concat([df, dftmp])

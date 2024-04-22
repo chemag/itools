@@ -398,7 +398,7 @@ def process_data(
     vertical_alignment,
     tmpdir,
     analysis,
-    qpextract_bin,
+    config_dict,
     codec_choices,
     outfile_csv,
     debug,
@@ -445,7 +445,7 @@ def process_data(
                 read_icc_info=True,
                 roi=((None, None), (None, None)),
                 roi_dump=None,
-                qpextract_bin=qpextract_bin,
+                config_dict=config_dict,
                 debug=debug,
             )
             df_analysis = (
@@ -624,6 +624,9 @@ def main(argv):
     if options.debug > 0:
         print(options)
     # process infile
+    config_dict = {
+        k: v for (k, v) in vars(options).items() if k in itools_common.CONFIG_KEY_LIST
+    }
     process_data(
         options.infile_list,
         options.codec,
@@ -632,7 +635,7 @@ def main(argv):
         options.vertical_alignment,
         options.tmpdir,
         options.analysis,
-        options.qpextract_bin,
+        config_dict,
         CODEC_CHOICES,
         options.outfile,
         options.debug,

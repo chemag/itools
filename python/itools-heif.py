@@ -234,7 +234,8 @@ def parse_qpextract_bin_output(output, mode):
         return ctu_dict
 
 
-def get_h265_values(infile, qpextract_bin, debug):
+def get_h265_values(infile, config_dict, debug):
+    qpextract_bin.get("qpextract_bin", None)
     if qpextract_bin is None:
         return {}
     qp_dict = {}
@@ -276,7 +277,7 @@ def get_h265_values(infile, qpextract_bin, debug):
     return qp_dict
 
 
-def read_heif(infile, read_exif_info, read_icc_info, qpextract_bin, debug=0):
+def read_heif(infile, read_exif_info, read_icc_info, config_dict, debug=0):
     tmpy4m = tempfile.NamedTemporaryFile(prefix="itools.raw.", suffix=".y4m").name
     if debug > 0:
         print(f"using {tmpy4m}")
@@ -293,6 +294,6 @@ def read_heif(infile, read_exif_info, read_icc_info, qpextract_bin, debug=0):
     )
     status.update(colorimetry)
     # get the heif QP distribution
-    qp_dict = get_h265_values(infile, qpextract_bin, debug=debug)
+    qp_dict = get_h265_values(infile, config_dict, debug=debug)
     status.update(qp_dict)
     return outyvu, status

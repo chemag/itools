@@ -15,6 +15,8 @@ import sys
 
 FFMPEG_SILENT = "ffmpeg -hide_banner -y"
 
+CONFIG_KEY_LIST = ("qpextract_bin",)
+
 
 class ProcColor(enum.Enum):
     bgr = 0
