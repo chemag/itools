@@ -55,7 +55,9 @@ default_values = {
     "codec": "heic",
     "tmpdir": tempfile.gettempdir(),
     "analysis": False,
-    "qpextract_bin": None,
+    "qpextract_bin": {},
+    "isobmff_parser": {},
+    "h265nal_parser": {},
     "encoded_infile": None,
     "encoded_rotate": 0,
     "infile_list": None,
@@ -576,11 +578,20 @@ def get_options(argv, codec_choices):
         help="Path to the qpextract bin",
     )
     parser.add_argument(
-        "infile_list",
-        nargs="+",
-        default=default_values["infile_list"],
-        metavar="input-file-list",
-        help="input file list",
+        "--isobmff-parser",
+        action="store",
+        type=str,
+        dest="isobmff_parser",
+        default=default_values["isobmff_parser"],
+        help="Path to the isobmff-parser bin",
+    )
+    parser.add_argument(
+        "--h265nal-parser",
+        action="store",
+        type=str,
+        dest="h265nal_parser",
+        default=default_values["h265nal_parser"],
+        help="Path to the h265nal NALU parser bin",
     )
     parser.add_argument(
         "--encoded-infile",
@@ -601,13 +612,22 @@ def get_options(argv, codec_choices):
         help="use encoded rotation (for empty codec)",
     )
     parser.add_argument(
+        dest="infile_list",
+        type=str,
+        nargs="+",
+        default=default_values["infile_list"],
+        metavar="input-file-list",
+        help="input file list",
+    )
+    parser.add_argument(
         "-o",
-        "--output",
+        "--outfile",
         action="store",
         dest="outfile",
+        type=str,
         default=default_values["outfile"],
-        metavar="OUTPUT",
-        help="use OUTPUT filename",
+        metavar="output-file",
+        help="output file",
     )
     # do the parsing
     options = parser.parse_args(argv[1:])

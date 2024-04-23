@@ -306,12 +306,13 @@ def get_options(argv):
         type=str,
         nargs="+",
         default=default_values["infile_list"],
-        metavar="input-file",
-        help="input file",
+        metavar="input-file-list",
+        help="input file list",
     )
     parser.add_argument(
         "-o",
         "--outfile",
+        action="store",
         dest="outfile",
         type=str,
         default=default_values["outfile"],
@@ -327,12 +328,12 @@ def main(argv):
     # parse options
     options = get_options(argv)
     # get outfile
-    if options.outfile == "-" or options.outfile is None:
+    if options.outfile is None or options.outfile == "-":
         options.outfile = "/dev/fd/1"
     # print results
     if options.debug > 0:
         print(options)
-
+    # process infile
     config_dict = {
         k: v for (k, v) in vars(options).items() if k in itools_common.CONFIG_KEY_LIST
     }
