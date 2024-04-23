@@ -280,7 +280,9 @@ def parse_hvcC_box(infile, config_dict, debug):
     return sps_dict
 
 
-VUI_PARAMETERS = {
+SPS_PARAMETERS = {
+    "profile_idc": "profile",
+    "general_level_idc": "level",
     "video_full_range_flag": "fr",
     "colour_primaries": "cp",
     "transfer_characteristics": "tc",
@@ -299,9 +301,9 @@ def parse_hevc_sps(tmpsps, config_dict, debug):
     # look for the colorimetry
     sps_dict = {}
     for line in out.decode("ascii").split("\n"):
-        for vui_parameter in VUI_PARAMETERS.keys():
+        for vui_parameter in SPS_PARAMETERS.keys():
             if (vui_parameter + ":") in line:
-                sps_dict[VUI_PARAMETERS[vui_parameter]] = int(line.split()[-1])
+                sps_dict[SPS_PARAMETERS[vui_parameter]] = int(line.split()[-1])
     return sps_dict
 
 
