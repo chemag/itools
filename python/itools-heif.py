@@ -307,11 +307,12 @@ def parse_hevc_sps(tmpsps, config_dict, debug):
 
 def get_heif_colorimetry(infile, read_exif_info, read_icc_info, config_dict, debug):
     df_item = get_item_list(infile, debug)
-    file_type = df_item.type.iloc[0]
+    file_type_list = df_item.type.unique()
     colorimetry = {}
     # 1. get the HEVC (h265) SPS colorimetry
-    if file_type == "hvc1":
+    if "hvc1" in file_type_list:
         # select the first hvc1 type
+        file_type = "hvc1"
         hvc1_id = df_item[df_item.type == file_type]["id"].iloc[0]
         # extract the 265 file of the first tile
         tmp265 = tempfile.NamedTemporaryFile(prefix="itools.tile.", suffix=".265").name
@@ -403,10 +404,11 @@ def get_h265_values(infile, config_dict, debug):
         return {}
     qp_dict = {}
     df_item = get_item_list(infile, debug)
-    file_type = df_item.type.iloc[0]
+    file_type_list = df_item.type.unique()
     # 1. get the HEVC (h265) weighted QP distribution
-    if file_type == "hvc1":
+    if "hvc1" in file_type_list:
         # select the first hvc1 type
+        file_type = "hvc1"
         hvc1_id = df_item[df_item.type == file_type]["id"].iloc[0]
         # extract the 265 file of the first tile
         tmp265 = tempfile.NamedTemporaryFile(prefix="itools.hvc1.", suffix=".265").name
