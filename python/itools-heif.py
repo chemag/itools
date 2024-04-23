@@ -441,16 +441,21 @@ def get_h265_values(infile, config_dict, debug):
 
 
 def read_heif(infile, read_exif_info, read_icc_info, config_dict, debug=0):
-    tmpy4m = tempfile.NamedTemporaryFile(prefix="itools.raw.", suffix=".y4m").name
-    if debug > 0:
-        print(f"using {tmpy4m}")
-    # decode the file using libheif
-    command = f"heif-convert {infile} {tmpy4m}"
-    returncode, out, err = itools_common.run(command, debug=debug)
-    assert returncode == 0, f"error in {command}\n{err}"
-    tmpy4m = parse_heif_convert_output(tmpy4m, out, debug)
-    # read the y4m frame ignoring the color range
-    outyvu, _, _, status = itools_y4m.read_y4m(tmpy4m, colorrange=None, debug=debug)
+    read_image_components = config_dict.get("read_image_components", None)
+    if read_image_components:
+        tmpy4m = tempfile.NamedTemporaryFile(prefix="itools.raw.", suffix=".y4m").name
+        if debug > 0:
+            print(f"using {tmpy4m}")
+        # decode the file using libheif
+        command = f"heif-convert {infile} {tmpy4m}"
+        returncode, out, err = itools_common.run(command, debug=debug)
+        assert returncode == 0, f"error in {command}\n{err}"
+        tmpy4m = parse_heif_convert_output(tmpy4m, out, debug)
+        # read the y4m frame ignoring the color range
+        outyvu, _, _, status = itools_y4m.read_y4m(tmpy4m, colorrange=None, debug=debug)
+    else:
+        outyvu = None
+        status = {}
     # get the heif colorimetry
     colorimetry = get_heif_colorimetry(
         infile, read_exif_info, read_icc_info, config_dict, debug=debug

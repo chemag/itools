@@ -56,27 +56,27 @@ def read_image_file(
             infile, read_exif_info=True, read_icc_info=True, short=True, debug=debug
         )
 
+    read_image_components = config_dict.get("read_image_components")
     if return_type == itools_common.ProcColor.yvu:
-        if outyvu is None:
+        if outyvu is None and read_image_components:
             outyvu = cv2.cvtColor(outbgr, cv2.COLOR_BGR2YCrCb)
             return outyvu, status
         else:
             return outyvu, status
 
     elif return_type == itools_common.ProcColor.bgr:
-        if outbgr is None:
+        if outbgr is None and read_image_components:
             outbgr = cv2.cvtColor(outyvu, cv2.COLOR_YCrCb2BGR)
             return outbgr, status
         else:
             return outbgr, status
 
     else:  # if return_type == itools_common.ProcColor.both:
-        if outyvu is None:
+        if outyvu is None and read_image_components:
             outyvu = cv2.cvtColor(outbgr, cv2.COLOR_BGR2YCrCb)
-            return outbgr, outyvu, status
-        else:  # outbgr is None:
+        elif outbgr is None and read_image_components:
             outbgr = cv2.cvtColor(outyvu, cv2.COLOR_YCrCb2BGR)
-            return outbgr, outyvu, status
+        return outbgr, outyvu, status
 
 
 def write_image_file(outfile, outimg, return_type=itools_common.ProcColor.bgr):

@@ -39,6 +39,7 @@ default_values = {
     "roi_dump": None,
     "read_exif_info": True,
     "read_icc_info": True,
+    "read_image_components": True,
     "qpextract_bin": {},
     "isobmff_parser": {},
     "h265nal_parser": {},
@@ -69,33 +70,37 @@ def get_components(
         config_dict=config_dict,
         debug=debug,
     )
-    # calculate the coordinates
-    (roi_x0, roi_y0), (roi_x1, roi_y1) = roi
-    roi_x0 = 0 if roi_x0 is None else roi_x0
-    roi_y0 = 0 if roi_y0 is None else roi_y0
-    roi_x1 = inbgr.shape[1] if roi_x1 is None else roi_x1
-    roi_y1 = inbgr.shape[0] if roi_y1 is None else roi_y1
-    # get the requested component: note that options are YVU or BGR
-    yd, vd, ud = (
-        inyvu[roi_y0:roi_y1, roi_x0:roi_x1, 0],
-        inyvu[roi_y0:roi_y1, roi_x0:roi_x1, 1],
-        inyvu[roi_y0:roi_y1, roi_x0:roi_x1, 2],
-    )
-    ymean, ystddev = yd.mean(), yd.std()
-    umean, ustddev = ud.mean(), ud.std()
-    vmean, vstddev = vd.mean(), vd.std()
-    bd, gd, rd = (
-        inbgr[roi_y0:roi_y1, roi_x0:roi_x1, 0],
-        inbgr[roi_y0:roi_y1, roi_x0:roi_x1, 1],
-        inbgr[roi_y0:roi_y1, roi_x0:roi_x1, 2],
-    )
-    bmean, bstddev = bd.mean(), bd.std()
-    gmean, gstddev = gd.mean(), gd.std()
-    rmean, rstddev = rd.mean(), rd.std()
+    read_image_components = config_dict.get("read_image_components")
+    if read_image_components:
+        # calculate the coordinates
+        (roi_x0, roi_y0), (roi_x1, roi_y1) = roi
+        roi_x0 = 0 if roi_x0 is None else roi_x0
+        roi_y0 = 0 if roi_y0 is None else roi_y0
+        roi_x1 = inbgr.shape[1] if roi_x1 is None else roi_x1
+        roi_y1 = inbgr.shape[0] if roi_y1 is None else roi_y1
+        # get the requested component: note that options are YVU or BGR
+        yd, vd, ud = (
+            inyvu[roi_y0:roi_y1, roi_x0:roi_x1, 0],
+            inyvu[roi_y0:roi_y1, roi_x0:roi_x1, 1],
+            inyvu[roi_y0:roi_y1, roi_x0:roi_x1, 2],
+        )
+        ymean, ystddev = yd.mean(), yd.std()
+        umean, ustddev = ud.mean(), ud.std()
+        vmean, vstddev = vd.mean(), vd.std()
+        bd, gd, rd = (
+            inbgr[roi_y0:roi_y1, roi_x0:roi_x1, 0],
+            inbgr[roi_y0:roi_y1, roi_x0:roi_x1, 1],
+            inbgr[roi_y0:roi_y1, roi_x0:roi_x1, 2],
+        )
+        bmean, bstddev = bd.mean(), bd.std()
+        gmean, gstddev = gd.mean(), gd.std()
+        rmean, rstddev = rd.mean(), rd.std()
     # store results
     columns = [
         "filename",
         "size",
+    ]
+    columns_image = [
         "roi",
         "ymean",
         "ystddev",
@@ -110,27 +115,33 @@ def get_components(
         "bmean",
         "bstddev",
     ]
+    if read_image_components:
+        columns += columns_image
     columns += list(status.keys())
     df = pd.DataFrame(columns=columns)
     size = os.path.getsize(infile)
-    df.loc[df.size] = [
+    row = [
         infile,
         size,
-        f"({roi_x0} {roi_y0}) ({roi_x1} {roi_y1})",
-        ymean,
-        ystddev,
-        umean,
-        ustddev,
-        vmean,
-        vstddev,
-        rmean,
-        rstddev,
-        gmean,
-        gstddev,
-        bmean,
-        bstddev,
-        *status.values(),
     ]
+    if read_image_components:
+        row += [
+            f"({roi_x0} {roi_y0}) ({roi_x1} {roi_y1})",
+            ymean,
+            ystddev,
+            umean,
+            ustddev,
+            vmean,
+            vstddev,
+            rmean,
+            rstddev,
+            gmean,
+            gstddev,
+            bmean,
+            bstddev,
+        ]
+    row += status.values()
+    df.loc[df.size] = row
     if roi_dump is not None:
         outyvu = np.stack((yd, vd, ud), axis=2)
         itools_y4m.write_y4m(roi_dump, outyvu, colorspace="444")
@@ -265,6 +276,21 @@ def get_options(argv):
         action="store_false",
         help="Do not parse ICC Info%s"
         % (" [default]" if not default_values["read_icc_info"] else ""),
+    )
+    parser.add_argument(
+        "--read-image-components",
+        dest="read_image_components",
+        action="store_true",
+        default=default_values["read_image_components"],
+        help="Read image components%s"
+        % (" [default]" if default_values["read_image_components"] else ""),
+    )
+    parser.add_argument(
+        "--no-read-image-components",
+        dest="read_image_components",
+        action="store_false",
+        help="Do not read image components%s"
+        % (" [default]" if not default_values["read_image_components"] else ""),
     )
     parser.add_argument(
         "--qpextract-bin",

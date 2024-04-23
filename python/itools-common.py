@@ -15,7 +15,12 @@ import sys
 
 FFMPEG_SILENT = "ffmpeg -hide_banner -y"
 
-CONFIG_KEY_LIST = ("qpextract_bin", "isobmff_parser", "h265nal_parser")
+CONFIG_KEY_LIST = (
+    "qpextract_bin",
+    "isobmff_parser",
+    "h265nal_parser",
+    "read_image_components",
+)
 
 
 class ProcColor(enum.Enum):
