@@ -33,6 +33,8 @@ import tempfile
 itools_analysis = importlib.import_module("itools-analysis")
 itools_common = importlib.import_module("itools-common")
 itools_filter = importlib.import_module("itools-filter")
+itools_heif = importlib.import_module("itools-heif")
+itools_io = importlib.import_module("itools-io")
 itools_version = importlib.import_module("itools-version")
 
 
@@ -225,6 +227,7 @@ def process_file(
     vertical_alignment,
     tmpdir,
     codec_choices,
+    config_dict,
     debug,
     encoded_infile=None,
     encoded_rotate=None,
@@ -281,17 +284,14 @@ def process_file(
         distorted_path = f"{enc_path}.y4m"
         enc_extension = os.path.splitext(enc_path)[-1]
         if enc_extension in (".heic", ".avif", ".jp2", ".j2k"):
-            tmpy4m = tempfile.NamedTemporaryFile(
-                prefix="itools.raw.", suffix=".y4m"
-            ).name
-            # decode the heic file
-            command = f"heif-convert {enc_path} {tmpy4m}"
-            returncode, out, err = itools_common.run(command, debug=debug)
-            assert returncode == 0, f"error: {out = } {err = }"
-            # fix the color range
-            command = f"{itools_common.FFMPEG_SILENT} -i {tmpy4m} -color_range full {distorted_path}"
-            returncode, out, err = itools_common.run(command, debug=debug)
-            assert returncode == 0, f"error: {out = } {err = }"
+            output_colorrange = itools_io.read_colorrange(ref_path, debug)
+            itools_heif.decode_heif(
+                enc_path,
+                distorted_path,
+                config_dict,
+                output_colorrange=output_colorrange,
+                debug=debug,
+            )
         elif enc_extension in (".jpg", ".jpeg"):
             command = f"{itools_common.FFMPEG_SILENT} -i {enc_path} {distorted_path}"
             # command = f"{itools_common.FFMPEG_SILENT} -i {enc_path} -pix_fmt yuv420p {distorted_path}"
@@ -430,6 +430,7 @@ def process_data(
             vertical_alignment,
             tmpdir,
             codec_choices,
+            config_dict,
             debug,
             encoded_infile=encoded_infile,
             encoded_rotate=encoded_rotate,

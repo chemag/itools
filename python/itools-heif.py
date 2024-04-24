@@ -470,3 +470,25 @@ def read_heif(infile, config_dict, debug=0):
     qp_dict = get_h265_values(infile, config_dict, debug=debug)
     status.update(qp_dict)
     return outyvu, status
+
+
+def decode_heif(infile, outfile_y4m, config_dict, output_colorrange=None, debug=0):
+    # load the input (heic) image
+    read_exif_info = False
+    read_icc_info = False
+    inyvu, status = read_heif(infile, config_dict, debug)
+    assert inyvu is not None, f"error: cannot read {infile}"
+    # decide whether to change the color range
+    input_colorrange_id = status.get("hevc:fr", 1)
+    input_colorrange = "FULL" if input_colorrange_id == 1 else "LIMITED"
+    if output_colorrange is not None and output_colorrange != input_colorrange:
+        # fix the color range
+        outyvu = itools_y4m.color_range_conversion(
+            inyvu, input_colorrange, output_colorrange
+        )
+    else:
+        outyvu = inyvu
+
+    # write the output image
+    colorspace = "420"
+    itools_y4m.write_y4m(outfile_y4m, outyvu, colorspace, input_colorrange)

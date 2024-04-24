@@ -75,6 +75,23 @@ def read_image_file(
         return outbgr, outyvu, status
 
 
+def read_metadata(infile, debug):
+    config_dict = {
+        "read_image_components": True,
+        "qpextract_bin": False,
+        "h265nal_parser": True,
+        "isobmff_parser": True,
+    }
+    _, status = read_image_file(infile, config_dict=config_dict, debug=debug)
+    return status
+
+
+def read_colorrange(infile, debug):
+    status = read_metadata(infile, debug)
+    if os.path.splitext(infile)[1] == ".y4m":
+        return status["y4m:colorrange"].upper()
+
+
 def write_image_file(
     outfile, outimg, return_type=itools_common.ProcColor.bgr, **kwargs
 ):

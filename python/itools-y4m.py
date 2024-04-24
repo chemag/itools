@@ -14,7 +14,43 @@ import os.path
 itools_common = importlib.import_module("itools-common")
 
 
-def range_conversion(inarr, srcmin, srcmax, dstmin, dstmax):
+def color_range_conversion(inyvu, input_colorrange, output_colorrange):
+    # get components
+    ya = inyvu[:, :, 0]
+    va = inyvu[:, :, 1]
+    ua = inyvu[:, :, 2]
+    ya, ua, va, status = color_range_conversion_components(
+        ya, ua, va, input_colorrange, output_colorrange
+    )
+    outyvu = np.stack((ya, va, ua), axis=2)
+    return outyvu
+
+
+def color_range_conversion_components(ya, ua, va, input_colorrange, output_colorrange):
+    ya, ya_broken = luma_range_conversion(
+        ya,
+        src=input_colorrange,
+        dst=output_colorrange,
+    )
+    ua, ua_broken = chroma_range_conversion(
+        ua,
+        src=input_colorrange,
+        dst=output_colorrange,
+    )
+    va, va_broken = chroma_range_conversion(
+        va,
+        src=input_colorrange,
+        dst=output_colorrange,
+    )
+    status = {}
+    status["y4m:ybroken"] = int(ya_broken)
+    status["y4m:ubroken"] = int(ua_broken)
+    status["y4m:vbroken"] = int(va_broken)
+    status["y4m:broken"] = int(ya_broken or ua_broken or va_broken)
+    return ya, ua, va, status
+
+
+def do_range_conversion(inarr, srcmin, srcmax, dstmin, dstmax):
     # conversion function is $yout = a * yin + b$
     # Conversion requirements:
     # * (1) dstmin = a * srcmin + b
@@ -43,7 +79,7 @@ def luma_range_conversion(ya, src, dst):
     dstmin = 0 if dst == "FULL" else 16
     srcmax = 255 if src == "FULL" else 235
     dstmax = 255 if dst == "FULL" else 235
-    return range_conversion(ya, srcmin, srcmax, dstmin, dstmax)
+    return do_range_conversion(ya, srcmin, srcmax, dstmin, dstmax)
 
 
 def chroma_range_conversion(va, src, dst):
@@ -51,7 +87,7 @@ def chroma_range_conversion(va, src, dst):
     dstmin = 0 if dst == "FULL" else 16
     srcmax = 255 if src == "FULL" else 240
     dstmax = 255 if dst == "FULL" else 240
-    return range_conversion(va, srcmin, srcmax, dstmin, dstmax)
+    return do_range_conversion(va, srcmin, srcmax, dstmin, dstmax)
 
 
 class Y4MHeader:
@@ -142,7 +178,7 @@ class Y4MHeader:
             return self.width * self.height * 3
         raise f"only support 420, 422, 444 colorspaces (not {self.colorspace})"
 
-    def read_frame(self, data, colorrange, debug):
+    def read_frame(self, data, output_colorrange, debug):
         # read "FRAME\n" tidbit
         assert data[:6] == b"FRAME\n", f"error: invalid FRAME: starts with {data[:6]}"
         offset = 6
@@ -182,28 +218,16 @@ class Y4MHeader:
             "y4m:colorrange": self.comment.get("COLORRANGE", "default").lower(),
             "y4m:broken": 0,
         }
-        if colorrange is not None and colorrange.upper() != self.comment.get(
-            "COLORRANGE", None
+        input_colorrange = self.comment.get("COLORRANGE", None)
+        if (
+            output_colorrange is not None
+            and output_colorrange.upper() != input_colorrange
         ):
-            ya, ya_broken = luma_range_conversion(
-                ya,
-                src=self.comment.get("COLORRANGE", None),
-                dst=colorrange.upper(),
+            output_colorrange = output_colorrange.upper()
+            ya, ua_full, va_full, tmp_status = color_range_conversion_components(
+                ya, ua_full, va_full, input_colorrange, output_colorrange
             )
-            ua_full, ua_broken = chroma_range_conversion(
-                ua_full,
-                src=self.comment.get("COLORRANGE", None),
-                dst=colorrange.upper(),
-            )
-            va_full, va_broken = chroma_range_conversion(
-                va_full,
-                src=self.comment.get("COLORRANGE", None),
-                dst=colorrange.upper(),
-            )
-            status["y4m:ybroken"] = int(ya_broken)
-            status["y4m:ubroken"] = int(ua_broken)
-            status["y4m:vbroken"] = int(va_broken)
-            status["y4m:broken"] = int(ya_broken or ua_broken or va_broken)
+            status.update(tmp_status)
         # note that OpenCV conversions use YCrCb (YVU) instead of YCbCr (YUV)
         outyvu = np.stack((ya, va_full, ua_full), axis=2)
         return outyvu, offset, status
