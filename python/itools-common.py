@@ -15,13 +15,6 @@ import sys
 
 FFMPEG_SILENT = "ffmpeg -hide_banner -y"
 
-CONFIG_KEY_LIST = (
-    "qpextract_bin",
-    "isobmff_parser",
-    "h265nal_parser",
-    "read_image_components",
-)
-
 
 class ProcColor(enum.Enum):
     bgr = 0
@@ -136,3 +129,66 @@ def chroma_subsample_direct(inmatrix, colorspace):
         outmatrix = np.zeros((out_w, out_h), dtype=np.uint8)
         outmatrix = inmatrix
     return outmatrix
+
+
+class Config:
+    DEFAULT_VALUES = {
+        "read_image_components": True,
+        "qpextract_bin": {},
+        "isobmff_parser": {},
+        "h265nal_parser": {},
+    }
+
+    def __init__(self):
+        self.config_dict = {}
+
+    def __str__(self):
+        return "\n".join(f"{k}: {v}" for (k, v) in self.config_dict.items())
+
+    @classmethod
+    def set_parser_options(cls, parser):
+        parser.add_argument(
+            "--read-image-components",
+            dest="read_image_components",
+            action="store_true",
+            default=cls.DEFAULT_VALUES["read_image_components"],
+            help="Read image components%s"
+            % (" [default]" if cls.DEFAULT_VALUES["read_image_components"] else ""),
+        )
+        parser.add_argument(
+            "--no-read-image-components",
+            dest="read_image_components",
+            action="store_false",
+            help="Do not read image components%s"
+            % (" [default]" if not cls.DEFAULT_VALUES["read_image_components"] else ""),
+        )
+        parser.add_argument(
+            "--qpextract-bin",
+            action="store",
+            type=str,
+            dest="qpextract_bin",
+            default=cls.DEFAULT_VALUES["qpextract_bin"],
+            help="Path to the qpextract bin",
+        )
+        parser.add_argument(
+            "--isobmff-parser",
+            action="store",
+            type=str,
+            dest="isobmff_parser",
+            default=cls.DEFAULT_VALUES["isobmff_parser"],
+            help="Path to the isobmff-parser bin",
+        )
+        parser.add_argument(
+            "--h265nal-parser",
+            action="store",
+            type=str,
+            dest="h265nal_parser",
+            default=cls.DEFAULT_VALUES["h265nal_parser"],
+            help="Path to the h265nal NALU parser bin",
+        )
+
+    def get(self, key):
+        return self.config_dict.get(key, self.DEFAULT_VALUES[key])
+
+    def set(self, key, val):
+        self.config_dict[key] = val

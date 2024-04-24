@@ -39,10 +39,6 @@ default_values = {
     "roi_dump": None,
     "read_exif_info": True,
     "read_icc_info": True,
-    "read_image_components": True,
-    "qpextract_bin": {},
-    "isobmff_parser": {},
-    "h265nal_parser": {},
     "filter": "components",
     "infile_list": [],
     "outfile": None,
@@ -70,7 +66,7 @@ def get_components(
         config_dict=config_dict,
         debug=debug,
     )
-    read_image_components = config_dict.get("read_image_components", True)
+    read_image_components = config_dict.get("read_image_components")
     if read_image_components:
         # calculate the coordinates
         (roi_x0, roi_y0), (roi_x1, roi_y1) = roi
@@ -277,45 +273,7 @@ def get_options(argv):
         help="Do not parse ICC Info%s"
         % (" [default]" if not default_values["read_icc_info"] else ""),
     )
-    parser.add_argument(
-        "--read-image-components",
-        dest="read_image_components",
-        action="store_true",
-        default=default_values["read_image_components"],
-        help="Read image components%s"
-        % (" [default]" if default_values["read_image_components"] else ""),
-    )
-    parser.add_argument(
-        "--no-read-image-components",
-        dest="read_image_components",
-        action="store_false",
-        help="Do not read image components%s"
-        % (" [default]" if not default_values["read_image_components"] else ""),
-    )
-    parser.add_argument(
-        "--qpextract-bin",
-        action="store",
-        type=str,
-        dest="qpextract_bin",
-        default=default_values["qpextract_bin"],
-        help="Path to the qpextract bin",
-    )
-    parser.add_argument(
-        "--isobmff-parser",
-        action="store",
-        type=str,
-        dest="isobmff_parser",
-        default=default_values["isobmff_parser"],
-        help="Path to the isobmff-parser bin",
-    )
-    parser.add_argument(
-        "--h265nal-parser",
-        action="store",
-        type=str,
-        dest="h265nal_parser",
-        default=default_values["h265nal_parser"],
-        help="Path to the h265nal NALU parser bin",
-    )
+    itools_common.set_parser_options(parser)
     parser.add_argument(
         "--filter",
         action="store",
@@ -360,9 +318,10 @@ def main(argv):
     if options.debug > 0:
         print(options)
     # process infile
-    config_dict = {
-        k: v for (k, v) in vars(options).items() if k in itools_common.CONFIG_KEY_LIST
-    }
+    config_dict = itools_common.Config()
+    for key, val in vars(options).items():
+        if key in itools_common.Config.DEFAULT_VALUES.keys():
+            config_dict.set(key, val)
     if options.filter == "components":
         # process input files
         df = None

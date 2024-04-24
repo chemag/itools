@@ -291,7 +291,7 @@ SPS_PARAMETERS = {
 
 
 def parse_hevc_sps(tmpsps, config_dict, debug):
-    h265nal_parser = config_dict.get("h265nal_parser", None)
+    h265nal_parser = config_dict.get("h265nal_parser")
     if h265nal_parser is None:
         return {}
     h265nal_parser = "~/proj/h265nal/build/tools/h265nal.nalu"
@@ -329,7 +329,7 @@ def get_heif_colorimetry(infile, read_exif_info, read_icc_info, config_dict, deb
         hevc_dict["hevc:ntiles"] = len(df_item[df_item.type == file_type]["id"])
         colorimetry.update(hevc_dict)
     # 2. get the hvcC colorimetry
-    isobmff_parser = config_dict.get("isobmff_parser", None)
+    isobmff_parser = config_dict.get("isobmff_parser")
     if file_type == "hvc1" and isobmff_parser is not None:
         # get the hvcC box
         hvcC_box = "/meta/iprp/ipco/hvcC"
@@ -401,7 +401,7 @@ def parse_qpextract_bin_output(output, mode):
 
 
 def get_h265_values(infile, config_dict, debug):
-    qpextract_bin = config_dict.get("qpextract_bin", None)
+    qpextract_bin = config_dict.get("qpextract_bin")
     if qpextract_bin is None:
         return {}
     qp_dict = {}
@@ -445,7 +445,7 @@ def get_h265_values(infile, config_dict, debug):
 
 
 def read_heif(infile, read_exif_info, read_icc_info, config_dict, debug=0):
-    read_image_components = config_dict.get("read_image_components", True)
+    read_image_components = config_dict.get("read_image_components")
     if read_image_components:
         tmpy4m = tempfile.NamedTemporaryFile(prefix="itools.raw.", suffix=".y4m").name
         if debug > 0:

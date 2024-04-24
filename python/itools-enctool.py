@@ -569,30 +569,7 @@ def get_options(argv, codec_choices):
         dest="analysis",
         help="No full analysis",
     )
-    parser.add_argument(
-        "--qpextract-bin",
-        action="store",
-        type=str,
-        dest="qpextract_bin",
-        default=default_values["qpextract_bin"],
-        help="Path to the qpextract bin",
-    )
-    parser.add_argument(
-        "--isobmff-parser",
-        action="store",
-        type=str,
-        dest="isobmff_parser",
-        default=default_values["isobmff_parser"],
-        help="Path to the isobmff-parser bin",
-    )
-    parser.add_argument(
-        "--h265nal-parser",
-        action="store",
-        type=str,
-        dest="h265nal_parser",
-        default=default_values["h265nal_parser"],
-        help="Path to the h265nal NALU parser bin",
-    )
+    itools_common.Config.set_parser_options(parser)
     parser.add_argument(
         "--encoded-infile",
         action="store",
@@ -634,9 +611,9 @@ def get_options(argv, codec_choices):
     return options
 
 
-def main(argv):
+def main(argv, codec_choices=CODEC_CHOICES):
     # parse options
-    options = get_options(argv, CODEC_CHOICES)
+    options = get_options(argv, codec_choices)
     # get outfile
     if options.outfile is None or options.outfile == "-":
         options.outfile = "/dev/fd/1"
@@ -644,9 +621,10 @@ def main(argv):
     if options.debug > 0:
         print(options)
     # process infile
-    config_dict = {
-        k: v for (k, v) in vars(options).items() if k in itools_common.CONFIG_KEY_LIST
-    }
+    config_dict = itools_common.Config()
+    for key, val in vars(options).items():
+        if key in itools_common.Config.DEFAULT_VALUES.keys():
+            config_dict.set(key, val)
     process_data(
         options.infile_list,
         options.codec,
@@ -656,7 +634,7 @@ def main(argv):
         options.tmpdir,
         options.analysis,
         config_dict,
-        CODEC_CHOICES,
+        codec_choices,
         options.outfile,
         options.debug,
         encoded_infile=options.encoded_infile,
