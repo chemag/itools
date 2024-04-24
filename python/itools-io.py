@@ -79,14 +79,19 @@ def read_image_file(
         return outbgr, outyvu, status
 
 
-def write_image_file(outfile, outimg, return_type=itools_common.ProcColor.bgr):
+def write_image_file(
+    outfile, outimg, return_type=itools_common.ProcColor.bgr, **kwargs
+):
     if os.path.splitext(outfile)[1] == ".y4m":
         # y4m writer requires YVU
         if return_type == itools_common.ProcColor.yvu:
             outyvu = outimg
         elif return_type == itools_common.ProcColor.bgr:
             outyvu = cv2.cvtColor(outimg, cv2.COLOR_BGR2YCrCb)
-        itools_y4m.write_y4m(outfile, outyvu)
+        colorspace = "420"
+        colorrange_id = kwargs.get("hevc:fr", 1)
+        colorrange = "FULL" if colorrange_id == 1 else "LIMITED"
+        itools_y4m.write_y4m(outfile, outyvu, colorspace, colorrange)
     else:
         # cv2 writer requires BGR
         if return_type == itools_common.ProcColor.yvu:

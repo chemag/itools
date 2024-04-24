@@ -220,15 +220,15 @@ def read_y4m(infile, colorrange=None, debug=0):
         return frame, header, offset, status
 
 
-def write_header(width, height, colorspace, colorrange="FULL"):
+def write_header(width, height, colorspace, colorrange):
     return f"YUV4MPEG2 W{width} H{height} F30000:1001 Ip C{colorspace} XCOLORRANGE={colorrange}\n"
 
 
-def write_y4m(outfile, outyvu, colorspace="420"):
+def write_y4m(outfile, outyvu, colorspace="420", colorrange="FULL"):
     with open(outfile, "wb") as fout:
         # write header
         height, width, _ = outyvu.shape
-        header = write_header(width, height, colorspace)
+        header = write_header(width, height, colorspace, colorrange)
         fout.write(header.encode("utf-8"))
         # write frame line
         frame = "FRAME\n"

@@ -168,10 +168,12 @@ def add_noise(infile, outfile, iinfo, noise_level, proc_color, debug):
 
 def copy_image(infile, outfile, iinfo, proc_color, debug):
     # load the input image
-    inabc, _ = itools_io.read_image_file(infile, iinfo=iinfo, return_type=proc_color)
+    inabc, status = itools_io.read_image_file(
+        infile, iinfo=iinfo, return_type=proc_color
+    )
     assert inabc is not None, f"error: cannot read {infile}"
     # write the output image
-    itools_io.write_image_file(outfile, inabc, return_type=proc_color)
+    itools_io.write_image_file(outfile, inabc, return_type=proc_color, **status)
 
 
 def force_range(val):
