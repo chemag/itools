@@ -445,7 +445,7 @@ def get_h265_values(infile, config_dict, debug):
 
 
 def read_heif(infile, read_exif_info, read_icc_info, config_dict, debug=0):
-    read_image_components = config_dict.get("read_image_components", None)
+    read_image_components = config_dict.get("read_image_components", True)
     if read_image_components:
         tmpy4m = tempfile.NamedTemporaryFile(prefix="itools.raw.", suffix=".y4m").name
         if debug > 0:

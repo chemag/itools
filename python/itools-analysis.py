@@ -70,7 +70,7 @@ def get_components(
         config_dict=config_dict,
         debug=debug,
     )
-    read_image_components = config_dict.get("read_image_components")
+    read_image_components = config_dict.get("read_image_components", True)
     if read_image_components:
         # calculate the coordinates
         (roi_x0, roi_y0), (roi_x1, roi_y1) = roi

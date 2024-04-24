@@ -56,7 +56,7 @@ def read_image_file(
             infile, read_exif_info=True, read_icc_info=True, short=True, debug=debug
         )
 
-    read_image_components = config_dict.get("read_image_components")
+    read_image_components = config_dict.get("read_image_components", True)
     if return_type == itools_common.ProcColor.yvu:
         if outyvu is None and read_image_components:
             outyvu = cv2.cvtColor(outbgr, cv2.COLOR_BGR2YCrCb)
