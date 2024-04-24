@@ -37,8 +37,6 @@ default_values = {
     "roi_x1": None,
     "roi_y1": None,
     "roi_dump": None,
-    "read_exif_info": True,
-    "read_icc_info": True,
     "filter": "components",
     "infile_list": [],
     "outfile": None,
@@ -52,17 +50,13 @@ SUMMARY_FIELDS_AVERAGE = ("delta_timestamp_ms",)
 
 
 # calculate average/stddev of all components
-def get_components(
-    infile, read_exif_info, read_icc_info, roi, roi_dump, config_dict, debug
-):
+def get_components(infile, roi, roi_dump, config_dict, debug):
     if debug > 0:
         print(f"analyzing {infile}")
     # load the input image as both yuv and rgb
     inbgr, inyvu, status = itools_io.read_image_file(
         infile,
         return_type=itools_common.ProcColor.both,
-        read_exif_info=read_exif_info,
-        read_icc_info=read_icc_info,
         config_dict=config_dict,
         debug=debug,
     )
@@ -243,36 +237,6 @@ def get_options(argv):
         default=default_values["roi_dump"],
         help="File where to dump ROI array",
     )
-    parser.add_argument(
-        "--exif",
-        dest="read_exif_info",
-        action="store_true",
-        default=default_values["read_exif_info"],
-        help="Parse EXIF Info%s"
-        % (" [default]" if default_values["read_exif_info"] else ""),
-    )
-    parser.add_argument(
-        "--no-exif",
-        dest="read_exif_info",
-        action="store_false",
-        help="Do not parse EXIF Info%s"
-        % (" [default]" if not default_values["read_exif_info"] else ""),
-    )
-    parser.add_argument(
-        "--icc",
-        dest="read_icc_info",
-        action="store_true",
-        default=default_values["read_icc_info"],
-        help="Parse ICC Info%s"
-        % (" [default]" if default_values["read_icc_info"] else ""),
-    )
-    parser.add_argument(
-        "--no-icc",
-        dest="read_icc_info",
-        action="store_false",
-        help="Do not parse ICC Info%s"
-        % (" [default]" if not default_values["read_icc_info"] else ""),
-    )
     itools_common.set_parser_options(parser)
     parser.add_argument(
         "--filter",
@@ -329,8 +293,6 @@ def main(argv):
         for infile in options.infile_list:
             dftmp = get_components(
                 infile,
-                options.read_exif_info,
-                options.read_icc_info,
                 roi,
                 options.roi_dump,
                 config_dict,

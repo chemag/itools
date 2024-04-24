@@ -36,7 +36,7 @@ EXIFTOOL_KEYS = {
 }
 
 
-def get_exiftool(infile, read_exif_info, read_icc_info, short, debug):
+def get_exiftool(infile, short, config_dict, debug):
     # parse the exif file of the first tile
     command = f"exiftool -g -j -b {infile}"
     returncode, out, err = itools_common.run(command, debug=debug)
@@ -51,9 +51,11 @@ def get_exiftool(infile, read_exif_info, read_icc_info, short, debug):
             # ignore this dictionary
             continue
         # prefix all keys
+        read_exif_info = config_dict.get("read_exif_info")
         if key == "EXIF" and not read_exif_info:
             # ignore this dictionary
             continue
+        read_icc_info = config_dict.get("read_icc_info")
         if key == "ICC_Profile" and not read_icc_info:
             # ignore this dictionary
             continue

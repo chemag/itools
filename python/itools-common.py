@@ -134,6 +134,8 @@ def chroma_subsample_direct(inmatrix, colorspace):
 class Config:
     DEFAULT_VALUES = {
         "read_image_components": True,
+        "read_exif_info": True,
+        "read_icc_info": True,
         "qpextract_bin": {},
         "isobmff_parser": {},
         "h265nal_parser": {},
@@ -161,6 +163,36 @@ class Config:
             action="store_false",
             help="Do not read image components%s"
             % (" [default]" if not cls.DEFAULT_VALUES["read_image_components"] else ""),
+        )
+        parser.add_argument(
+            "--exif",
+            dest="read_exif_info",
+            action="store_true",
+            default=cls.DEFAULT_VALUES["read_exif_info"],
+            help="Parse EXIF Info%s"
+            % (" [default]" if cls.DEFAULT_VALUES["read_exif_info"] else ""),
+        )
+        parser.add_argument(
+            "--no-exif",
+            dest="read_exif_info",
+            action="store_false",
+            help="Do not parse EXIF Info%s"
+            % (" [default]" if not cls.DEFAULT_VALUES["read_exif_info"] else ""),
+        )
+        parser.add_argument(
+            "--icc",
+            dest="read_icc_info",
+            action="store_true",
+            default=cls.DEFAULT_VALUES["read_icc_info"],
+            help="Parse ICC Info%s"
+            % (" [default]" if cls.DEFAULT_VALUES["read_icc_info"] else ""),
+        )
+        parser.add_argument(
+            "--no-icc",
+            dest="read_icc_info",
+            action="store_false",
+            help="Do not parse ICC Info%s"
+            % (" [default]" if not cls.DEFAULT_VALUES["read_icc_info"] else ""),
         )
         parser.add_argument(
             "--qpextract-bin",

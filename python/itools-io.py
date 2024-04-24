@@ -23,8 +23,6 @@ def read_image_file(
     flags=None,
     return_type=itools_common.ProcColor.bgr,
     iinfo=None,
-    read_exif_info=False,
-    read_icc_info=False,
     config_dict=None,
     debug=0,
 ):
@@ -45,15 +43,13 @@ def read_image_file(
         outbgr = itools_rgb.read_rgba(infile, iinfo)
 
     elif os.path.splitext(infile)[1] in (".heic", ".avif", ".hif"):
-        outyvu, status = itools_heif.read_heif(
-            infile, read_exif_info, read_icc_info, config_dict, debug
-        )
+        outyvu, status = itools_heif.read_heif(infile, config_dict, debug)
 
     else:
         outbgr = cv2.imread(cv2.samples.findFile(infile, flags))
         # use exiftool to get the metadata
         status = itools_exiftool.get_exiftool(
-            infile, read_exif_info=True, read_icc_info=True, short=True, debug=debug
+            infile, short=True, config_dict=config_dict, debug=debug
         )
 
     read_image_components = config_dict.get("read_image_components")

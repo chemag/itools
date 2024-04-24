@@ -443,8 +443,6 @@ def process_data(
         for outfile in df.outfile:
             df_tmp_analysis = itools_analysis.get_components(
                 outfile,
-                read_exif_info=True,
-                read_icc_info=True,
                 roi=((None, None), (None, None)),
                 roi_dump=None,
                 config_dict=config_dict,

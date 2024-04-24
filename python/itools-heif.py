@@ -110,7 +110,7 @@ def parse_icc_profile(profile_text_bin):
     return colorimetry
 
 
-def parse_isomediafile_xml(tmpxml, read_icc_info):
+def parse_isomediafile_xml(tmpxml, config_dict):
     xml_doc = xml.dom.minidom.parse(tmpxml)
     try:
         colour_information_box = (
@@ -126,6 +126,7 @@ def parse_isomediafile_xml(tmpxml, read_icc_info):
     colour_type = colour_information_box.getAttribute("colour_type")
     colorimetry = {}
     colorimetry["colr:colour_type"] = colour_type
+    read_icc_info = config_dict.get("read_icc_info")
     if colour_type == "nclx":
         # on-screen colours, per ISO/IEC 23091-2/h273
         # unsigned int(16) colour_primaries;
@@ -307,10 +308,12 @@ def parse_hevc_sps(tmpsps, config_dict, debug):
     return sps_dict
 
 
-def get_heif_colorimetry(infile, read_exif_info, read_icc_info, config_dict, debug):
+def get_heif_colorimetry(infile, config_dict, debug):
     df_item = get_item_list(infile, debug)
     file_type_list = df_item.type.unique()
     colorimetry = {}
+    read_exif_info = config_dict.get("read_exif_info")
+    read_icc_info = config_dict.get("read_icc_info")
     # 1. get the HEVC (h265) SPS colorimetry
     if "hvc1" in file_type_list:
         # select the first hvc1 type
@@ -351,7 +354,7 @@ def get_heif_colorimetry(infile, read_exif_info, read_icc_info, config_dict, deb
         assert returncode == 0, f"error in {command}\n{err}"
         # parse the exif file of the first tile
         exiftool_dict = itools_exiftool.get_exiftool(
-            tmpexif, read_exif_info, read_icc_info, short=True, debug=debug
+            tmpexif, short=True, config_dict=config_dict, debug=debug
         )
         colorimetry.update(exiftool_dict)
     # 4. get the `colr` colorimetry
@@ -359,7 +362,7 @@ def get_heif_colorimetry(infile, read_exif_info, read_icc_info, config_dict, deb
     command = f"MP4Box -std -dxml {infile} > {tmpxml}"
     returncode, out, err = itools_common.run(command, debug=debug)
     assert returncode == 0, f"error in {command}\n{err}"
-    colr_dict = parse_isomediafile_xml(tmpxml, read_icc_info)
+    colr_dict = parse_isomediafile_xml(tmpxml, config_dict)
     colorimetry.update(colr_dict)
     return colorimetry
 
@@ -444,7 +447,7 @@ def get_h265_values(infile, config_dict, debug):
     return qp_dict
 
 
-def read_heif(infile, read_exif_info, read_icc_info, config_dict, debug=0):
+def read_heif(infile, config_dict, debug=0):
     read_image_components = config_dict.get("read_image_components")
     if read_image_components:
         tmpy4m = tempfile.NamedTemporaryFile(prefix="itools.raw.", suffix=".y4m").name
@@ -461,9 +464,7 @@ def read_heif(infile, read_exif_info, read_icc_info, config_dict, debug=0):
         outyvu = None
         status = {}
     # get the heif colorimetry
-    colorimetry = get_heif_colorimetry(
-        infile, read_exif_info, read_icc_info, config_dict, debug=debug
-    )
+    colorimetry = get_heif_colorimetry(infile, config_dict, debug=debug)
     status.update(colorimetry)
     # get the heif QP distribution
     qp_dict = get_h265_values(infile, config_dict, debug=debug)
