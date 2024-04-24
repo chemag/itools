@@ -107,13 +107,13 @@ def image_to_gray(infile, outfile, iinfo, proc_color, debug):
         proc_color == itools_common.ProcColor.bgr
     ), f"error: image_to_gray unsupported in {proc_color}"
     # load the input image
-    inbgr, _ = itools_io.read_image_file(infile, iinfo=iinfo)
+    inbgr, status = itools_io.read_image_file(infile, iinfo=iinfo)
     assert inbgr is not None, f"error: cannot read {infile}"
     # convert to gray
     tmpgray = cv2.cvtColor(inbgr, cv2.COLOR_BGR2GRAY)
     outbgr = cv2.cvtColor(tmpgray, cv2.COLOR_GRAY2BGR)
     # store the output image
-    itools_io.write_image_file(outfile, outbgr)
+    itools_io.write_image_file(outfile, outbgr, **status)
 
 
 def swap_xchroma(infile, outfile, iinfo, proc_color, debug):
@@ -121,14 +121,14 @@ def swap_xchroma(infile, outfile, iinfo, proc_color, debug):
         proc_color == itools_common.ProcColor.bgr
     ), f"error: swap_xchroma unsupported in {proc_color}"
     # load the input image
-    inbgr, _ = itools_io.read_image_file(infile, iinfo=iinfo)
+    inbgr, status = itools_io.read_image_file(infile, iinfo=iinfo)
     assert inbgr is not None, f"error: cannot read {infile}"
     # swap chromas
     tmpyvu = cv2.cvtColor(inbgr, cv2.COLOR_BGR2YCrCb)
     outyvu = tmpyvu[:, :, [0, 2, 1]]
     outbgr = cv2.cvtColor(outyvu, cv2.COLOR_YCrCb2BGR)
     # store the output image
-    itools_io.write_image_file(outfile, outbgr)
+    itools_io.write_image_file(outfile, outbgr, **status)
 
 
 def swap_xrgb2yuv(infile, outfile, iinfo, proc_color, debug):
@@ -136,7 +136,7 @@ def swap_xrgb2yuv(infile, outfile, iinfo, proc_color, debug):
         proc_color == itools_common.ProcColor.bgr
     ), f"error: swap_xrgb2yuv unsupported in {proc_color}"
     # load the input image
-    inbgr, _ = itools_io.read_image_file(infile, iinfo=iinfo)
+    inbgr, status = itools_io.read_image_file(infile, iinfo=iinfo)
     assert inbgr is not None, f"error: cannot read {infile}"
     inrgb = inbgr[:, :, [2, 1, 0]]
     # swap RGB to YUV
@@ -144,7 +144,7 @@ def swap_xrgb2yuv(infile, outfile, iinfo, proc_color, debug):
     outyvu = outyuv[:, :, [0, 2, 1]]
     outbgr = cv2.cvtColor(outyvu, cv2.COLOR_YCrCb2BGR)
     # store the output image
-    itools_io.write_image_file(outfile, outbgr)
+    itools_io.write_image_file(outfile, outbgr, **status)
 
 
 def add_noise(infile, outfile, iinfo, noise_level, proc_color, debug):
@@ -152,7 +152,7 @@ def add_noise(infile, outfile, iinfo, noise_level, proc_color, debug):
         proc_color == itools_common.ProcColor.bgr
     ), f"error: add_noise unsupported in {proc_color}"
     # load the input image
-    inbgr, _ = itools_io.read_image_file(infile, iinfo=iinfo)
+    inbgr, status = itools_io.read_image_file(infile, iinfo=iinfo)
     assert inbgr is not None, f"error: cannot read {infile}"
     # convert to gray
     noiseimg = np.random.randint(
@@ -163,7 +163,7 @@ def add_noise(infile, outfile, iinfo, noise_level, proc_color, debug):
     outbgr[outbgr < np.iinfo(np.uint8).min] = np.iinfo(np.uint8).min
     outbgr = outbgr.astype(np.uint8)
     # store the output image
-    itools_io.write_image_file(outfile, outbgr)
+    itools_io.write_image_file(outfile, outbgr, **status)
 
 
 def copy_image(infile, outfile, iinfo, proc_color, debug):
@@ -293,6 +293,7 @@ def mse_image(infile, iinfo, proc_color, debug):
     # load the input image
     inbgr, _ = itools_io.read_image_file(infile, iinfo=iinfo)
     assert inbgr is not None, f"error: cannot read {infile}"
+    # TODO(chema): use status (_) to deal with color ranges
     # careful with number ranges
     inyvu = cv2.cvtColor(inbgr, cv2.COLOR_BGR2YCrCb).astype(np.int32)
     # calculate the (1 - luma) mse
@@ -316,6 +317,7 @@ def get_histogram(infile, outfile, iinfo, hist_component, debug):
     else:  # hist_component in ("r", "g", "b"):
         inimg, _ = itools_io.read_image_file(infile, iinfo=iinfo)
     assert inimg is not None, f"error: cannot read {infile}"
+    # TODO(chema): use status (_) to deal with color ranges
     # get the requested component: note that options are YVU or BGR
     if hist_component == "y" or hist_component == "b":
         component = inimg[:, :, 0]  # inyvu, inbgr
@@ -342,13 +344,15 @@ def get_histogram(infile, outfile, iinfo, hist_component, debug):
 # rotates infile
 def rotate_image(infile, rotate_angle, outfile, iinfo, proc_color, debug):
     # load the input image
-    inabc, _ = itools_io.read_image_file(infile, iinfo=iinfo, return_type=proc_color)
+    inabc, status = itools_io.read_image_file(
+        infile, iinfo=iinfo, return_type=proc_color
+    )
     assert inabc is not None, f"error: cannot read {infile}"
     # rotate it
     num_rotations = ROTATE_ANGLE_LIST[rotate_angle]
     outabc = np.rot90(inabc, k=num_rotations, axes=(0, 1))
     # write the output image
-    itools_io.write_image_file(outfile, outabc, return_type=proc_color)
+    itools_io.write_image_file(outfile, outabc, return_type=proc_color, **status)
 
 
 # composes infile2 on top of infile1, at (xloc, yloc)
@@ -362,6 +366,7 @@ def compose_images(infile1, infile2, iinfo, xloc, yloc, outfile, proc_color, deb
     assert inbgr1 is not None, f"error: cannot read {infile1}"
     inbgr2, _ = itools_io.read_image_file(infile2, cv2.IMREAD_UNCHANGED, iinfo=iinfo)
     assert inbgr2 is not None, f"error: cannot read {infile2}"
+    # TODO(chema): use status (_) to deal with color ranges
     # compose them
     width1, height1, _ = inbgr1.shape
     width2, height2, _ = inbgr2.shape
@@ -398,6 +403,7 @@ def match_images(infile1, infile2, outfile, iinfo, proc_color, debug):
     assert inbgr1 is not None, f"error: cannot read {infile1}"
     inbgr2, _ = itools_io.read_image_file(infile2, cv2.IMREAD_UNCHANGED, iinfo=iinfo)
     assert inbgr2 is not None, f"error: cannot read {infile2}"
+    # TODO(chema): use status (_) to deal with color ranges
     # we will do gray correlation image matching: Use only the lumas
     inluma1 = cv2.cvtColor(inbgr1, cv2.COLOR_BGR2GRAY)
     inluma2 = cv2.cvtColor(inbgr2, cv2.COLOR_BGR2GRAY)
@@ -452,7 +458,7 @@ def affine_transformation_matrix(
     infile, iinfo, outfile, width, height, a00, a01, a10, a11, b00, b10, debug
 ):
     # load the input image
-    inbgr, _ = itools_io.read_image_file(infile, iinfo=iinfo)
+    inbgr, status = itools_io.read_image_file(infile, iinfo=iinfo)
     assert inbgr is not None, f"error: cannot read {infile}"
     # process the image
     m0 = [a00, a01, b00]
@@ -464,7 +470,7 @@ def affine_transformation_matrix(
     height = height if height != 0 else inbgr.shape[0]
     outbgr = cv2.warpAffine(inbgr, transform_matrix, (width, height))
     # store the output image
-    itools_io.write_image_file(outfile, outbgr)
+    itools_io.write_image_file(outfile, outbgr, **status)
 
 
 def affine_transformation_points(
@@ -488,7 +494,7 @@ def affine_transformation_points(
     debug,
 ):
     # load the input image
-    inbgr, _ = itools_io.read_image_file(infile, iinfo=iinfo)
+    inbgr, status = itools_io.read_image_file(infile, iinfo=iinfo)
     assert inbgr is not None, f"error: cannot read {infile}"
     # process the image
     s0 = [s0x, s0y]
@@ -506,7 +512,7 @@ def affine_transformation_points(
     height = height if height != 0 else inbgr.shape[0]
     outbgr = cv2.warpAffine(inbgr, transform_matrix, (width, height))
     # store the output image
-    itools_io.write_image_file(outfile, outbgr)
+    itools_io.write_image_file(outfile, outbgr, **status)
 
 
 def get_options(argv):
