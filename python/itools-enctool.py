@@ -56,7 +56,7 @@ default_values = {
     "horizontal_alignment": None,
     "vertical_alignment": None,
     "quality_list": ",".join(str(v) for v in DEFAULT_QUALITY_LIST),
-    "codec": "heic",
+    "codec": "x265",
     "tmpdir": tempfile.gettempdir(),
     "analysis": False,
     "qpextract_bin": {},
@@ -207,10 +207,10 @@ def heif_enc_encode_fun(infile, width, height, codec, quality, outfile, debug):
     assert returncode == 0, f"error: {out = } {err = }"
 
 
-# 2. jpegxl
-def jpegxl_encode_fun(infile, width, height, codec, quality, outfile, debug):
-    # jpegxl wants ppm
-    tmpppm = tempfile.NamedTemporaryFile(prefix="itools.jpegxl.", suffix=".ppm").name
+# 2. jxl
+def jxl_encode_fun(infile, width, height, codec, quality, outfile, debug):
+    # jxl wants ppm
+    tmpppm = tempfile.NamedTemporaryFile(prefix="itools.jxl.", suffix=".ppm").name
     command = f"{itools_common.FFMPEG_SILENT} -i {infile} {tmpppm}"
     returncode, out, err = itools_common.run(command, debug=debug)
     assert returncode == 0, f"error: {out = } {err = }"
@@ -220,14 +220,14 @@ def jpegxl_encode_fun(infile, width, height, codec, quality, outfile, debug):
     assert returncode == 0, f"error: {out = } {err = }"
 
 
-def jpegxl_decode_fun(infile, outfile, debug):
-    # jpegxl produces ppm
-    tmpppm = tempfile.NamedTemporaryFile(prefix="itools.jpegxl.", suffix=".ppm").name
+def jxl_decode_fun(infile, outfile, debug):
+    # jxl produces ppm
+    tmpppm = tempfile.NamedTemporaryFile(prefix="itools.jxl.", suffix=".ppm").name
     # do the decoding
     command = f"{JPEGXL_DEC} {infile} {tmpppm}"
     returncode, out, err = itools_common.run(command, debug=debug)
     # now convert to the outfile
-    # We are forcing the output of jpegxl to be interpreted as full range
+    # We are forcing the output of jxl to be interpreted as full range
     command = f"{itools_common.FFMPEG_SILENT} -i {tmpppm} -pix_fmt yuv420p -color_range full {outfile}"
     returncode, out, err = itools_common.run(command, debug=debug)
     assert returncode == 0, f"error: {out = } {err = }"
@@ -241,7 +241,7 @@ CODEC_CHOICES = {
     "kvazaar": (".heic", (None, None, heif_enc_encode_fun, None), (None, None)),
     "aom": (".avif", (None, None, heif_enc_encode_fun, None), (None, None)),
     "svt": (".avif", (None, None, heif_enc_encode_fun, None), (None, None)),
-    "jpegxl": (".jxl", (None, None, jpegxl_encode_fun, None), (None, None)),
+    "jxl": (".jxl", (None, None, jxl_encode_fun, None), (None, None)),
     "openjpeg": (".jpeg2000", (None, None, heif_enc_encode_fun, None), (None, None)),
     "empty": (None, (None, None, None, None), (None, None)),
 }
@@ -333,8 +333,8 @@ def process_file(
             shutil.copyfile(encoded_infile, distorted_path)
         elif enc_extension in (".jxl",):
             # copy the encoded file to the distorted path
-            jpegxl_decode_fun(enc_path, distorted_path, debug)
-        elif enc_extension in (".jxl",):
+            jxl_decode_fun(enc_path, distorted_path, debug)
+        else:
             raise AssertionError(f"cannot decode file {enc_path}")
 
         if encoded_rotate is not None and encoded_rotate != 0:
