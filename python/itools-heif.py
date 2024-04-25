@@ -333,7 +333,7 @@ def get_heif_colorimetry(infile, config_dict, debug):
         colorimetry.update(hevc_dict)
     # 2. get the hvcC colorimetry
     isobmff_parser = config_dict.get("isobmff_parser")
-    if file_type == "hvc1" and isobmff_parser is not None:
+    if "hvc1" in file_type_list and isobmff_parser is not None:
         # get the hvcC box
         hvcC_box = "/meta/iprp/ipco/hvcC"
         tmphvcC = tempfile.NamedTemporaryFile(prefix="itools.hvcC.", suffix=".bin").name
