@@ -29,6 +29,7 @@ EXIFTOOL_KEYS = {
     "XMP": "ignore",
     "ICC_Profile": "icc",
     "APP14": "ignore",
+    "PNG": "ignore",
     "Composite": "ignore",
     "MakerNotes": "ignore",
     "QuickTime": "ignore",
