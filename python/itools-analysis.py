@@ -56,8 +56,8 @@ def get_components(infile, roi, roi_dump, config_dict, debug):
     # load the input image as both yuv and rgb
     inbgr, inyvu, status = itools_io.read_image_file(
         infile,
+        config_dict,
         return_type=itools_common.ProcColor.both,
-        config_dict=config_dict,
         debug=debug,
     )
     read_image_components = config_dict.get("read_image_components")
@@ -237,7 +237,7 @@ def get_options(argv):
         default=default_values["roi_dump"],
         help="File where to dump ROI array",
     )
-    itools_common.set_parser_options(parser)
+    itools_common.Config.set_parser_options(parser)
     parser.add_argument(
         "--filter",
         action="store",
@@ -281,11 +281,9 @@ def main(argv):
     # print results
     if options.debug > 0:
         print(options)
+    # create configuration
+    config_dict = itools_common.Config.Create(options)
     # process infile
-    config_dict = itools_common.Config()
-    for key, val in vars(options).items():
-        if key in itools_common.Config.DEFAULT_VALUES.keys():
-            config_dict.set(key, val)
     if options.filter == "components":
         # process input files
         df = None

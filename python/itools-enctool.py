@@ -618,11 +618,9 @@ def main(argv, codec_choices=CODEC_CHOICES):
     # print results
     if options.debug > 0:
         print(options)
+    # create configuration
+    config_dict = itools_common.Config.Create(options)
     # process infile
-    config_dict = itools_common.Config()
-    for key, val in vars(options).items():
-        if key in itools_common.Config.DEFAULT_VALUES.keys():
-            config_dict.set(key, val)
     process_data(
         options.infile_list,
         options.codec,

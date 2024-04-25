@@ -20,10 +20,10 @@ itools_yuv = importlib.import_module("itools-yuv")
 
 def read_image_file(
     infile,
+    config_dict,
     flags=None,
     return_type=itools_common.ProcColor.bgr,
     iinfo=None,
-    config_dict=None,
     debug=0,
 ):
     outyvu = None

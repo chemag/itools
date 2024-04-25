@@ -136,9 +136,9 @@ class Config:
         "read_image_components": True,
         "read_exif_info": True,
         "read_icc_info": True,
-        "qpextract_bin": {},
-        "isobmff_parser": {},
-        "h265nal_parser": {},
+        "qpextract_bin": None,
+        "isobmff_parser": None,
+        "h265nal_parser": None,
     }
 
     def __init__(self):
@@ -146,6 +146,14 @@ class Config:
 
     def __str__(self):
         return "\n".join(f"{k}: {v}" for (k, v) in self.config_dict.items())
+
+    @classmethod
+    def Create(cls, options):
+        config_dict = cls()
+        for key, val in vars(options).items():
+            if key in cls.DEFAULT_VALUES.keys():
+                config_dict.set(key, val)
+        return config_dict
 
     @classmethod
     def set_parser_options(cls, parser):
