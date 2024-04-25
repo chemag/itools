@@ -42,6 +42,7 @@ FILTER_CHOICES = {
     "copy": "copy input to output",
     "gray": "convert image to GRAY scale",
     "xchroma": "swap U and V chromas",
+    "mix-images": "mix image components between 2x files",
     "xrgb2yuv": "swap RGB components as YUV",
     "noise": "add noise",
     "diff": "diff 2 frames",
@@ -70,6 +71,7 @@ default_values = {
     "diff_color_factor": 5,
     "hist_component": "y",
     "rotate_angle": 90,
+    "mix_definition": "y1y2y2",
     "x": 10,
     "y": 20,
     "iwidth": 0,
@@ -145,6 +147,59 @@ def swap_xrgb2yuv(infile, outfile, iinfo, proc_color, debug):
     outbgr = cv2.cvtColor(outyvu, cv2.COLOR_YCrCb2BGR)
     # store the output image
     itools_io.write_image_file(outfile, outbgr, **status)
+
+
+MIX_DEFINITION_COMPONENTS = ("y1", "u1", "v1", "y2", "u2", "v2")
+
+
+def get_component(inyvu1, inyvu2, component):
+    if component == "y1":
+        return inyvu1[:, :, [0]]
+    elif component == "y2":
+        return inyvu2[:, :, [0]]
+    elif component == "u1":
+        return inyvu1[:, :, [2]]
+    elif component == "u2":
+        return inyvu2[:, :, [2]]
+    elif component == "v1":
+        return inyvu1[:, :, [1]]
+    elif component == "v2":
+        return inyvu2[:, :, [1]]
+
+
+def mix_images(
+    infile1,
+    infile2,
+    mix_definition,
+    outfile,
+    iinfo,
+    debug,
+):
+    # load the input images as YVU
+    inyvu1, instatus1 = itools_io.read_image_file(
+        infile1, iinfo=iinfo, return_type=itools_common.ProcColor.yvu
+    )
+    inyvu2, instatus2 = itools_io.read_image_file(
+        infile2, iinfo=iinfo, return_type=itools_common.ProcColor.yvu
+    )
+    assert inyvu1 is not None, f"error: cannot read {infile1}"
+    assert inyvu2 is not None, f"error: cannot read {infile2}"
+    # make sure the images are the same size
+    assert inyvu1.shape == inyvu2.shape
+    # check the mix definition
+    assert len(mix_definition) == 6, f"error: invalid {mix_definition=}"
+    components = mix_definition[:2], mix_definition[2:4], mix_definition[4:]
+    for component in components:
+        assert component in MIX_DEFINITION_COMPONENTS, f"error: invalid {component=}"
+    # compose an output image using as the luma/chroma from the 2x input images
+    outyvu = inyvu1.copy()
+    outyvu[:, :, [0]] = get_component(inyvu1, inyvu2, components[0])
+    outyvu[:, :, [2]] = get_component(inyvu1, inyvu2, components[1])
+    outyvu[:, :, [1]] = get_component(inyvu1, inyvu2, components[2])
+    # store the output image
+    itools_io.write_image_file(
+        outfile, outyvu, return_type=itools_common.ProcColor.yvu, **instatus1
+    )
 
 
 def add_noise(infile, outfile, iinfo, noise_level, proc_color, debug):
@@ -738,6 +793,14 @@ def get_options(argv):
         help="rotate angle arg",
     )
     parser.add_argument(
+        "--mix-definition",
+        action="store",
+        type=str,
+        dest="mix_definition",
+        default=default_values["mix_definition"],
+        help="Mix definition",
+    )
+    parser.add_argument(
         "--a00",
         action="store",
         type=float,
@@ -1060,6 +1123,16 @@ def main(argv):
             options.outfile,
             iinfo,
             itools_common.ProcColor[options.proc_color],
+            options.debug,
+        )
+
+    elif options.filter == "mix-images":
+        df = mix_images(
+            options.infile,
+            options.infile2,
+            options.mix_definition,
+            options.outfile,
+            iinfo,
             options.debug,
         )
 
