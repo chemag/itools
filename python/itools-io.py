@@ -13,6 +13,7 @@ import importlib
 itools_common = importlib.import_module("itools-common")
 itools_exiftool = importlib.import_module("itools-exiftool")
 itools_heif = importlib.import_module("itools-heif")
+itools_jxl = importlib.import_module("itools-jxl")
 itools_rgb = importlib.import_module("itools-rgb")
 itools_y4m = importlib.import_module("itools-y4m")
 itools_yuv = importlib.import_module("itools-yuv")
@@ -45,6 +46,9 @@ def read_image_file(
     elif os.path.splitext(infile)[1] in (".heic", ".avif", ".hif"):
         outyvu, status = itools_heif.read_heif(infile, config_dict, debug)
 
+    elif os.path.splitext(infile)[1] == ".jxl":
+        outyvu = itools_jxl.read_jxl(infile, config_dict, debug)
+
     else:
         outbgr = cv2.imread(cv2.samples.findFile(infile, flags))
         # use exiftool to get the metadata
@@ -53,24 +57,30 @@ def read_image_file(
         )
 
     read_image_components = config_dict.get("read_image_components")
+    if not read_image_components:
+        if return_type == itools_common.ProcColor.both:
+            return None, None, status
+        else:
+            return None, status
+
     if return_type == itools_common.ProcColor.yvu:
-        if outyvu is None and read_image_components:
+        if outyvu is None:
             outyvu = cv2.cvtColor(outbgr, cv2.COLOR_BGR2YCrCb)
             return outyvu, status
         else:
             return outyvu, status
 
     elif return_type == itools_common.ProcColor.bgr:
-        if outbgr is None and read_image_components:
+        if outbgr is None:
             outbgr = cv2.cvtColor(outyvu, cv2.COLOR_YCrCb2BGR)
             return outbgr, status
         else:
             return outbgr, status
 
     else:  # if return_type == itools_common.ProcColor.both:
-        if outyvu is None and read_image_components:
+        if outyvu is None:
             outyvu = cv2.cvtColor(outbgr, cv2.COLOR_BGR2YCrCb)
-        elif outbgr is None and read_image_components:
+        elif outbgr is None:
             outbgr = cv2.cvtColor(outyvu, cv2.COLOR_YCrCb2BGR)
         return outbgr, outyvu, status
 
