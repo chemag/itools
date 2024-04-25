@@ -212,13 +212,15 @@ class Y4MHeader:
         # undo chroma subsample in order to combine same-size matrices
         ua_full = itools_common.chroma_subsample_reverse(ua, self.colorspace)
         va_full = itools_common.chroma_subsample_reverse(va, self.colorspace)
+        input_colorrange = self.comment.get("COLORRANGE", "default").upper()
         if debug > 0:
-            print(f"debug: y4m frame read with {self.comment.get('COLORRANGE', None)}")
+            print(f"debug: y4m frame read with {input_colorrange=}")
         status = {
-            "y4m:colorrange": self.comment.get("COLORRANGE", "default").lower(),
+            "y4m:colorrange": input_colorrange,
             "y4m:broken": 0,
         }
-        input_colorrange = self.comment.get("COLORRANGE", None)
+        if input_colorrange == "DEFAULT":
+            input_colorrange = "LIMITED"
         if (
             output_colorrange is not None
             and output_colorrange.upper() != input_colorrange

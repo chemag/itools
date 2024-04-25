@@ -109,9 +109,9 @@ VMAF_METRIC_LIST = [
 ]
 
 
-def vmaf_parse(stdout, vmaf_file):
+def vmaf_parse(stdout, stderr, vmaf_file):
     """Parse log/output and return quality score"""
-    assert os.path.isfile(vmaf_file), f"error: {stdout}"
+    assert os.path.isfile(vmaf_file), f"error: {stdout=}\n{stderr=}"
     with open(vmaf_file, "rb") as fin:
         json_text = fin.read()
     json_dict = json.loads(json_text)
@@ -157,11 +157,12 @@ def vmaf_get(distorted, reference, debug, vmaf_model=None):
     command += (
         f"log_path={vmaf_file}:n_threads=16:log_fmt=json:"
         "feature=name=psnr|name=psnr_hvs|name=float_ssim|name=float_ms_ssim|name=cambi|name=ciede'"
-        " -f null - 2>&1 "
+        " -f null -"
     )
     returncode, out, err = itools_common.run(command, debug=debug)
+    assert returncode == 0, f"error: {out = } {err = }"
     # 2. parse the output
-    return vmaf_parse(out, vmaf_file)
+    return vmaf_parse(out, err, vmaf_file)
 
 
 def psnr_get(distorted, reference, debug):
@@ -226,7 +227,8 @@ def jpegxl_decode_fun(infile, outfile, debug):
     command = f"{JPEGXL_DEC} {infile} {tmpppm}"
     returncode, out, err = itools_common.run(command, debug=debug)
     # now convert to the outfile
-    command = f"{itools_common.FFMPEG_SILENT} -i {tmpppm} -pix_fmt yuv444p {outfile}"
+    # We are forcing the output of jpegxl to be interpreted as full range
+    command = f"{itools_common.FFMPEG_SILENT} -i {tmpppm} -pix_fmt yuv420p -color_range full {outfile}"
     returncode, out, err = itools_common.run(command, debug=debug)
     assert returncode == 0, f"error: {out = } {err = }"
 

@@ -18,7 +18,6 @@ import sys
 import tempfile
 
 itools_common = importlib.import_module("itools-common")
-itools_exiftool = importlib.import_module("itools-exiftool")
 itools_y4m = importlib.import_module("itools-y4m")
 
 JPEGXL_DEC = os.environ.get("JPEGXL_DEC", "djxl")
@@ -32,7 +31,8 @@ def read_jxl(infile, config_dict, debug=0):
     returncode, out, err = itools_common.run(command, debug=debug)
     # 2. convert to y4m
     tmpy4m = tempfile.NamedTemporaryFile(prefix="itools.jpegxl.", suffix=".y4m").name
-    command = f"{itools_common.FFMPEG_SILENT} -i {tmpppm} -pix_fmt yuv444p {tmpy4m}"
+    # We are forcing the output of jpegxl to be interpreted as full range
+    command = f"{itools_common.FFMPEG_SILENT} -i {tmpppm} -pix_fmt yuv420p -color_range full {tmpy4m}"
     returncode, out, err = itools_common.run(command, debug=debug)
     # 3. read the y4m
     outyvu, _, _, _ = itools_y4m.read_y4m(tmpy4m, colorrange="full", debug=debug)
