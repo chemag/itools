@@ -59,9 +59,6 @@ default_values = {
     "codec": "x265",
     "tmpdir": tempfile.gettempdir(),
     "analysis": False,
-    "qpextract_bin": {},
-    "isobmff_parser": {},
-    "h265nal_parser": {},
     "encoded_infile": None,
     "encoded_rotate": 0,
     "infile_list": None,
@@ -385,7 +382,7 @@ def process_file(
     return df
 
 
-def get_derived_results(df):
+def get_average_results(df):
     # import the results
     new_df = pd.DataFrame(columns=list(df.columns.values))
     for codec, quality in itertools.product(
@@ -489,14 +486,16 @@ def process_data(
                 else pd.concat([df_analysis, df_tmp_analysis])
             )
         df = pd.merge(df, df_analysis, left_on="outfile", right_on="filename")
-    # 5. get derived results
-    derived_df = get_derived_results(df)
-    # TODO(chemag): fix this warning
-    # Likely cause is that some of the derived_df columns are dtype object
-    # ('dtype("O")') but have only null values (e.g. "ymean" column).
-    # \ref https://stackoverflow.com/a/60802429
-    # df = pd.concat([df, derived_df], ignore_index=True)
-    df = pd.concat([df, derived_df], ignore_index=True, axis=0)
+    average_results = config_dict.get("average_results")
+    if average_results:
+        # 5. get average results
+        derived_df = get_average_results(df)
+        # TODO(chemag): fix this warning
+        # Likely cause is that some of the derived_df columns are dtype object
+        # ('dtype("O")') but have only null values (e.g. "ymean" column).
+        # \ref https://stackoverflow.com/a/60802429
+        # df = pd.concat([df, derived_df], ignore_index=True)
+        df = pd.concat([df, derived_df], ignore_index=True, axis=0)
     # 6. write the results
     df.to_csv(outfile_csv, index=False)
 

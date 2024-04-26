@@ -136,6 +136,7 @@ class Config:
         "read_image_components": True,
         "read_exif_info": True,
         "read_icc_info": True,
+        "average_results": True,
         "qpextract_bin": None,
         "isobmff_parser": None,
         "h265nal_parser": None,
@@ -201,6 +202,21 @@ class Config:
             action="store_false",
             help="Do not parse ICC Info%s"
             % (" [default]" if not cls.DEFAULT_VALUES["read_icc_info"] else ""),
+        )
+        parser.add_argument(
+            "--average-results",
+            dest="average_results",
+            action="store_true",
+            default=cls.DEFAULT_VALUES["average_results"],
+            help="Provide averaged results%s"
+            % (" [default]" if cls.DEFAULT_VALUES["average_results"] else ""),
+        )
+        parser.add_argument(
+            "--no-average-results",
+            dest="average_results",
+            action="store_false",
+            help="Do not provide averaged results%s"
+            % (" [default]" if not cls.DEFAULT_VALUES["average_results"] else ""),
         )
         parser.add_argument(
             "--qpextract-bin",
