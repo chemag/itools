@@ -32,7 +32,7 @@ def read_image_file(
     status = {}
     if os.path.splitext(infile)[1] == ".y4m":
         outyvu, _, _, status = itools_y4m.read_y4m(
-            infile, colorrange="full", debug=debug
+            infile, output_colorrange=itools_common.ColorRange.full, debug=debug
         )
         if status is not None and status.get("broken", False):
             print(f"error: file {infile} is broken")
@@ -99,7 +99,7 @@ def read_metadata(infile, debug):
 def read_colorrange(infile, debug):
     status = read_metadata(infile, debug)
     if os.path.splitext(infile)[1] == ".y4m":
-        return status["y4m:colorrange"].upper()
+        return itools_common.ColorRange.parse(status["y4m:colorrange"])
 
 
 def write_image_file(

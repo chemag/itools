@@ -27,6 +27,9 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "icctool"))
 icctool = importlib.import_module("icctool.icctool")
 
 
+DEFAULT_H265_SPS_VIDEO_FULL_RANGE_FLAG_VALUE = 0
+
+
 def parse_mp4box_info(output):
     primary_id = None
     df = pd.DataFrame(columns=("item_id", "id", "type", "size", "rem", "primary"))
@@ -448,25 +451,43 @@ def get_h265_values(infile, config_dict, debug):
 
 
 def read_heif(infile, config_dict, debug=0):
+    # 1. get the heif colorimetry
+    colorimetry = get_heif_colorimetry(infile, config_dict, debug=debug)
+    status = colorimetry
+    # 2. get the actual image
     read_image_components = config_dict.get("read_image_components")
     if read_image_components:
         tmpy4m = tempfile.NamedTemporaryFile(prefix="itools.raw.", suffix=".y4m").name
         if debug > 0:
             print(f"using {tmpy4m}")
-        # decode the file using libheif
+        # 2.1. decode the file using libheif (into y4m)
         command = f"heif-convert {infile} {tmpy4m}"
         returncode, out, err = itools_common.run(command, debug=debug)
         assert returncode == 0, f"error in {command}\n{err}"
         tmpy4m = parse_heif_convert_output(tmpy4m, out, debug)
-        # read the y4m frame ignoring the color range
-        outyvu, _, _, status = itools_y4m.read_y4m(tmpy4m, colorrange=None, debug=debug)
+        # 2.2. read the y4m frame ignoring the color range
+        outyvu, _, _, tmp_status = itools_y4m.read_y4m(
+            tmpy4m, output_colorrange=None, debug=debug
+        )
+        status.update(tmp_status)
+        # 2.3. make sure the color range is correct
+        # libheif returns y4m with unspecified color range, which is equivalent
+        # to limited color range. The actual color range depends on the SPS
+        # header colorimetry, more concretely in the `video_full_range_flag`
+        # field.
+        # ISO/IEC 23008-2:2013, Section E.2.1: "When the video_full_range_flag
+        # syntax element is not present, the value of video_full_range_flag is
+        # inferred to be equal to 0."
+        read_colorrange = itools_common.ColorRange.parse(status["y4m:colorrange"])
+        actual_colorrange_id = status.get(
+            "hevc:fr", DEFAULT_H265_SPS_VIDEO_FULL_RANGE_FLAG_VALUE
+        )
+        actual_colorrange = itools_common.ColorRange.parse(actual_colorrange_id)
+        status["y4m:colorrange"] = actual_colorrange.name
     else:
         outyvu = None
         status = {}
-    # get the heif colorimetry
-    colorimetry = get_heif_colorimetry(infile, config_dict, debug=debug)
-    status.update(colorimetry)
-    # get the heif QP distribution
+    # 4. get the heif QP distribution
     qp_dict = get_h265_values(infile, config_dict, debug=debug)
     status.update(qp_dict)
     return outyvu, status
@@ -478,17 +499,21 @@ def decode_heif(infile, outfile_y4m, config_dict, output_colorrange=None, debug=
     read_icc_info = False
     inyvu, status = read_heif(infile, config_dict, debug)
     assert inyvu is not None, f"error: cannot read {infile}"
-    # decide whether to change the color range
-    input_colorrange_id = status.get("hevc:fr", 1)
-    input_colorrange = "FULL" if input_colorrange_id == 1 else "LIMITED"
-    if output_colorrange is not None and output_colorrange != input_colorrange:
-        # fix the color range
+    # write the output image
+    colorspace = "420"
+    colorrange_id = status["y4m:colorrange"]
+    input_colorrange = itools_common.ColorRange.parse(colorrange_id)
+    # force the output colorrange
+    if (
+        output_colorrange is not None
+        and output_colorrange is not itools_common.ColorRange.unspecified
+        and input_colorrange is not itools_common.ColorRange.unspecified
+        and output_colorrange != input_colorrange
+    ):
         outyvu = itools_y4m.color_range_conversion(
             inyvu, input_colorrange, output_colorrange
         )
     else:
         outyvu = inyvu
-
-    # write the output image
-    colorspace = "420"
-    itools_y4m.write_y4m(outfile_y4m, outyvu, colorspace, input_colorrange)
+        output_colorrange = input_colorrange
+    itools_y4m.write_y4m(outfile_y4m, inyvu, colorspace, output_colorrange)

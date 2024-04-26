@@ -75,18 +75,18 @@ def do_range_conversion(inarr, srcmin, srcmax, dstmin, dstmax):
 
 
 def luma_range_conversion(ya, src, dst):
-    srcmin = 0 if src == "FULL" else 16
-    dstmin = 0 if dst == "FULL" else 16
-    srcmax = 255 if src == "FULL" else 235
-    dstmax = 255 if dst == "FULL" else 235
+    srcmin = 0 if src.name == "full" else 16
+    dstmin = 0 if dst.name == "full" else 16
+    srcmax = 255 if src.name == "full" else 235
+    dstmax = 255 if dst.name == "full" else 235
     return do_range_conversion(ya, srcmin, srcmax, dstmin, dstmax)
 
 
 def chroma_range_conversion(va, src, dst):
-    srcmin = 0 if src == "FULL" else 16
-    dstmin = 0 if dst == "FULL" else 16
-    srcmax = 255 if src == "FULL" else 240
-    dstmax = 255 if dst == "FULL" else 240
+    srcmin = 0 if src.name == "full" else 16
+    dstmin = 0 if dst.name == "full" else 16
+    srcmax = 255 if src.name == "full" else 240
+    dstmax = 255 if dst.name == "full" else 240
     return do_range_conversion(va, srcmin, srcmax, dstmin, dstmax)
 
 
@@ -179,17 +179,17 @@ class Y4MHeader:
         raise f"only support 420, 422, 444 colorspaces (not {self.colorspace})"
 
     def read_frame(self, data, output_colorrange, debug):
-        # read "FRAME\n" tidbit
+        # 1. read "FRAME\n" tidbit
         assert data[:6] == b"FRAME\n", f"error: invalid FRAME: starts with {data[:6]}"
         offset = 6
-        # read luminance
+        # 2. read luminance
         dt = np.dtype(np.uint8)
         luma_size = self.width * self.height
         ya = np.frombuffer(data[offset : offset + luma_size], dtype=dt).reshape(
             self.height, self.width
         )
         offset += luma_size
-        # read chromas
+        # 3. read chromas
         if self.colorspace in ("420jpeg", "420paldv", "420", "420mpeg2"):
             chroma_w = self.width >> 1
             chroma_h = self.height >> 1
@@ -208,49 +208,71 @@ class Y4MHeader:
             chroma_h, chroma_w
         )
         offset += chroma_size
-        # combine the color components
+        # 4. combine the color components
         # undo chroma subsample in order to combine same-size matrices
         ua_full = itools_common.chroma_subsample_reverse(ua, self.colorspace)
         va_full = itools_common.chroma_subsample_reverse(va, self.colorspace)
-        input_colorrange = self.comment.get("COLORRANGE", "default").upper()
+        # 5. fix color range
+        input_colorrange = itools_common.ColorRange.parse(
+            self.comment.get("COLORRANGE")
+        )
         if debug > 0:
-            print(f"debug: y4m frame read with {input_colorrange=}")
+            print(
+                f"debug: y4m frame read with input_colorrange: {input_colorrange.name}"
+            )
         status = {
-            "y4m:colorrange": input_colorrange,
+            "y4m:colorrange": input_colorrange.name,
             "y4m:broken": 0,
         }
-        if input_colorrange == "DEFAULT":
-            input_colorrange = "LIMITED"
         if (
             output_colorrange is not None
-            and output_colorrange.upper() != input_colorrange
+            and output_colorrange is not itools_common.ColorRange.unspecified
+            and input_colorrange is not itools_common.ColorRange.unspecified
+            and output_colorrange != input_colorrange
         ):
-            output_colorrange = output_colorrange.upper()
+            if debug > 0:
+                print(
+                    f"debug: Y4MHeader.read_frame() converting colorrange from {input_colorrange.name} to {output_colorrange.name}"
+                )
+
             ya, ua_full, va_full, tmp_status = color_range_conversion_components(
                 ya, ua_full, va_full, input_colorrange, output_colorrange
             )
             status.update(tmp_status)
+        # 6. stack the components
         # note that OpenCV conversions use YCrCb (YVU) instead of YCbCr (YUV)
         outyvu = np.stack((ya, va_full, ua_full), axis=2)
         return outyvu, offset, status
 
 
-def read_y4m(infile, colorrange=None, debug=0):
+def read_y4m(infile, output_colorrange=None, debug=0):
     # read the y4m frame
     with open(infile, "rb") as fin:
         # read y4m header
         data = fin.read()
         header, offset = Y4MHeader.read(data)
         # read y4m frame
-        frame, offset, status = header.read_frame(data[offset:], colorrange, debug)
+        frame, offset, status = header.read_frame(
+            data[offset:], output_colorrange, debug
+        )
         return frame, header, offset, status
 
 
 def write_header(width, height, colorspace, colorrange):
-    return f"YUV4MPEG2 W{width} H{height} F30000:1001 Ip C{colorspace} XCOLORRANGE={colorrange}\n"
+    header = f"YUV4MPEG2 W{width} H{height} F30000:1001 Ip C{colorspace}"
+    if colorrange in (
+        itools_common.ColorRange.limited,
+        itools_common.ColorRange.full,
+    ):
+        colorrange_str = itools_common.ColorRange.to_str(colorrange).upper()
+        header += f" XCOLORRANGE={colorrange_str}"
+    header += "\n"
+    return header
 
 
-def write_y4m(outfile, outyvu, colorspace="420", colorrange="FULL"):
+def write_y4m(
+    outfile, outyvu, colorspace="420", colorrange=itools_common.ColorRange.full
+):
     with open(outfile, "wb") as fout:
         # write header
         height, width, _ = outyvu.shape

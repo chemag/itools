@@ -25,6 +25,43 @@ class ProcColor(enum.Enum):
 PROC_COLOR_LIST = list(c.name for c in ProcColor)
 
 
+class ColorRange(enum.Enum):
+    limited = 0
+    full = 1
+    unspecified = 2
+    TOTAL = 3
+
+    @classmethod
+    def parse(cls, val):
+        if val is None:
+            return cls.unspecified
+        # map value (int)/name (str) to object
+        for data in cls:
+            if (type(val) is int and val == data.value) or (
+                type(val) is str and val.lower() == data.name
+            ):
+                return data
+        # default value
+        return cls.unspecified
+
+    @classmethod
+    def to_str(cls, val):
+        # map object/value (int) to name (str)
+        for data in cls:
+            if val == data.value or cls(val).value == data.value:
+                return data.name
+        return "unspecified"
+
+    @classmethod
+    def to_int(cls, val):
+        # map object/name (str) to value (int)
+        val = val.lower() if type(val) is str else val
+        for data in cls:
+            if val == data.name or val == data:
+                return data.value
+        return -1
+
+
 class ImageInfo:
     width = None
     height = None

@@ -309,12 +309,12 @@ def process_file(
         distorted_path = f"{enc_path}.y4m"
         enc_extension = os.path.splitext(enc_path)[-1]
         if enc_extension in (".heic", ".avif", ".jp2", ".j2k"):
-            output_colorrange = itools_io.read_colorrange(ref_path, debug)
+            ref_colorrange = itools_io.read_colorrange(ref_path, debug)
             itools_heif.decode_heif(
                 enc_path,
                 distorted_path,
                 config_dict,
-                output_colorrange=output_colorrange,
+                output_colorrange=ref_colorrange,
                 debug=debug,
             )
         elif enc_extension in (".jpg", ".jpeg"):

@@ -35,5 +35,7 @@ def read_jxl(infile, config_dict, debug=0):
     command = f"{itools_common.FFMPEG_SILENT} -i {tmpppm} -pix_fmt yuv420p -color_range full {tmpy4m}"
     returncode, out, err = itools_common.run(command, debug=debug)
     # 3. read the y4m
-    outyvu, _, _, _ = itools_y4m.read_y4m(tmpy4m, colorrange="full", debug=debug)
+    outyvu, _, _, _ = itools_y4m.read_y4m(
+        tmpy4m, output_colorrange=itools_common.ColorRange.full, debug=debug
+    )
     return outyvu
