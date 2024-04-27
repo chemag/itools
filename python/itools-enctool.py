@@ -317,7 +317,13 @@ def process_file(
             iinfo = None
             proc_color = itools_common.ProcColor.yvu
             itools_filter.rotate_image(
-                distorted_path, encoded_rotate, distorted_path, iinfo, proc_color, debug
+                distorted_path,
+                encoded_rotate,
+                distorted_path,
+                iinfo,
+                proc_color,
+                config_dict,
+                debug,
             )
         # 7. analyze encoded file
         vmaf_def = vmaf_get(distorted_path, ref_path, debug, VMAF_DEF_MODEL)
