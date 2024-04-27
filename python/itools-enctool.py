@@ -38,8 +38,6 @@ itools_io = importlib.import_module("itools-io")
 itools_jxl = importlib.import_module("itools-jxl")
 itools_version = importlib.import_module("itools-version")
 
-
-HEIF_ENC = os.environ.get("HEIF_ENC", "heif-enc")
 VMAF_DEF_MODEL = "/usr/share/model/vmaf_v0.6.1.json"
 VMAF_NEG_MODEL = "/usr/share/model/vmaf_v0.6.1neg.json"
 VMAF_4K_MODEL = "/usr/share/model/vmaf_4k_v0.6.1.json"
@@ -198,9 +196,7 @@ def escape_float(f):
 # encoding backends
 # 1. heif-enc
 def heif_enc_encode_fun(infile, width, height, codec, quality, outfile, debug):
-    command = f"{HEIF_ENC} {infile} -e {codec} -q {quality} {outfile}"
-    returncode, out, err = itools_common.run(command, debug=debug)
-    assert returncode == 0, f"error: {out = } {err = }"
+    return itools_heif.encode_heif(infile, codec, quality, outfile, debug)
 
 
 # 2. jxl

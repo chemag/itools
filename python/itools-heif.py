@@ -26,6 +26,8 @@ itools_y4m = importlib.import_module("itools-y4m")
 sys.path.append(os.path.join(os.path.dirname(__file__), "icctool"))
 icctool = importlib.import_module("icctool.icctool")
 
+HEIF_ENC = os.environ.get("HEIF_ENC", "heif-enc")
+
 
 DEFAULT_H265_SPS_VIDEO_FULL_RANGE_FLAG_VALUE = 0
 
@@ -491,6 +493,12 @@ def read_heif(infile, config_dict, debug=0):
     qp_dict = get_h265_values(infile, config_dict, debug=debug)
     status.update(qp_dict)
     return outyvu, status
+
+
+def encode_heif(infile, codec, quality, outfile, debug):
+    command = f"{HEIF_ENC} {infile} -e {codec} -q {quality} {outfile}"
+    returncode, out, err = itools_common.run(command, debug=debug)
+    assert returncode == 0, f"error: {out = } {err = }"
 
 
 def decode_heif(infile, outfile_y4m, config_dict, output_colorrange=None, debug=0):
