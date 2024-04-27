@@ -35,12 +35,11 @@ itools_common = importlib.import_module("itools-common")
 itools_filter = importlib.import_module("itools-filter")
 itools_heif = importlib.import_module("itools-heif")
 itools_io = importlib.import_module("itools-io")
+itools_jxl = importlib.import_module("itools-jxl")
 itools_version = importlib.import_module("itools-version")
 
 
 HEIF_ENC = os.environ.get("HEIF_ENC", "heif-enc")
-JPEGXL_ENC = os.environ.get("JPEGXL_ENC", "cjxl")
-JPEGXL_DEC = os.environ.get("JPEGXL_DEC", "djxl")
 VMAF_DEF_MODEL = "/usr/share/model/vmaf_v0.6.1.json"
 VMAF_NEG_MODEL = "/usr/share/model/vmaf_v0.6.1neg.json"
 VMAF_4K_MODEL = "/usr/share/model/vmaf_4k_v0.6.1.json"
@@ -206,28 +205,11 @@ def heif_enc_encode_fun(infile, width, height, codec, quality, outfile, debug):
 
 # 2. jxl
 def jxl_encode_fun(infile, width, height, codec, quality, outfile, debug):
-    # jxl wants ppm
-    tmpppm = tempfile.NamedTemporaryFile(prefix="itools.jxl.", suffix=".ppm").name
-    command = f"{itools_common.FFMPEG_SILENT} -i {infile} {tmpppm}"
-    returncode, out, err = itools_common.run(command, debug=debug)
-    assert returncode == 0, f"error: {out = } {err = }"
-    # not do the encoding
-    command = f"{JPEGXL_ENC} {tmpppm} {outfile} -q {quality}"
-    returncode, out, err = itools_common.run(command, debug=debug)
-    assert returncode == 0, f"error: {out = } {err = }"
+    return itools_jxl.encode_jxl(infile, quality, outfile, debug)
 
 
 def jxl_decode_fun(infile, outfile, debug):
-    # jxl produces ppm
-    tmpppm = tempfile.NamedTemporaryFile(prefix="itools.jxl.", suffix=".ppm").name
-    # do the decoding
-    command = f"{JPEGXL_DEC} {infile} {tmpppm}"
-    returncode, out, err = itools_common.run(command, debug=debug)
-    # now convert to the outfile
-    # We are forcing the output of jxl to be interpreted as full range
-    command = f"{itools_common.FFMPEG_SILENT} -i {tmpppm} -pix_fmt yuv420p -color_range full {outfile}"
-    returncode, out, err = itools_common.run(command, debug=debug)
-    assert returncode == 0, f"error: {out = } {err = }"
+    return itools_jxl.decode_jxl(infile, outfile, debug)
 
 
 # TODO(chema): use better mechanism here
