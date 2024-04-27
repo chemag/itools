@@ -43,7 +43,7 @@ def decode_jxl(infile, outfile, debug):
     returncode, out, err = itools_common.run(command, debug=debug)
     # 2. convert to outfile
     # We are forcing the output of jxl to be interpreted as full range
-    command = f"{itools_common.FFMPEG_SILENT} -i {tmpppm} -pix_fmt yuv420p -color_range full {outfile}"
+    command = f"{itools_common.FFMPEG_SILENT} -i {tmpppm} -pix_fmt yuv420p -vf scale=in_range=limited:out_range=full {outfile}"
     returncode, out, err = itools_common.run(command, debug=debug)
     assert returncode == 0, f"error: {out = } {err = }"
 
