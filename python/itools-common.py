@@ -32,6 +32,17 @@ class ColorRange(enum.Enum):
     TOTAL = 3
 
     @classmethod
+    def get_choices(cls, name=True):
+        return list(
+            (c.name if name else c.value) for c in ColorRange if c.name != "TOTAL"
+        )
+
+    @classmethod
+    def get_default(cls, name=True):
+        default = cls.unspecified
+        return default.name if name else default.value
+
+    @classmethod
     def parse(cls, val):
         if val is None:
             return cls.unspecified
