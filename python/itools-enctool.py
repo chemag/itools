@@ -35,6 +35,7 @@ itools_common = importlib.import_module("itools-common")
 itools_filter = importlib.import_module("itools-filter")
 itools_heif = importlib.import_module("itools-heif")
 itools_io = importlib.import_module("itools-io")
+itools_jpeg = importlib.import_module("itools-jpeg")
 itools_jxl = importlib.import_module("itools-jxl")
 itools_version = importlib.import_module("itools-version")
 
@@ -296,11 +297,8 @@ def process_file(
                 debug=debug,
             )
         elif enc_extension in (".jpg", ".jpeg"):
-            command = f"{itools_common.FFMPEG_SILENT} -i {enc_path} {distorted_path}"
-            # command = f"{itools_common.FFMPEG_SILENT} -i {enc_path} -pix_fmt yuv420p {distorted_path}"
-            # command = f"{itools_common.FFMPEG_SILENT} -i {enc_path} -pix_fmt yuv420p -vf scale=out_range=full {distorted_path}"
-            returncode, out, err = itools_common.run(command, debug=debug)
-            assert returncode == 0, f"error: {out = } {err = }"
+            # copy the encoded file to the distorted path
+            itools_jpeg.decode_jpeg(enc_path, distorted_path, debug)
         elif enc_extension in (".y4m",):
             # copy the encoded file to the distorted path
             if debug > 0:
