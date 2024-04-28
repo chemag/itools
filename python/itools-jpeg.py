@@ -33,8 +33,7 @@ def read_jpeg(infile, config_dict, debug=0):
 
 
 def decode_jpeg(infile, outfile, debug):
-    command = f"{itools_common.FFMPEG_SILENT} -i {infile} {outfile}"
-    # command = f"{itools_common.FFMPEG_SILENT} -i {infile} -pix_fmt yuv420p {outfile}"
-    # command = f"{itools_common.FFMPEG_SILENT} -i {infile} -pix_fmt yuv420p -vf scale=out_range=full {outfile}"
+    # ffmpeg (default) jpeg decoder does not annotate y4m
+    command = f"{itools_common.FFMPEG_SILENT} -i {infile} -color_range full {outfile}"
     returncode, out, err = itools_common.run(command, debug=debug)
     assert returncode == 0, f"error: {out = } {err = }"
