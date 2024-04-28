@@ -32,7 +32,11 @@ def read_jxl(infile, config_dict, debug=0):
     outyvu, _, _, _ = itools_y4m.read_y4m(
         tmpy4m, output_colorrange=itools_common.ColorRange.full, debug=debug
     )
-    return outyvu
+    # 3. set read colorrange
+    status = {
+        "colorrange": itools_common.ColorRange.full,
+    }
+    return outyvu, status
 
 
 def decode_jxl(infile, outfile, debug):

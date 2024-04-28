@@ -30,6 +30,8 @@ HEIF_ENC = os.environ.get("HEIF_ENC", "heif-enc")
 
 
 DEFAULT_H265_SPS_VIDEO_FULL_RANGE_FLAG_VALUE = 0
+# TODO(chema): not sure this is correct
+DEFAULT_AVIF_COLOR_RANGE_VALUE = 1
 
 
 def parse_mp4box_info(output):
@@ -472,7 +474,11 @@ def read_heif(infile, config_dict, debug=0):
             tmpy4m, output_colorrange=None, debug=debug
         )
         status.update(tmp_status)
-        # 2.3. make sure the color range is correct
+    else:
+        outyvu = None
+        status = {}
+    # 3. make sure the colorrange is correct
+    if os.path.splitext(infile)[1] in (".heic", ".hif"):
         # libheif returns y4m with unspecified color range, which is equivalent
         # to limited color range. The actual color range depends on the SPS
         # header colorimetry, more concretely in the `video_full_range_flag`
@@ -480,15 +486,15 @@ def read_heif(infile, config_dict, debug=0):
         # ISO/IEC 23008-2:2013, Section E.2.1: "When the video_full_range_flag
         # syntax element is not present, the value of video_full_range_flag is
         # inferred to be equal to 0."
-        read_colorrange = itools_common.ColorRange.parse(status["y4m:colorrange"])
         actual_colorrange_id = status.get(
             "hevc:fr", DEFAULT_H265_SPS_VIDEO_FULL_RANGE_FLAG_VALUE
         )
         actual_colorrange = itools_common.ColorRange.parse(actual_colorrange_id)
-        status["y4m:colorrange"] = actual_colorrange.name
-    else:
-        outyvu = None
-        status = {}
+        status["colorrange"] = actual_colorrange
+    elif os.path.splitext(infile)[1] in (".avif"):
+        actual_colorrange_id = status.get("colr:fr", DEFAULT_AVIF_COLOR_RANGE_VALUE)
+        actual_colorrange = itools_common.ColorRange.parse(actual_colorrange_id)
+        status["colorrange"] = actual_colorrange
     # 4. get the heif QP distribution
     qp_dict = get_h265_values(infile, config_dict, debug=debug)
     status.update(qp_dict)
@@ -509,8 +515,7 @@ def decode_heif(infile, outfile_y4m, config_dict, output_colorrange=None, debug=
     assert inyvu is not None, f"error: cannot read {infile}"
     # write the output image
     colorspace = "420"
-    colorrange_id = status["y4m:colorrange"]
-    input_colorrange = itools_common.ColorRange.parse(colorrange_id)
+    input_colorrange = status["colorrange"]
     # force the output colorrange
     if (
         output_colorrange is not None

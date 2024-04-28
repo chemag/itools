@@ -22,4 +22,7 @@ def read_rgba(infile, iinfo):
     outb = outb.reshape(iinfo.iwidth, iinfo.iheight)
     # stack components
     outbgr = np.stack((outb, outg, outr), axis=2)
-    return outbgr
+    status = {
+        "colorrange": iinfo.colorrange,
+    }
+    return outbgr, status

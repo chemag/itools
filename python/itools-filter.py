@@ -78,6 +78,7 @@ default_values = {
     "iheight": 0,
     "istride": None,
     "iscanline": None,
+    "icolorrange": itools_common.ColorRange.get_default(),
     "width": 0,
     "height": 0,
     "a00": 1,
@@ -292,10 +293,10 @@ def diff_images(
     )
     df.loc[len(df.index)] = [
         infile1,
-        instatus1["y4m:colorrange"] if instatus1 is not None else "",
+        instatus1["colorrange"],
         instatus1["y4m:broken"] if instatus1 is not None else "",
         infile2,
-        instatus2["y4m:colorrange"] if instatus2 is not None else "",
+        instatus2["colorrange"],
         instatus2["y4m:broken"] if instatus2 is not None else "",
         ymean,
         ystddev,
@@ -782,7 +783,20 @@ def get_options(argv):
         metavar="HEIGHT",
         help=("input HEIGHT scanline"),
     )
-
+    parser.add_argument(
+        "--icolorrange",
+        action="store",
+        dest="icolorrange",
+        default=default_values["icolorrange"],
+        choices=itools_common.ColorRange.get_choices(),
+        metavar="[%s]"
+        % (
+            " | ".join(
+                itools_common.ColorRange.get_choices(),
+            )
+        ),
+        help=("input COLORRANGE"),
+    )
     parser.add_argument(
         "--width",
         action="store",
@@ -1057,7 +1071,11 @@ def main(argv):
         print(options)
 
     iinfo = itools_common.ImageInfo(
-        options.iwidth, options.iheight, options.istride, options.iscanline
+        options.iwidth,
+        options.iheight,
+        options.istride,
+        options.iscanline,
+        itools_common.ColorRange.parse(options.icolorrange),
     )
 
     if options.filter == "copy":

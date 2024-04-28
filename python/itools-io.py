@@ -29,7 +29,6 @@ def read_image_file(
 ):
     outyvu = None
     outbgr = None
-    status = {}
     if os.path.splitext(infile)[1] == ".y4m":
         outyvu, _, _, status = itools_y4m.read_y4m(
             infile, output_colorrange=itools_common.ColorRange.full, debug=debug
@@ -38,16 +37,16 @@ def read_image_file(
             print(f"error: file {infile} is broken")
 
     elif os.path.splitext(infile)[1] in (".yuv", ".YUV420NV12"):
-        outyvu = itools_yuv.read_yuv(infile, iinfo)
+        outyvu, status = itools_yuv.read_yuv(infile, iinfo)
 
     elif os.path.splitext(infile)[1] == ".rgba":
-        outbgr = itools_rgb.read_rgba(infile, iinfo)
+        outbgr, status = itools_rgb.read_rgba(infile, iinfo)
 
     elif os.path.splitext(infile)[1] in (".heic", ".avif", ".hif"):
         outyvu, status = itools_heif.read_heif(infile, config_dict, debug)
 
     elif os.path.splitext(infile)[1] == ".jxl":
-        outyvu = itools_jxl.read_jxl(infile, config_dict, debug)
+        outyvu, status = itools_jxl.read_jxl(infile, config_dict, debug)
 
     else:
         outbgr = cv2.imread(cv2.samples.findFile(infile, flags))
@@ -98,8 +97,7 @@ def read_metadata(infile, debug):
 
 def read_colorrange(infile, debug):
     status = read_metadata(infile, debug)
-    if os.path.splitext(infile)[1] == ".y4m":
-        return itools_common.ColorRange.parse(status["y4m:colorrange"])
+    return itools_common.ColorRange.parse(status["colorrange"])
 
 
 def write_image_file(
@@ -112,8 +110,7 @@ def write_image_file(
         elif return_type == itools_common.ProcColor.bgr:
             outyvu = cv2.cvtColor(outimg, cv2.COLOR_BGR2YCrCb)
         colorspace = "420"
-        colorrange_id = kwargs.get("hevc:fr", 1)
-        colorrange = "FULL" if colorrange_id == 1 else "LIMITED"
+        colorrange = kwargs.get("colorrange", itools_common.ColorRange.get_default())
         itools_y4m.write_y4m(outfile, outyvu, colorspace, colorrange)
     else:
         # cv2 writer requires BGR

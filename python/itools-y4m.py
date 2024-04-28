@@ -239,6 +239,7 @@ class Y4MHeader:
                 ya, ua_full, va_full, input_colorrange, output_colorrange
             )
             status.update(tmp_status)
+        status["colorrange"] = itools_common.ColorRange.parse(status["y4m:colorrange"])
         # 6. stack the components
         # note that OpenCV conversions use YCrCb (YVU) instead of YCbCr (YUV)
         outyvu = np.stack((ya, va_full, ua_full), axis=2)

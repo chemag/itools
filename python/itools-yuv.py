@@ -61,4 +61,7 @@ def read_yuv(infile, iinfo):
     ov = outv_full[0 : iinfo.height, 0 : iinfo.width]
     # stack components
     outyvu = np.stack((oy, ov, ou), axis=2)
-    return outyvu
+    status = {
+        "colorrange": iinfo.colorrange,
+    }
+    return outyvu, status
