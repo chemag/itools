@@ -314,6 +314,10 @@ def process_file(
             # rotate the encoded output
             iinfo = None
             proc_color = itools_common.ProcColor.yvu
+            if debug > 0:
+                print(
+                    f"running $ itools-filter.py --filter rotate --rotate-angle {encoded_rotate} -i {distorted_path} -o {distorted_path}"
+                )
             itools_filter.rotate_image(
                 distorted_path,
                 encoded_rotate,

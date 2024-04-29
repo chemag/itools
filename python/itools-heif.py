@@ -509,6 +509,8 @@ def encode_heif(infile, codec, quality, outfile, debug):
 
 
 def decode_heif(infile, outfile_y4m, config_dict, output_colorrange=None, debug=0):
+    if debug > 0:
+        print(f"decode_heif() {infile} -> {outfile_y4m}")
     # load the input (heic) image
     read_exif_info = False
     read_icc_info = False
@@ -524,6 +526,10 @@ def decode_heif(infile, outfile_y4m, config_dict, output_colorrange=None, debug=
         and input_colorrange is not itools_common.ColorRange.unspecified
         and output_colorrange != input_colorrange
     ):
+        if debug > 0:
+            print(
+                f"running $ itools-filter.py --filter range-convert -i ... -o {outfile_y4m}"
+            )
         outyvu = itools_y4m.color_range_conversion(
             inyvu, input_colorrange, output_colorrange
         )
