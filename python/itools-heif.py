@@ -27,6 +27,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "icctool"))
 icctool = importlib.import_module("icctool.icctool")
 
 HEIF_ENC = os.environ.get("HEIF_ENC", "heif-enc")
+HEIF_DEC = os.environ.get("HEIF_DEC", "heif-convert")
 
 
 DEFAULT_H265_SPS_VIDEO_FULL_RANGE_FLAG_VALUE = 0
@@ -463,9 +464,9 @@ def read_heif(infile, config_dict, debug=0):
     if read_image_components:
         tmpy4m = tempfile.NamedTemporaryFile(prefix="itools.raw.", suffix=".y4m").name
         if debug > 0:
-            print(f"using {tmpy4m}")
+            print(f"read_heif: using {tmpy4m}")
         # 2.1. decode the file using libheif (into y4m)
-        command = f"heif-convert {infile} {tmpy4m}"
+        command = f"{HEIF_DEC} {infile} {tmpy4m}"
         returncode, out, err = itools_common.run(command, debug=debug)
         assert returncode == 0, f"error in {command}\n{err}"
         tmpy4m = parse_heif_convert_output(tmpy4m, out, debug)
