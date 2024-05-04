@@ -55,6 +55,8 @@ def read_image_file(
         status = itools_exiftool.get_exiftool(
             infile, short=True, config_dict=config_dict, debug=debug
         )
+        if infile_extension in (".jpg", ".jpeg"):
+            status["colorrange"] = itools_common.ColorRange.full
 
     read_image_components = config_dict.get("read_image_components")
     if not read_image_components:
