@@ -65,6 +65,7 @@ default_values = {
     "proc_color": "bgr",
     "filter": "help",
     "noise_level": DEFAULT_NOISE_LEVEL,
+    "mse_invert": False,
     "diff_invert": True,
     "diff_factor": 1.0,
     "diff_component": "y",
@@ -350,7 +351,7 @@ def diff_images(
     return df
 
 
-def mse_image(infile, iinfo, proc_color, config_dict, debug):
+def mse_image(infile, iinfo, mse_invert, proc_color, config_dict, debug):
     assert (
         proc_color == itools_common.ProcColor.bgr
     ), f"error: mse_image unsupported in {proc_color}"
@@ -363,7 +364,10 @@ def mse_image(infile, iinfo, proc_color, config_dict, debug):
     # calculate the (1 - luma) mse
     luma = inyvu[:, :, 0]
     width, height = luma.shape
-    mse = ((255 - luma) ** 2).mean()
+    if mse_invert:
+        mse = ((255 - luma) ** 2).mean()
+    else:
+        mse = (luma**2).mean()
     # calculate the PSNR
     psnr = (20 * PSNR_K - 10 * math.log10(mse)) if mse != 0.0 else 100
     return mse, psnr
@@ -665,6 +669,19 @@ def get_options(argv):
         dest="noise_level",
         default=default_values["noise_level"],
         help="Noise Level",
+    )
+    parser.add_argument(
+        "--mse-invert",
+        action="store_true",
+        dest="mse_invert",
+        default=default_values["mse_invert"],
+        help="Invert luminance before MSE calculation",
+    )
+    parser.add_argument(
+        "--no-mse-invert",
+        action="store_false",
+        dest="mse_invert",
+        help="Do not invert luminance before MSE calculation",
     )
     parser.add_argument(
         "--diff-invert",
@@ -1127,6 +1144,7 @@ def main(argv):
         mse, psnr = mse_image(
             options.infile,
             iinfo,
+            options.mse_invert,
             itools_common.ProcColor[options.proc_color],
             config_dict,
             options.debug,
