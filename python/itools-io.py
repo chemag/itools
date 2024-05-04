@@ -29,23 +29,24 @@ def read_image_file(
 ):
     outyvu = None
     outbgr = None
-    if os.path.splitext(infile)[1] == ".y4m":
+    infile_extension = os.path.splitext(infile)[1]
+    if infile_extension == ".y4m":
         outyvu, _, _, status = itools_y4m.read_y4m(
             infile, output_colorrange=itools_common.ColorRange.full, debug=debug
         )
         if status is not None and status.get("broken", False):
             print(f"error: file {infile} is broken")
 
-    elif os.path.splitext(infile)[1] in (".yuv", ".YUV420NV12"):
+    elif infile_extension in (".yuv", ".YUV420NV12"):
         outyvu, status = itools_yuv.read_yuv(infile, iinfo)
 
-    elif os.path.splitext(infile)[1] == ".rgba":
+    elif infile_extension == ".rgba":
         outbgr, status = itools_rgb.read_rgba(infile, iinfo)
 
-    elif os.path.splitext(infile)[1] in (".heic", ".avif", ".hif"):
+    elif infile_extension in (".heic", ".avif", ".hif"):
         outyvu, status = itools_heif.read_heif(infile, config_dict, debug)
 
-    elif os.path.splitext(infile)[1] == ".jxl":
+    elif infile_extension == ".jxl":
         outyvu, status = itools_jxl.read_jxl(infile, config_dict, debug)
 
     else:
@@ -103,7 +104,8 @@ def read_colorrange(infile, debug):
 def write_image_file(
     outfile, outimg, return_type=itools_common.ProcColor.bgr, **kwargs
 ):
-    if os.path.splitext(outfile)[1] == ".y4m":
+    outfile_extension = os.path.splitext(outfile)[1]
+    if outfile_extension == ".y4m":
         # y4m writer requires YVU
         if return_type == itools_common.ProcColor.yvu:
             outyvu = outimg
