@@ -343,7 +343,10 @@ def diff_images(
     outyvu = np.stack((yd, vd, ud), axis=2)
     outbgr = cv2.cvtColor(outyvu, cv2.COLOR_YCrCb2BGR)
     # write the output image
-    itools_io.write_image_file(outfile, outyvu, return_type=itools_common.ProcColor.yvu)
+    colorrange = itools_common.ColorRange.full
+    itools_io.write_image_file(
+        outfile, outyvu, return_type=itools_common.ProcColor.yvu, colorrange=colorrange
+    )
     return df
 
 
