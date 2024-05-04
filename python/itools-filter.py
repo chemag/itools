@@ -65,6 +65,7 @@ default_values = {
     "proc_color": "bgr",
     "filter": "help",
     "noise_level": DEFAULT_NOISE_LEVEL,
+    "diff_invert": True,
     "diff_factor": 1.0,
     "diff_component": "y",
     "diff_color": False,
@@ -250,6 +251,7 @@ def diff_images(
     infile2,
     outfile,
     iinfo,
+    diff_invert,
     diff_factor,
     diff_component,
     diff_color,
@@ -320,8 +322,9 @@ def diff_images(
     yd_float = yd_float.clip(0, 255)
     yd_float = np.around(yd_float)
     yd = yd_float.astype(np.uint8)
-    # invert the luma values
-    yd = 255 - yd
+    if diff_invert:
+        # invert the luma values
+        yd = 255 - yd
     if not diff_color:
         # use gray chromas for visualization
         width, height = yd.shape
@@ -659,6 +662,19 @@ def get_options(argv):
         dest="noise_level",
         default=default_values["noise_level"],
         help="Noise Level",
+    )
+    parser.add_argument(
+        "--diff-invert",
+        action="store_true",
+        dest="diff_invert",
+        default=default_values["diff_invert"],
+        help="Invert diff colors (differences are black over white)",
+    )
+    parser.add_argument(
+        "--no-diff-invert",
+        action="store_false",
+        dest="diff_invert",
+        help="Normal diff colors (differences are white over black)",
     )
     parser.add_argument(
         "--diff-factor",
@@ -1094,6 +1110,7 @@ def main(argv):
             options.infile2,
             options.outfile,
             iinfo,
+            options.diff_invert,
             options.diff_factor,
             options.diff_component,
             options.diff_color,
