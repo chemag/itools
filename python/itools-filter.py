@@ -295,11 +295,11 @@ def diff_images(
     )
     df.loc[len(df.index)] = [
         infile1,
-        instatus1["colorrange"],
-        instatus1["y4m:broken"] if instatus1 is not None else "",
+        instatus1.get("colorrange", ""),
+        instatus1.get("y4m:broken", "") if instatus1 is not None else "",
         infile2,
-        instatus2["colorrange"],
-        instatus2["y4m:broken"] if instatus2 is not None else "",
+        instatus2.get("colorrange", ""),
+        instatus2.get("y4m:broken", "") if instatus2 is not None else "",
         ymean,
         ystddev,
         umean,
