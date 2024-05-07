@@ -27,14 +27,24 @@ def color_range_conversion(inyvu, input_colorrange, output_colorrange, colorspac
 
 
 def color_range_conversion_components(ya, ua, va, input_colorrange, output_colorrange, colorspace):
-
-    srcmin, srcmax, _ = get_colorspace_min_max(colorspace, input_colorrange.name)
-    dstmin, dstmax, dt = get_colorspace_min_max(colorspace, output_colorrange.name)
-    # luma_range_conversion
-    ya, ya_broken = do_range_conversion(ya, srcmin, srcmax, dstmin, dstmax, dt)
-    # chroma_range_conversion
-    ua, ua_broken = do_range_conversion(ua, srcmin, srcmax, dstmin, dstmax, dt)
-    va, va_broken = do_range_conversion(va, srcmin, srcmax, dstmin, dstmax, dt)
+    ya, ya_broken = luma_range_conversion(
+        ya,
+        colorspace,
+        src=input_colorrange,
+        dst=output_colorrange,
+    )
+    ua, ua_broken = chroma_range_conversion(
+        ua,
+        colorspace,
+        src=input_colorrange,
+        dst=output_colorrange,
+    )
+    va, va_broken = chroma_range_conversion(
+        va,
+        colorspace,
+        src=input_colorrange,
+        dst=output_colorrange,
+    )
     status = {}
     status["y4m:ybroken"] = int(ya_broken)
     status["y4m:ubroken"] = int(ua_broken)
@@ -67,18 +77,27 @@ def do_range_conversion(inarr, srcmin, srcmax, dstmin, dstmax, dt):
     outarr = outarr.astype(dt)
     return outarr, broken_range
 
-def get_colorspace_min_max(colorspace, colorrange):
+
+def luma_range_conversion(ya, colorspace, src, dst):
     if '10' in colorspace:
-        min = 0 if colorrange == "full" else 64
-        max = 1023 if colorrange == "full" else 940
-        return (min, max, np.uint16)
+        srcmin, srcmax = (0, 1023) if src.name == "full" else (64, 940)
+        dstmin, dstmax = (0, 1023) if dst.name == "full" else (64, 940)
+        return do_range_conversion(ya, srcmin, srcmax, dstmin, dstmax, np.uint16)
     else:
-        min = 0 if colorrange == "full" else 16
-        max = 255 if colorrange == "full" else 235
-        return (min, max, np.uint8)
-    raise ValueError(f"invalid colorspace: {colorspace}")
+        srcmin, srcmax = (0, 255) if src.name == "full" else (16, 235)
+        dstmin, dstmax = (0, 255) if dst.name == "full" else (16, 235)
+        return do_range_conversion(ya, srcmin, srcmax, dstmin, dstmax, np.uint8)
 
 
+def chroma_range_conversion(va, colorspace, src, dst):
+    if '10' in colorspace:
+        srcmin, srcmax = (0, 1023) if src.name == "full" else (64, 960)
+        dstmin, dstmax = (0, 1023) if dst.name == "full" else (64, 960)
+        return do_range_conversion(va, srcmin, srcmax, dstmin, dstmax, np.uint16)
+    else:
+        srcmin, srcmax = (0, 255) if src.name == "full" else (16, 240)
+        dstmin, dstmax = (0, 255) if dst.name == "full" else (16, 240)
+        return do_range_conversion(va, srcmin, srcmax, dstmin, dstmax, np.uint8)
 
 class Y4MHeader:
     VALID_INTERLACED = ("p", "t", "b", "m")
