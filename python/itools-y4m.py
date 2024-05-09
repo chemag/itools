@@ -53,7 +53,7 @@ def color_range_conversion_components(ya, ua, va, input_colorrange, output_color
     return ya, ua, va, status
 
 
-def do_range_conversion(inarr, srcmin, srcmax, dstmin, dstmax):
+def do_range_conversion(inarr, srcmin, srcmax, dstmin, dstmax, dt):
     # conversion function is $yout = a * yin + b$
     # Conversion requirements:
     # * (1) dstmin = a * srcmin + b
@@ -65,15 +65,16 @@ def do_range_conversion(inarr, srcmin, srcmax, dstmin, dstmax):
     # look for invalid values
     broken_range = False
     if (
-        len(outarr[outarr < np.iinfo(np.uint8).min]) > 0
-        or len(outarr[outarr > np.iinfo(np.uint8).max]) > 0
+        len(outarr[outarr < dstmin]) > 0
+        or len(outarr[outarr > dstmax]) > 0
     ):
         # strictly speaking, this y4m is wrong
         broken_range = True
+
     # clip values
-    outarr[outarr < np.iinfo(np.uint8).min] = np.iinfo(np.uint8).min
-    outarr[outarr > np.iinfo(np.uint8).max] = np.iinfo(np.uint8).max
-    outarr = outarr.astype(np.uint8)
+    outarr[outarr < dstmin] = dstmin
+    outarr[outarr > dstmax] = dstmax
+    outarr = outarr.astype(dt)
     return outarr, broken_range
 
 
