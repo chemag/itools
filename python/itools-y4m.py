@@ -53,7 +53,7 @@ def color_range_conversion_components(ya, ua, va, input_colorrange, output_color
     return ya, ua, va, status
 
 
-def do_range_conversion(inarr, srcmin, srcmax, dstmin, dstmax, dt):
+def do_range_conversion(inarr, srcmin, srcmax, dstmin, dstmax):
     # conversion function is $yout = a * yin + b$
     # Conversion requirements:
     # * (1) dstmin = a * srcmin + b
@@ -65,21 +65,20 @@ def do_range_conversion(inarr, srcmin, srcmax, dstmin, dstmax, dt):
     # look for invalid values
     broken_range = False
     if (
-        len(outarr[outarr < dstmin]) > 0
-        or len(outarr[outarr > dstmax]) > 0
+        len(outarr[outarr < np.iinfo(np.uint8).min]) > 0
+        or len(outarr[outarr > np.iinfo(np.uint8).max]) > 0
     ):
         # strictly speaking, this y4m is wrong
         broken_range = True
-
     # clip values
-    outarr[outarr < dstmin] = dstmin
-    outarr[outarr > dstmax] = dstmax
-    outarr = outarr.astype(dt)
+    outarr[outarr < np.iinfo(np.uint8).min] = np.iinfo(np.uint8).min
+    outarr[outarr > np.iinfo(np.uint8).max] = np.iinfo(np.uint8).max
+    outarr = outarr.astype(np.uint8)
     return outarr, broken_range
 
 
 def luma_range_conversion(ya, colorspace, src, dst):
-    if '10' in colorspace:
+    if colorspace in ("420p10"):
         srcmin, srcmax = (0, 1023) if src.name == "full" else (64, 940)
         dstmin, dstmax = (0, 1023) if dst.name == "full" else (64, 940)
         return do_range_conversion(ya, srcmin, srcmax, dstmin, dstmax, np.uint16)
@@ -90,7 +89,7 @@ def luma_range_conversion(ya, colorspace, src, dst):
 
 
 def chroma_range_conversion(va, colorspace, src, dst):
-    if '10' in colorspace:
+    if colorspace in ("420p10"):
         srcmin, srcmax = (0, 1023) if src.name == "full" else (64, 960)
         dstmin, dstmax = (0, 1023) if dst.name == "full" else (64, 960)
         return do_range_conversion(va, srcmin, srcmax, dstmin, dstmax, np.uint16)
@@ -191,10 +190,10 @@ class Y4MHeader:
         # 1. read "FRAME\n" tidbit
         assert data[:6] == b"FRAME\n", f"error: invalid FRAME: starts with {data[:6]}"
         offset = 6
-        # 2. read luminance
+
         dt = np.dtype(np.uint8)
         luma_size = self.width * self.height
-        # 3. read chromas
+
         if self.colorspace in ("420jpeg", "420paldv", "420", "420mpeg2"):
             chroma_w = self.width >> 1
             chroma_h = self.height >> 1
@@ -210,14 +209,16 @@ class Y4MHeader:
             luma_size *= 2
             dt = np.dtype(np.uint16)
 
+        chroma_size = chroma_w * chroma_h
+        if self.colorspace in ("420p10",):
+            chroma_size *= 2
+
+        # 2. read luminance
         ya = np.frombuffer(data[offset : offset + luma_size], dtype=dt).reshape(
             self.height, self.width
         )
         offset += luma_size
-
-        chroma_size = chroma_w * chroma_h
-        if self.colorspace in ("420p10",):
-            chroma_size *= 2
+        # 3. read chromas
         ua = np.frombuffer(data[offset : offset + chroma_size], dtype=dt).reshape(
             chroma_h, chroma_w
         )
