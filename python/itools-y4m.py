@@ -20,13 +20,20 @@ def color_range_conversion(inyvu, input_colorrange, output_colorrange, colorspac
     va = inyvu[:, :, 1]
     ua = inyvu[:, :, 2]
     ya, ua, va, status = color_range_conversion_components(
-        ya, ua, va, input_colorrange, output_colorrange, colorspace,
+        ya,
+        ua,
+        va,
+        input_colorrange,
+        output_colorrange,
+        colorspace,
     )
     outyvu = np.stack((ya, va, ua), axis=2)
     return outyvu
 
 
-def color_range_conversion_components(ya, ua, va, input_colorrange, output_colorrange, colorspace):
+def color_range_conversion_components(
+    ya, ua, va, input_colorrange, output_colorrange, colorspace
+):
     ya, ya_broken = luma_range_conversion(
         ya,
         colorspace,
@@ -64,10 +71,7 @@ def do_range_conversion(inarr, srcmin, srcmax, dstmin, dstmax, dt):
     outarr = f(inarr)
     # look for invalid values
     broken_range = False
-    if (
-        len(outarr[outarr < dstmin]) > 0
-        or len(outarr[outarr > dstmax]) > 0
-    ):
+    if len(outarr[outarr < dstmin]) > 0 or len(outarr[outarr > dstmax]) > 0:
         # strictly speaking, this y4m is wrong
         broken_range = True
 
@@ -79,29 +83,31 @@ def do_range_conversion(inarr, srcmin, srcmax, dstmin, dstmax, dt):
 
 
 def luma_range_conversion(ya, colorspace, src, dst):
-    if colorspace in ("420p10"):
+    color_depth = itools_common.COLORSPACES[colorspace][1]
+    if color_depth == itools_common.ColorDepth.depth_10:
         srcmin, srcmax = (0, 1023) if src.name == "full" else (64, 940)
         dstmin, dstmax = (0, 1023) if dst.name == "full" else (64, 940)
         return do_range_conversion(ya, srcmin, srcmax, dstmin, dstmax, np.uint16)
-    else:
+    elif color_depth == itools_common.ColorDepth.depth_8:
         srcmin, srcmax = (0, 255) if src.name == "full" else (16, 235)
         dstmin, dstmax = (0, 255) if dst.name == "full" else (16, 235)
         return do_range_conversion(ya, srcmin, srcmax, dstmin, dstmax, np.uint8)
 
 
 def chroma_range_conversion(va, colorspace, src, dst):
-    if colorspace in ("420p10"):
+    color_depth = itools_common.COLORSPACES[colorspace][1]
+    if color_depth == itools_common.ColorDepth.depth_10:
         srcmin, srcmax = (0, 1023) if src.name == "full" else (64, 960)
         dstmin, dstmax = (0, 1023) if dst.name == "full" else (64, 960)
         return do_range_conversion(va, srcmin, srcmax, dstmin, dstmax, np.uint16)
-    else:
+    elif color_depth == itools_common.ColorDepth.depth_8:
         srcmin, srcmax = (0, 255) if src.name == "full" else (16, 240)
         dstmin, dstmax = (0, 255) if dst.name == "full" else (16, 240)
         return do_range_conversion(va, srcmin, srcmax, dstmin, dstmax, np.uint8)
 
+
 class Y4MHeader:
     VALID_INTERLACED = ("p", "t", "b", "m")
-    VALID_COLORSPACES = ("420", "420jpeg", "420paldv", "420mpeg2", "422", "444", "420p10")
     VALID_COLORRANGES = ("FULL", "LIMITED")
     DEFAULT_COLORSPACE = "420"
 
@@ -156,7 +162,7 @@ class Y4MHeader:
             elif key == "C":
                 colorspace = val
                 assert (
-                    colorspace in cls.VALID_COLORSPACES
+                    colorspace in itools_common.COLORSPACES.keys()
                 ), f"error: invalid colorspace: {colorspace}"
             elif key == "X":
                 key2, val2 = val.split("=")
@@ -191,28 +197,31 @@ class Y4MHeader:
         # 1. read "FRAME\n" tidbit
         assert data[:6] == b"FRAME\n", f"error: invalid FRAME: starts with {data[:6]}"
         offset = 6
+        luma_size_pixels = self.width * self.height
 
-        dt = np.dtype(np.uint8)
-        luma_size = self.width * self.height
+        # process chroma subsampling
+        chroma_subsample = itools_common.COLORSPACES[self.colorspace][0]
+        if chroma_subsample == itools_common.ChromaSubsample.chroma_420:
+            chroma_w_pixels = self.width >> 1
+            chroma_h_pixels = self.height >> 1
+        elif chroma_subsample == itools_common.ChromaSubsample.chroma_422:
+            chroma_w_pixels = self.width >> 1
+            chroma_h_pixels = self.height
+        elif chroma_subsample == itools_common.ChromaSubsample.chroma_444:
+            chroma_w_pixels = self.width
+            chroma_h_pixels = self.height
+        chroma_size_pixels = chroma_w_pixels * chroma_h_pixels
 
-        if self.colorspace in ("420jpeg", "420paldv", "420", "420mpeg2"):
-            chroma_w = self.width >> 1
-            chroma_h = self.height >> 1
-        elif self.colorspace in ("422",):
-            chroma_w = self.width >> 1
-            chroma_h = self.height
-        elif self.colorspace in ("444",):
-            chroma_w = self.width
-            chroma_h = self.height
-        elif self.colorspace in ("420p10",):
-            chroma_w = self.width >> 1
-            chroma_h = self.height >> 1
-            luma_size *= 2
+        # process pixel depth
+        color_depth = itools_common.COLORSPACES[self.colorspace][1]
+        if color_depth == itools_common.ColorDepth.depth_8:
+            dt = np.dtype(np.uint8)
+            luma_size = luma_size_pixels
+            chroma_size = chroma_size_pixels
+        elif color_depth == itools_common.ColorDepth.depth_10:
             dt = np.dtype(np.uint16)
-
-        chroma_size = chroma_w * chroma_h
-        if self.colorspace in ("420p10",):
-            chroma_size *= 2
+            luma_size = 2 * luma_size_pixels
+            chroma_size = 2 * chroma_size_pixels
 
         # 2. read luminance
         ya = np.frombuffer(data[offset : offset + luma_size], dtype=dt).reshape(
@@ -221,11 +230,11 @@ class Y4MHeader:
         offset += luma_size
         # 3. read chromas
         ua = np.frombuffer(data[offset : offset + chroma_size], dtype=dt).reshape(
-            chroma_h, chroma_w
+            chroma_h_pixels, chroma_w_pixels
         )
         offset += chroma_size
         va = np.frombuffer(data[offset : offset + chroma_size], dtype=dt).reshape(
-            chroma_h, chroma_w
+            chroma_h_pixels, chroma_w_pixels
         )
         offset += chroma_size
         # 4. combine the color components
@@ -243,6 +252,7 @@ class Y4MHeader:
         status = {
             "y4m:colorrange": input_colorrange.name,
             "y4m:broken": 0,
+            "colorrange": itools_common.ColorRange.parse(input_colorrange.name),
         }
         if (
             output_colorrange is not None
@@ -255,13 +265,20 @@ class Y4MHeader:
                     f"debug: Y4MHeader.read_frame() converting colorrange from {input_colorrange.name} to {output_colorrange.name}"
                 )
             ya, ua_full, va_full, tmp_status = color_range_conversion_components(
-                ya, ua_full, va_full, input_colorrange, output_colorrange, self.colorspace
+                ya,
+                ua_full,
+                va_full,
+                input_colorrange,
+                output_colorrange,
+                self.colorspace,
             )
             status.update(tmp_status)
-        status["colorrange"] = itools_common.ColorRange.parse(status["y4m:colorrange"])
+            # overwrite the new color range
+            status["colorrange"] = output_colorrange
         # 6. stack the components
         # note that OpenCV conversions use YCrCb (YVU) instead of YCbCr (YUV)
         outyvu = np.stack((ya, va_full, ua_full), axis=2)
+
         return outyvu, offset, status
 
 

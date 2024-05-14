@@ -25,7 +25,8 @@ itools_y4m = importlib.import_module("itools-y4m")
 
 
 DEFAULT_NOISE_LEVEL = 50
-PSNR_K = math.log10(2**8 - 1)
+PSNR_K_8_BIT = math.log10(2**8 - 1)
+PSNR_K_10_BIT = math.log10(2**10 - 1)
 ROTATE_ANGLE_LIST = {
     0: 0,
     90: 1,
@@ -112,7 +113,9 @@ def image_to_gray(infile, outfile, iinfo, proc_color, config_dict, debug):
         proc_color == itools_common.ProcColor.bgr
     ), f"error: image_to_gray unsupported in {proc_color}"
     # load the input image
-    inbgr, status = itools_io.read_image_file(infile, config_dict, iinfo=iinfo)
+    inbgr, status = itools_io.read_image_file(
+        infile, config_dict, iinfo=iinfo, debug=debug
+    )
     assert inbgr is not None, f"error: cannot read {infile}"
     # convert to gray
     tmpgray = cv2.cvtColor(inbgr, cv2.COLOR_BGR2GRAY)
@@ -126,7 +129,9 @@ def swap_xchroma(infile, outfile, iinfo, proc_color, config_dict, debug):
         proc_color == itools_common.ProcColor.bgr
     ), f"error: swap_xchroma unsupported in {proc_color}"
     # load the input image
-    inbgr, status = itools_io.read_image_file(infile, config_dict, iinfo=iinfo)
+    inbgr, status = itools_io.read_image_file(
+        infile, config_dict, iinfo=iinfo, debug=debug
+    )
     assert inbgr is not None, f"error: cannot read {infile}"
     # swap chromas
     tmpyvu = cv2.cvtColor(inbgr, cv2.COLOR_BGR2YCrCb)
@@ -141,7 +146,9 @@ def swap_xrgb2yuv(infile, outfile, iinfo, proc_color, config_dict, debug):
         proc_color == itools_common.ProcColor.bgr
     ), f"error: swap_xrgb2yuv unsupported in {proc_color}"
     # load the input image
-    inbgr, status = itools_io.read_image_file(infile, config_dict, iinfo=iinfo)
+    inbgr, status = itools_io.read_image_file(
+        infile, config_dict, iinfo=iinfo, debug=debug
+    )
     assert inbgr is not None, f"error: cannot read {infile}"
     inrgb = inbgr[:, :, [2, 1, 0]]
     # swap RGB to YUV
@@ -181,10 +188,18 @@ def mix_images(
 ):
     # load the input images as YVU
     inyvu1, instatus1 = itools_io.read_image_file(
-        infile1, config_dict, iinfo=iinfo, return_type=itools_common.ProcColor.yvu
+        infile1,
+        config_dict,
+        iinfo=iinfo,
+        return_type=itools_common.ProcColor.yvu,
+        debug=debug,
     )
     inyvu2, instatus2 = itools_io.read_image_file(
-        infile2, config_dict, iinfo=iinfo, return_type=itools_common.ProcColor.yvu
+        infile2,
+        config_dict,
+        iinfo=iinfo,
+        return_type=itools_common.ProcColor.yvu,
+        debug=debug,
     )
     assert inyvu1 is not None, f"error: cannot read {infile1}"
     assert inyvu2 is not None, f"error: cannot read {infile2}"
@@ -211,7 +226,9 @@ def add_noise(infile, outfile, iinfo, noise_level, proc_color, config_dict, debu
         proc_color == itools_common.ProcColor.bgr
     ), f"error: add_noise unsupported in {proc_color}"
     # load the input image
-    inbgr, status = itools_io.read_image_file(infile, config_dict, iinfo=iinfo)
+    inbgr, status = itools_io.read_image_file(
+        infile, config_dict, iinfo=iinfo, debug=debug
+    )
     assert inbgr is not None, f"error: cannot read {infile}"
     # convert to gray
     noiseimg = np.random.randint(
@@ -228,7 +245,7 @@ def add_noise(infile, outfile, iinfo, noise_level, proc_color, config_dict, debu
 def copy_image(infile, outfile, iinfo, proc_color, config_dict, debug):
     # load the input image
     inabc, status = itools_io.read_image_file(
-        infile, config_dict, iinfo=iinfo, return_type=proc_color
+        infile, config_dict, iinfo=iinfo, return_type=proc_color, debug=debug
     )
     assert inabc is not None, f"error: cannot read {infile}"
     # write the output image
@@ -262,10 +279,18 @@ def diff_images(
 ):
     # load the input images as YVU
     inyvu1, instatus1 = itools_io.read_image_file(
-        infile1, config_dict, iinfo=iinfo, return_type=itools_common.ProcColor.yvu
+        infile1,
+        config_dict,
+        iinfo=iinfo,
+        return_type=itools_common.ProcColor.yvu,
+        debug=debug,
     )
     inyvu2, instatus2 = itools_io.read_image_file(
-        infile2, config_dict, iinfo=iinfo, return_type=itools_common.ProcColor.yvu
+        infile2,
+        config_dict,
+        iinfo=iinfo,
+        return_type=itools_common.ProcColor.yvu,
+        debug=debug,
     )
     assert inyvu1 is not None, f"error: cannot read {infile1}"
     assert inyvu2 is not None, f"error: cannot read {infile2}"
@@ -351,25 +376,29 @@ def diff_images(
     return df
 
 
-def mse_image(infile, iinfo, mse_invert, proc_color, config_dict, debug):
-    assert (
-        proc_color == itools_common.ProcColor.bgr
-    ), f"error: mse_image unsupported in {proc_color}"
+def mse_image(infile, iinfo, mse_invert, config_dict, debug):
     # load the input image
-    inbgr, _ = itools_io.read_image_file(infile, config_dict, iinfo=iinfo)
-    assert inbgr is not None, f"error: cannot read {infile}"
+    inyvu, _ = itools_io.read_image_file(
+        infile,
+        config_dict,
+        iinfo=iinfo,
+        return_type=itools_common.ProcColor.yvu,
+        debug=debug,
+    )
+    assert inyvu is not None, f"error: cannot read {infile}"
     # TODO(chema): use status (_) to deal with color ranges
-    # careful with number ranges
-    inyvu = cv2.cvtColor(inbgr, cv2.COLOR_BGR2YCrCb).astype(np.int32)
     # calculate the (1 - luma) mse
-    luma = inyvu[:, :, 0]
+    luma = inyvu[:, :, 0].astype(np.int32)
     width, height = luma.shape
     if mse_invert:
+        # TODO(chema): this assumes 8-bit color
         mse = ((255 - luma) ** 2).mean()
     else:
         mse = (luma**2).mean()
     # calculate the PSNR
-    psnr = (20 * PSNR_K - 10 * math.log10(mse)) if mse != 0.0 else 100
+    # TODO(chema): use status (_) to deal with color depths
+    psnr_k = PSNR_K_8_BIT
+    psnr = (20 * psnr_k - 10 * math.log10(mse)) if mse != 0.0 else 100
     return mse, psnr
 
 
@@ -382,9 +411,12 @@ def get_histogram(infile, outfile, iinfo, hist_component, config_dict, debug):
             config_dict,
             return_type=itools_common.ProcColor.yvu,
             iinfo=iinfo,
+            debug=debug,
         )
     else:  # hist_component in ("r", "g", "b"):
-        inimg, _ = itools_io.read_image_file(infile, config_dict, iinfo=iinfo)
+        inimg, _ = itools_io.read_image_file(
+            infile, config_dict, iinfo=iinfo, debug=debug
+        )
     assert inimg is not None, f"error: cannot read {infile}"
     # TODO(chema): use status (_) to deal with color ranges
     # get the requested component: note that options are YVU or BGR
@@ -414,7 +446,7 @@ def get_histogram(infile, outfile, iinfo, hist_component, config_dict, debug):
 def rotate_image(infile, rotate_angle, outfile, iinfo, proc_color, config_dict, debug):
     # load the input image
     inabc, status = itools_io.read_image_file(
-        infile, config_dict, iinfo=iinfo, return_type=proc_color
+        infile, config_dict, iinfo=iinfo, return_type=proc_color, debug=debug
     )
     assert inabc is not None, f"error: cannot read {infile}"
     # rotate it
@@ -433,10 +465,12 @@ def compose_images(
         proc_color == itools_common.ProcColor.bgr
     ), f"error: compose_images unsupported in {proc_color}"
     # load the input images
-    inbgr1, _ = itools_io.read_image_file(infile1, config_dict, iinfo=iinfo)
+    inbgr1, _ = itools_io.read_image_file(
+        infile1, config_dict, iinfo=iinfo, debug=debug
+    )
     assert inbgr1 is not None, f"error: cannot read {infile1}"
     inbgr2, _ = itools_io.read_image_file(
-        infile2, config_dict, cv2.IMREAD_UNCHANGED, iinfo=iinfo
+        infile2, config_dict, cv2.IMREAD_UNCHANGED, iinfo=iinfo, debug=debug
     )
     assert inbgr2 is not None, f"error: cannot read {infile2}"
     # TODO(chema): use status (_) to deal with color ranges
@@ -472,10 +506,12 @@ def match_images(infile1, infile2, outfile, iinfo, proc_color, config_dict, debu
         proc_color == itools_common.ProcColor.bgr
     ), f"error: match_images unsupported in {proc_color}"
     # load the input images
-    inbgr1, _ = itools_io.read_image_file(infile1, config_dict, iinfo=iinfo)
+    inbgr1, _ = itools_io.read_image_file(
+        infile1, config_dict, iinfo=iinfo, debug=debug
+    )
     assert inbgr1 is not None, f"error: cannot read {infile1}"
     inbgr2, _ = itools_io.read_image_file(
-        infile2, config_dict, cv2.IMREAD_UNCHANGED, iinfo=iinfo
+        infile2, config_dict, cv2.IMREAD_UNCHANGED, iinfo=iinfo, debug=debug
     )
     assert inbgr2 is not None, f"error: cannot read {infile2}"
     # TODO(chema): use status (_) to deal with color ranges
@@ -545,7 +581,9 @@ def affine_transformation_matrix(
     debug,
 ):
     # load the input image
-    inbgr, status = itools_io.read_image_file(infile, config_dict, iinfo=iinfo)
+    inbgr, status = itools_io.read_image_file(
+        infile, config_dict, iinfo=iinfo, debug=debug
+    )
     assert inbgr is not None, f"error: cannot read {infile}"
     # process the image
     m0 = [a00, a01, b00]
@@ -582,7 +620,9 @@ def affine_transformation_points(
     debug,
 ):
     # load the input image
-    inbgr, status = itools_io.read_image_file(infile, config_dict, iinfo=iinfo)
+    inbgr, status = itools_io.read_image_file(
+        infile, config_dict, iinfo=iinfo, debug=debug
+    )
     assert inbgr is not None, f"error: cannot read {infile}"
     # process the image
     s0 = [s0x, s0y]
@@ -1145,7 +1185,6 @@ def main(argv):
             options.infile,
             iinfo,
             options.mse_invert,
-            itools_common.ProcColor[options.proc_color],
             config_dict,
             options.debug,
         )

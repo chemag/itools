@@ -74,6 +74,7 @@ def read_image_file(
 
     elif return_type == itools_common.ProcColor.bgr:
         if outbgr is None:
+            # TODO(chema): conversions only work in dt.uint8
             outbgr = cv2.cvtColor(outyvu, cv2.COLOR_YCrCb2BGR)
             return outbgr, status
         else:

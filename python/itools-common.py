@@ -73,6 +73,50 @@ class ColorRange(enum.Enum):
         return -1
 
 
+class ChromaSubsample(enum.Enum):
+    chroma_420 = 0
+    chroma_422 = 1
+    chroma_444 = 2
+
+
+class ColorDepth(enum.Enum):
+    depth_8 = 0
+    depth_10 = 1
+
+
+# "colorspace": (ChromaSubsample, ColorDepth),
+COLORSPACES = {
+    "420": (
+        ChromaSubsample.chroma_420,
+        ColorDepth.depth_8,
+    ),
+    "420jpeg": (
+        ChromaSubsample.chroma_420,
+        ColorDepth.depth_8,
+    ),
+    "420paldv": (
+        ChromaSubsample.chroma_420,
+        ColorDepth.depth_8,
+    ),
+    "420mpeg2": (
+        ChromaSubsample.chroma_420,
+        ColorDepth.depth_8,
+    ),
+    "422": (
+        ChromaSubsample.chroma_422,
+        ColorDepth.depth_8,
+    ),
+    "444": (
+        ChromaSubsample.chroma_444,
+        ColorDepth.depth_8,
+    ),
+    "420p10": (
+        ChromaSubsample.chroma_420,
+        ColorDepth.depth_10,
+    ),
+}
+
+
 class ImageInfo:
     width = None
     height = None
@@ -129,7 +173,8 @@ def run(command, **kwargs):
 # Algo is very simple (just dup values)
 def chroma_subsample_reverse(inmatrix, colorspace):
     in_w, in_h = inmatrix.shape
-    if colorspace in ("420jpeg", "420paldv", "420", "420mpeg2"):
+    chroma_subsample = COLORSPACES[colorspace][0]
+    if chroma_subsample == ChromaSubsample.chroma_420:
         out_w = in_w << 1
         out_h = in_h << 1
         outmatrix = np.zeros((out_w, out_h), dtype=np.uint8)
@@ -137,13 +182,13 @@ def chroma_subsample_reverse(inmatrix, colorspace):
         outmatrix[1::2, ::2] = inmatrix
         outmatrix[::2, 1::2] = inmatrix
         outmatrix[1::2, 1::2] = inmatrix
-    elif colorspace in ("422",):
+    elif chroma_subsample == ChromaSubsample.chroma_422:
         out_w = in_w << 1
         out_h = in_h
         outmatrix = np.zeros((out_w, out_h), dtype=np.uint8)
         outmatrix[::, ::2] = inmatrix
         outmatrix[::, 1::2] = inmatrix
-    elif colorspace in ("444",):
+    elif chroma_subsample == ChromaSubsample.chroma_444:
         out_w = in_w
         out_h = in_h
         outmatrix = np.zeros((out_w, out_h), dtype=np.uint8)
@@ -155,7 +200,8 @@ def chroma_subsample_reverse(inmatrix, colorspace):
 # Algo is very simple (just average values)
 def chroma_subsample_direct(inmatrix, colorspace):
     in_w, in_h = inmatrix.shape
-    if colorspace in ("420jpeg", "420paldv", "420", "420mpeg2"):
+    chroma_subsample = COLORSPACES[colorspace][0]
+    if chroma_subsample == ChromaSubsample.chroma_420:
         out_w = in_w >> 1
         out_h = in_h >> 1
         outmatrix = np.zeros((out_w, out_h), dtype=np.uint16)
@@ -165,7 +211,7 @@ def chroma_subsample_direct(inmatrix, colorspace):
         outmatrix += inmatrix[1::2, 1::2]
         outmatrix = outmatrix / 4
         outmatrix = outmatrix.astype(np.uint8)
-    elif colorspace in ("422",):
+    elif chroma_subsample == ChromaSubsample.chroma_422:
         out_w = in_w >> 1
         out_h = in_h
         outmatrix = np.zeros((out_w, out_h), dtype=np.uint16)
@@ -173,7 +219,7 @@ def chroma_subsample_direct(inmatrix, colorspace):
         outmatrix += inmatrix[::, 1::2]
         outmatrix = outmatrix / 2
         outmatrix = outmatrix.astype(np.uint8)
-    elif colorspace in ("444",):
+    elif chroma_subsample == ChromaSubsample.chroma_444:
         out_w = in_w
         out_h = in_h
         outmatrix = np.zeros((out_w, out_h), dtype=np.uint8)
