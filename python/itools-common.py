@@ -83,6 +83,12 @@ class ColorDepth(enum.Enum):
     depth_8 = 0
     depth_10 = 1
 
+    def get_max(self):
+        if self == self.depth_8:
+            return 255
+        elif self == self.depth_10:
+            return 1023
+
 
 # "colorspace": (ChromaSubsample, ColorDepth),
 COLORSPACES = {

@@ -213,12 +213,12 @@ class Y4MHeader:
         chroma_size_pixels = chroma_w_pixels * chroma_h_pixels
 
         # process pixel depth
-        color_depth = itools_common.COLORSPACES[self.colorspace][1]
-        if color_depth == itools_common.ColorDepth.depth_8:
+        input_colordepth = itools_common.COLORSPACES[self.colorspace][1]
+        if input_colordepth == itools_common.ColorDepth.depth_8:
             dt = np.dtype(np.uint8)
             luma_size = luma_size_pixels
             chroma_size = chroma_size_pixels
-        elif color_depth == itools_common.ColorDepth.depth_10:
+        elif input_colordepth == itools_common.ColorDepth.depth_10:
             dt = np.dtype(np.uint16)
             luma_size = 2 * luma_size_pixels
             chroma_size = 2 * chroma_size_pixels
@@ -252,7 +252,8 @@ class Y4MHeader:
         status = {
             "y4m:colorrange": input_colorrange.name,
             "y4m:broken": 0,
-            "colorrange": itools_common.ColorRange.parse(input_colorrange.name),
+            "colorrange": input_colorrange,
+            "colordepth": input_colordepth,
         }
         if (
             output_colorrange is not None
@@ -278,7 +279,6 @@ class Y4MHeader:
         # 6. stack the components
         # note that OpenCV conversions use YCrCb (YVU) instead of YCbCr (YUV)
         outyvu = np.stack((ya, va_full, ua_full), axis=2)
-
         return outyvu, offset, status
 
 

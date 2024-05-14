@@ -25,8 +25,10 @@ itools_y4m = importlib.import_module("itools-y4m")
 
 
 DEFAULT_NOISE_LEVEL = 50
-PSNR_K_8_BIT = math.log10(2**8 - 1)
-PSNR_K_10_BIT = math.log10(2**10 - 1)
+PSNR_K = {
+    itools_common.ColorDepth.depth_8: math.log10(2**8 - 1),
+    itools_common.ColorDepth.depth_10: math.log10(2**10 - 1),
+}
 ROTATE_ANGLE_LIST = {
     0: 0,
     90: 1,
@@ -378,7 +380,7 @@ def diff_images(
 
 def mse_image(infile, iinfo, mse_invert, config_dict, debug):
     # load the input image
-    inyvu, _ = itools_io.read_image_file(
+    inyvu, instatus = itools_io.read_image_file(
         infile,
         config_dict,
         iinfo=iinfo,
@@ -386,18 +388,17 @@ def mse_image(infile, iinfo, mse_invert, config_dict, debug):
         debug=debug,
     )
     assert inyvu is not None, f"error: cannot read {infile}"
-    # TODO(chema): use status (_) to deal with color ranges
+    # TODO(chema): use instatus to deal with color ranges
     # calculate the (1 - luma) mse
     luma = inyvu[:, :, 0].astype(np.int32)
     width, height = luma.shape
+    colordepth = instatus.get("colordepth", itools_common.ColorDepth.depth_8)
     if mse_invert:
-        # TODO(chema): this assumes 8-bit color
-        mse = ((255 - luma) ** 2).mean()
+        mse = ((colordepth.get_max() - luma) ** 2).mean()
     else:
         mse = (luma**2).mean()
     # calculate the PSNR
-    # TODO(chema): use status (_) to deal with color depths
-    psnr_k = PSNR_K_8_BIT
+    psnr_k = PSNR_K[colordepth]
     psnr = (20 * psnr_k - 10 * math.log10(mse)) if mse != 0.0 else 100
     return mse, psnr
 
