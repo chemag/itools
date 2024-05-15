@@ -407,7 +407,7 @@ def mse_image(infile, iinfo, mse_invert, config_dict, debug):
 def get_histogram(infile, outfile, iinfo, hist_component, config_dict, debug):
     # load the input image
     if hist_component in ("y", "v", "u"):
-        inimg, _ = itools_io.read_image_file(
+        inimg, instatus = itools_io.read_image_file(
             infile,
             config_dict,
             return_type=itools_common.ProcColor.yvu,
@@ -415,7 +415,7 @@ def get_histogram(infile, outfile, iinfo, hist_component, config_dict, debug):
             debug=debug,
         )
     else:  # hist_component in ("r", "g", "b"):
-        inimg, _ = itools_io.read_image_file(
+        inimg, instatus = itools_io.read_image_file(
             infile, config_dict, iinfo=iinfo, debug=debug
         )
     assert inimg is not None, f"error: cannot read {infile}"
@@ -429,7 +429,8 @@ def get_histogram(infile, outfile, iinfo, hist_component, config_dict, debug):
         component = inimg[:, :, 2]  # inyvu, inbgr
 
     # calculate the histogram
-    VALUE_RANGE = 256  # assume 8-bit color
+    colordepth = instatus.get("colordepth", itools_common.ColorDepth.depth_8)
+    VALUE_RANGE = colordepth.get_max() + 1
     histogram = {k: 0 for k in range(VALUE_RANGE)}
     for v in component:
         for vv in v:
