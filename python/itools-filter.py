@@ -439,7 +439,7 @@ def get_histogram(infile, outfile, iinfo, hist_component, config_dict, debug):
     histogram_normalized = {k: (v / component.size) for (k, v) in histogram.items()}
     # store histogram as csv
     with open(outfile, "w") as fout:
-        fout.write("value,hist,norm\n")
+        fout.write("value,hist,ratio\n")
         for k in range(VALUE_RANGE):
             fout.write(f"{k},{histogram[k]},{histogram_normalized[k]}\n")
 
