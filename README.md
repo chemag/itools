@@ -1,6 +1,8 @@
 # itools: A set of image-processing tools
 
 itools is a repo containing a set of tools for image processing.
+It contains a submodule so when cloning do not forget:
+" --recurse-submodules"
 
 # 1. itools-bayer-conversion.py
 
@@ -272,3 +274,4 @@ $  csvlook /tmp/foo.csv
 
 * opencv2
 * numpy
+* exiftool
