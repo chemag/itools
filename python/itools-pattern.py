@@ -379,7 +379,7 @@ def get_options(argv):
             namespace.width, namespace.height = [int(v) for v in values[0].split("x")]
 
     parser.add_argument(
-        "--video_size",
+        "--video-size",
         action=VideoSizeAction,
         nargs=1,
         help="use <width>x<height>",
