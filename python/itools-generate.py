@@ -80,8 +80,8 @@ PATTERN_COLORS = {
 }
 
 
-# MIPI-RAW10-RGGB generator
-def generate_bayer_raw10_rggb(outfile, num_cols, num_rows, pattern, debug):
+# MIPI-RAW10-RGGB generator (SGRBG10P, pgAA)
+def generate_bayer_pgAA(outfile, num_cols, num_rows, pattern, debug):
     with open(outfile, "wb") as fout:
         num_bands = len(PATTERN_COLORS[pattern])
         delta_rows = num_rows // num_bands

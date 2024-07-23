@@ -396,7 +396,7 @@ def main(argv):
         print(options)
     # do something
     if options.func == "generate":
-        itools_generate.generate_bayer_raw10_rggb(
+        itools_generate.generate_bayer_pgAA(
             options.outfile,
             options.width,
             options.height,
