@@ -15,9 +15,9 @@ import sys
 import importlib
 
 itools_common = importlib.import_module("itools-common")
+itools_generate = importlib.import_module("itools-generate")
 
 
-PATTERN_LIST = ("kwrgb", "bandw", "grayscale")
 RANGE_CONVERSION_LIST = ("fr2fr", "fr2lr", "lr2fr", "lr2lr")
 DIFF_COMPONENT_LIST = ("y", "u", "v")
 
@@ -44,56 +44,6 @@ default_values = {
     "infile": None,
     "infile2": None,
     "outfile": None,
-}
-
-
-# generator colors
-
-# RGGB: (0, 0, 0, 0)
-BLACK0_COMPONENT_4_TOP = b"\x00\x00\x00\x00\x00"
-BLACK0_COMPONENT_4_BOT = BLACK0_COMPONENT_4_TOP
-# RGGB: (0x40, 0x40, 0x40, 0x40)
-BLACK64_COMPONENT_4_TOP = b"\x10\x10\x10\x10\x00"
-BLACK64_COMPONENT_4_BOT = BLACK64_COMPONENT_4_TOP
-# RGGB: (0x100, 0x100, 0x100, 0x100)
-GRAY100_COMPONENT_4_TOP = b"\x40\x40\x40\x40\x00"
-GRAY100_COMPONENT_4_BOT = GRAY100_COMPONENT_4_TOP
-# RGGB: (0x200, 0x200, 0x200, 0x200)
-GRAY200_COMPONENT_4_TOP = b"\x80\x80\x80\x80\x00"
-GRAY200_COMPONENT_4_BOT = GRAY200_COMPONENT_4_TOP
-# RGGB: (0x300, 0x300, 0x300, 0x300)
-GRAY300_COMPONENT_4_TOP = b"\xc0\xc0\xc0\xc0\x00"
-GRAY300_COMPONENT_4_BOT = GRAY300_COMPONENT_4_TOP
-# RGGB: (0x3ff, 0x3ff, 0x3ff, 0x3ff)
-WHITE_COMPONENT_4_TOP = b"\xff\xff\xff\xff\xff"
-WHITE_COMPONENT_4_BOT = WHITE_COMPONENT_4_TOP
-
-# assume RGGB
-RED_COMPONENT_4_TOP = b"\xff\x10\xff\x10\x33"
-RED_COMPONENT_4_BOT = b"\x10\x10\x10\x10\x00"
-BLUE_COMPONENT_4_TOP = b"\x10\x10\x10\x10\x00"
-BLUE_COMPONENT_4_BOT = b"\x10\xff\x10\xff\xcc"
-GREEN_COMPONENT_4_TOP = b"\x10\xff\x10\xff\xcc"
-GREEN_COMPONENT_4_BOT = b"\xff\x10\xff\x10\x33"
-
-
-COLOR_LIST = {
-    "black0": (BLACK0_COMPONENT_4_TOP, BLACK0_COMPONENT_4_BOT),
-    "black64": (BLACK64_COMPONENT_4_TOP, BLACK64_COMPONENT_4_BOT),
-    "gray100": (GRAY100_COMPONENT_4_TOP, GRAY100_COMPONENT_4_BOT),
-    "gray200": (GRAY200_COMPONENT_4_TOP, GRAY200_COMPONENT_4_BOT),
-    "gray300": (GRAY300_COMPONENT_4_TOP, GRAY300_COMPONENT_4_BOT),
-    "white": (WHITE_COMPONENT_4_TOP, WHITE_COMPONENT_4_BOT),
-    "red": (RED_COMPONENT_4_TOP, RED_COMPONENT_4_BOT),
-    "green": (GREEN_COMPONENT_4_TOP, GREEN_COMPONENT_4_BOT),
-    "blue": (BLUE_COMPONENT_4_TOP, BLUE_COMPONENT_4_BOT),
-}
-
-
-PATTERN_COLORS = {
-    "bandw": ("black64", "white"),
-    "kwrgb": ("black64", "white", "red", "green", "blue"),
-    "grayscale": ("black0", "black64", "gray100", "gray200", "gray300", "white"),
 }
 
 
@@ -143,7 +93,7 @@ def parse(infile, num_cols, num_rows, pattern, debug):
     # read the input file
     y, u, v = read_yuv420p10le_to_ndarray(infile, num_cols, num_rows)
     # get the average representation for each color
-    num_bands = len(PATTERN_COLORS[pattern])
+    num_bands = len(itools_generate.PATTERN_COLORS[pattern])
     delta_rows = num_rows // num_bands
     for cur_band in range(num_bands):
         # get the top and bottom rows
@@ -154,7 +104,7 @@ def parse(infile, num_cols, num_rows, pattern, debug):
         uavg, ustd = np.average(u[row_mid >> 1]), np.std(u[row_mid >> 1])
         vavg, vstd = np.average(v[row_mid >> 1]), np.std(v[row_mid >> 1])
         # print results
-        cur_color = PATTERN_COLORS[pattern][cur_band]
+        cur_color = itools_generate.PATTERN_COLORS[pattern][cur_band]
         print(
             f"{cur_color:10}   Y: {int(yavg):4}   U: {int(uavg):4}   V: {int(vavg):4}    Ystd: {ystd} Ustd: {ustd} Vstd: {vstd}"
         )
@@ -253,32 +203,6 @@ def diff(
     print(f"output: {outfile} png: {outfile_png}")
 
 
-# MIPI-RAW10-RGGB generator
-def generate(outfile, num_cols, num_rows, pattern, debug):
-    with open(outfile, "wb") as fout:
-        num_bands = len(PATTERN_COLORS[pattern])
-        delta_rows = num_rows // num_bands
-        row = 0
-
-        while row < num_rows:
-            # select the color
-            cur_band = min(num_bands - 1, row // delta_rows)
-            cur_color = PATTERN_COLORS[pattern][cur_band]
-            component_4_top, component_4_bot = COLOR_LIST[cur_color]
-            # do the top row
-            col = 0
-            while col < num_cols:
-                fout.write(component_4_top)
-                col += 4
-            row += 1
-            # do the bottom row
-            col = 0
-            while col < num_cols:
-                fout.write(component_4_bot)
-                col += 4
-            row += 1
-
-
 def get_options(argv):
     """Generic option parser.
 
@@ -330,11 +254,11 @@ def get_options(argv):
         type=str,
         dest="pattern",
         default=default_values["pattern"],
-        choices=PATTERN_LIST,
+        choices=itools_generate.PATTERN_LIST,
         metavar="[%s]"
         % (
             " | ".join(
-                PATTERN_LIST,
+                itools_generate.PATTERN_LIST,
             )
         ),
         help="pattern arg",
@@ -472,7 +396,7 @@ def main(argv):
         print(options)
     # do something
     if options.func == "generate":
-        generate(
+        itools_generate.generate_bayer_raw10_rggb(
             options.outfile,
             options.width,
             options.height,
