@@ -16,9 +16,6 @@ import importlib
 itools_common = importlib.import_module("itools-common")
 
 
-PATTERN_LIST = ("kwrgb", "bandw", "grayscale")
-
-
 default_values = {
     "debug": 0,
     "dry_run": False,
@@ -58,6 +55,10 @@ BLUE_COMPONENT_4_TOP = b"\x10\x10\x10\x10\x00"
 BLUE_COMPONENT_4_BOT = b"\x10\xff\x10\xff\xcc"
 GREEN_COMPONENT_4_TOP = b"\x10\xff\x10\xff\xcc"
 GREEN_COMPONENT_4_BOT = b"\xff\x10\xff\x10\x33"
+TEST_COMPONENT_1_TOP = b"\x02\x04\x06\x08\x00"
+TEST_COMPONENT_1_BOT = b"\x0a\x0c\x0e\x10\x00"
+TEST_COMPONENT_2_TOP = b"\x12\x14\x16\x18\x00"
+TEST_COMPONENT_2_BOT = b"\x1a\x1c\x1e\x20\x00"
 
 
 COLOR_LIST = {
@@ -70,6 +71,8 @@ COLOR_LIST = {
     "red": (RED_COMPONENT_4_TOP, RED_COMPONENT_4_BOT),
     "green": (GREEN_COMPONENT_4_TOP, GREEN_COMPONENT_4_BOT),
     "blue": (BLUE_COMPONENT_4_TOP, BLUE_COMPONENT_4_BOT),
+    "test1": (TEST_COMPONENT_1_TOP, TEST_COMPONENT_1_BOT),
+    "test2": (TEST_COMPONENT_2_TOP, TEST_COMPONENT_2_BOT),
 }
 
 
@@ -77,7 +80,10 @@ PATTERN_COLORS = {
     "bandw": ("black64", "white"),
     "kwrgb": ("black64", "white", "red", "green", "blue"),
     "grayscale": ("black0", "black64", "gray100", "gray200", "gray300", "white"),
+    "test": ("test1", "test2"),
 }
+
+PATTERN_LIST = PATTERN_COLORS.keys()
 
 
 # MIPI-RAW10-RGGB generator (SGRBG10P, pgAA)
