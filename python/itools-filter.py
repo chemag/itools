@@ -1138,9 +1138,9 @@ def main(argv):
         sys.exit(0)
 
     # get infile/outfile
-    if options.infile == "-":
+    if options.infile == "-" or options.infile is None:
         options.infile = "/dev/fd/0"
-    if options.outfile == "-":
+    if options.outfile == "-" or options.outfile is None:
         options.outfile = "/dev/fd/1"
     # create configuration
     config_dict = itools_common.Config.Create(options)
