@@ -160,11 +160,11 @@ def parse(infile, num_cols, num_rows, pattern, debug):
         )
 
 
-def convert_range(matrix_in, imin, imax, omin, omax):
+def range_convert_using_range(matrix_in, imin, imax, omin, omax, ominabs, omaxabs):
     convert_fun = lambda x: (x - imin) * ((omax - omin) / (imax - imin)) + omin
     matrix_out = np.vectorize(convert_fun)(matrix_in)
     # clip the output matrix
-    matrix_out = matrix_out.clip(0, 1023)
+    matrix_out = matrix_out.clip(ominabs, omaxabs)
     # round the output matrix
     # https://stackoverflow.com/a/43920513
     matrix_out = np.around(matrix_out)
@@ -194,9 +194,9 @@ def range_convert(infile, outfile, num_cols, num_rows, range_conversion, debug):
         # output is LR
         yomin, yomax = 64, 940
         comin, comax = 64, 960
-    yc = convert_range(y, yimin, yimax, yomin, yomax)
-    uc = convert_range(u, cimin, cimax, comin, comax)
-    vc = convert_range(v, cimin, cimax, comin, comax)
+    yc = range_convert_using_range(y, yimin, yimax, yomin, yomax, 0, 1023)
+    uc = range_convert_using_range(u, cimin, cimax, comin, comax, 0, 1023)
+    vc = range_convert_using_range(v, cimin, cimax, comin, comax, 0, 1023)
     # write input image
     write_ndarray_to_yuv420p10le(outfile, yc, uc, vc, num_cols, num_rows)
 
