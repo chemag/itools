@@ -811,6 +811,7 @@ def check_output_pix_fmt(o_pix_fmt):
     return o_pix_fmt
 
 
+# planar image is rgbp16be
 PLANE_ORDER = list("RGB")
 
 
@@ -841,8 +842,8 @@ def rfun_image_file(infile, i_pix_fmt, width, height, cdepth, debug):
         expected_size == file_size
     ), f"error: invalid dimensions: {height}x{width}, {i_pix_fmt=}, {expected_size=}, {file_size=}"
 
-    # create rgb16be image
-    rgb16be_image = np.zeros((3, height, width), dtype=np.uint16)
+    # create planar image
+    planar_image = np.zeros((3, height, width), dtype=np.uint16)
 
     # open infile
     row = 0
@@ -878,10 +879,10 @@ def rfun_image_file(infile, i_pix_fmt, width, height, cdepth, debug):
                 if debug > 1:
                     print(f"{row1=} {row2=} {col1=} {col2=}")
                 if row % 2 == 0 or plane_id != 1:
-                    rgb16be_image[plane_id][row1][col1] = component
-                    rgb16be_image[plane_id][row1][col2] = component
-                    rgb16be_image[plane_id][row2][col1] = component
-                    rgb16be_image[plane_id][row2][col2] = component
+                    planar_image[plane_id][row1][col1] = component
+                    planar_image[plane_id][row1][col2] = component
+                    planar_image[plane_id][row2][col1] = component
+                    planar_image[plane_id][row2][col2] = component
                 else:  # if row % 2 == 1 and plane_id == 1:
                     # TODO(chema) fix the second row in the G component (?)
                     # When converting an RGGB matrix to non-Bayer components,
@@ -895,25 +896,25 @@ def rfun_image_file(infile, i_pix_fmt, width, height, cdepth, debug):
                     # * R = [[2, 2], [4, 4]},
                     # * B = [[6, 6], [6, 6]}.
                     # do not touch value in the previous row
-                    # rgb16be_image[plane_id][row2][col1] = (
-                    #    rgb16be_image[plane_id][row1][col1] + component
+                    # planar_image[plane_id][row2][col1] = (
+                    #    planar_image[plane_id][row1][col1] + component
                     # ) // 2
-                    # rgb16be_image[plane_id][row2][col2] = (
-                    #    rgb16be_image[plane_id][row1][col2] + component
+                    # planar_image[plane_id][row2][col2] = (
+                    #    planar_image[plane_id][row1][col2] + component
                     # ) // 2
                     # overwrite main value
-                    rgb16be_image[plane_id][row1][col1] = component
-                    rgb16be_image[plane_id][row1][col2] = component
+                    planar_image[plane_id][row1][col1] = component
+                    planar_image[plane_id][row1][col2] = component
                 col += 1
             # 5. update row numbers
             if col == width:
                 col = 0
                 row += 1
 
-    return rgb16be_image
+    return planar_image
 
 
-def wfun_image_file(rgb16be_image, outfile, o_pix_fmt, width, height, cdepth, debug):
+def wfun_image_file(planar_image, outfile, o_pix_fmt, width, height, cdepth, debug):
     # get format info
     ordepth = OUTPUT_FORMATS[o_pix_fmt]["rdepth"]
     oclen = OUTPUT_FORMATS[o_pix_fmt]["clen"]
@@ -938,7 +939,7 @@ def wfun_image_file(rgb16be_image, outfile, o_pix_fmt, width, height, cdepth, de
                 plane_id = plane_ids[col % len(plane_ids)]
                 if debug > 0:
                     print(f"{plane_id=} {row=} {col=}")
-                component = rgb16be_image[plane_id][row][col]
+                component = planar_image[plane_id][row][col]
                 components.append(component)
                 col += 1
             # 3. convert component depth from 16-bit
@@ -954,7 +955,7 @@ def wfun_image_file(rgb16be_image, outfile, o_pix_fmt, width, height, cdepth, de
                 col = 0
                 row += 1
 
-    return rgb16be_image
+    return planar_image
 
 
 def get_options(argv):
@@ -1099,8 +1100,8 @@ def main(argv):
     icdepth = INPUT_FORMATS[i_pix_fmt]["cdepth"]
     ocdepth = OUTPUT_FORMATS[o_pix_fmt]["cdepth"]
     cdepth = max(icdepth, ocdepth)
-    # read input image file into rgb16be
-    rgb16be_image = rfun_image_file(
+    # read input image file into planar
+    planar_image = rfun_image_file(
         options.infile,
         i_pix_fmt,
         options.width,
@@ -1108,9 +1109,9 @@ def main(argv):
         cdepth,
         options.debug,
     )
-    # write rgb16be into output image file
+    # write planar into output image file
     wfun_image_file(
-        rgb16be_image,
+        planar_image,
         options.outfile,
         o_pix_fmt,
         options.width,

@@ -397,7 +397,7 @@ def main(argv):
         print(options)
     # do something
     if options.func == "generate":
-        rgb16be_image = itools_generate.generate_rgb16be(
+        planar_image = itools_generate.generate_planar(
             options.width,
             options.height,
             options.pattern,
@@ -406,7 +406,7 @@ def main(argv):
         o_pix_fmt = "pgAA"
         cdepth = 16
         itools_bayer_conversor.wfun_image_file(
-            rgb16be_image,
+            planar_image,
             options.outfile,
             o_pix_fmt,
             options.width,

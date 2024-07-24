@@ -128,9 +128,9 @@ def generate_bayer_pgAA(outfile, width, height, pattern, debug):
             row += 1
 
 
-def generate_rgb16be(width, height, pattern, debug):
-    # create rgb16be image
-    rgb16be_image = np.zeros((3, height, width), dtype=np.uint16)
+def generate_planar(width, height, pattern, debug):
+    # create planar image
+    planar_image = np.zeros((3, height, width), dtype=np.uint16)
     num_bands = len(PATTERN_COLORS[pattern])
     delta_rows = height // num_bands
 
@@ -143,12 +143,12 @@ def generate_rgb16be(width, height, pattern, debug):
         color = COLOR_RGB_LIST[cur_color]
         # do a row
         while col < width:
-            rgb16be_image[0][row][col] = color[0]
-            rgb16be_image[1][row][col] = color[1]
-            rgb16be_image[2][row][col] = color[2]
+            planar_image[0][row][col] = color[0]
+            planar_image[1][row][col] = color[1]
+            planar_image[2][row][col] = color[2]
             col += 1
         row += 1
-    return rgb16be_image
+    return planar_image
 
 
 def get_options(argv):
