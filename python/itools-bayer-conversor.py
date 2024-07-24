@@ -811,51 +811,6 @@ def check_output_pix_fmt(o_pix_fmt):
     return o_pix_fmt
 
 
-def gcd(a, b):
-    if a == 0:
-        return b
-    # recursively calcule the gcd
-    return gcd(b % a, a)
-
-
-def lcm(a, b):
-    return (a // gcd(a, b)) * b
-
-
-def sort_components(components, iorder, oorder):
-    c0, c1, c2, c3 = components
-    if iorder == oorder:
-        return c0, c1, c2, c3
-
-    elif iorder == "GRBG" and oorder == "GBRG":
-        return c0, c2, c1, c3
-    elif iorder == "GRBG" and oorder == "BGGR":
-        return c2, c0, c3, c1
-    elif iorder == "GRBG" and oorder == "RGGB":
-        return c1, c0, c3, c2
-
-    elif iorder == "GBRG" and oorder == "GRBG":
-        return c0, c2, c1, c3
-    elif iorder == "GBRG" and oorder == "BGGR":
-        return c1, c0, c3, c2
-    elif iorder == "GBRG" and oorder == "RGGB":
-        return c2, c0, c3, c1
-
-    elif iorder == "BGGR" and oorder == "RGGB":
-        return c3, c1, c2, c0
-    elif iorder == "BGGR" and oorder == "GRBG":
-        return c1, c3, c0, c1
-    elif iorder == "BGGR" and oorder == "GBRG":
-        return c1, c0, c3, c2
-
-    elif iorder == "RGGB" and oorder == "BGGR":
-        return c3, c1, c2, c0
-    elif iorder == "RGGB" and oorder == "GRBG":
-        return c1, c0, c3, c2
-    elif iorder == "RGGB" and oorder == "GBRG":
-        return c1, c3, c0, c2
-
-
 def get_planes(order, row):
     if order == "RGGB" and row % 2 == 0:  # RG
         plane_ids = (0, 1)
