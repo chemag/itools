@@ -826,7 +826,7 @@ def get_planes(order, row):
     return plane_ids
 
 
-def rfun_image_file(infile, i_pix_fmt, width, height, cdepth, debug):
+def rfun_image_file(infile, i_pix_fmt, width, height, debug):
     # get format info
     irdepth = INPUT_FORMATS[i_pix_fmt]["rdepth"]
     iclen = INPUT_FORMATS[i_pix_fmt]["clen"]
@@ -918,7 +918,7 @@ def rfun_image_file(infile, i_pix_fmt, width, height, cdepth, debug):
     return planar_image
 
 
-def wfun_image_file(planar_image, outfile, o_pix_fmt, width, height, cdepth, debug):
+def wfun_image_file(planar_image, outfile, o_pix_fmt, width, height, debug):
     # get format info
     ordepth = OUTPUT_FORMATS[o_pix_fmt]["rdepth"]
     oclen = OUTPUT_FORMATS[o_pix_fmt]["clen"]
@@ -1101,16 +1101,12 @@ def main(argv):
     i_pix_fmt = check_input_pix_fmt(options.i_pix_fmt)
     # check the output pixel format
     o_pix_fmt = check_output_pix_fmt(options.o_pix_fmt)
-    icdepth = INPUT_FORMATS[i_pix_fmt]["cdepth"]
-    ocdepth = OUTPUT_FORMATS[o_pix_fmt]["cdepth"]
-    cdepth = max(icdepth, ocdepth)
     # read input image file into planar
     planar_image = rfun_image_file(
         options.infile,
         i_pix_fmt,
         options.width,
         options.height,
-        cdepth,
         options.debug,
     )
     # write planar into output image file
@@ -1120,7 +1116,6 @@ def main(argv):
         o_pix_fmt,
         options.width,
         options.height,
-        cdepth,
         options.debug,
     )
     ffmpeg_support = OUTPUT_FORMATS[o_pix_fmt]["ffmpeg"]
