@@ -811,23 +811,13 @@ def check_output_pix_fmt(o_pix_fmt):
     return o_pix_fmt
 
 
+PLANE_ORDER = list("RGB")
+
+
 def get_planes(order, row):
-    if order == "RGGB" and row % 2 == 0:  # RG
-        plane_ids = (0, 1)
-    elif order == "RGGB" and row % 2 == 1:  # GB
-        plane_ids = (1, 2)
-    elif order == "BGGR" and row % 2 == 0:  # BG
-        plane_ids = (2, 1)
-    elif order == "BGGR" and row % 2 == 1:  # GR
-        plane_ids = (1, 0)
-    elif order == "GRBG" and row % 2 == 0:  # GR
-        plane_ids = (1, 0)
-    elif order == "GRBG" and row % 2 == 1:  # BG
-        plane_ids = (2, 1)
-    elif order == "GBRG" and row % 2 == 0:  # GB
-        plane_ids = (1, 2)
-    elif order == "GBRG" and row % 2 == 1:  # RG
-        plane_ids = (0, 1)
+    assert order in COLOR_ORDER, f"error: invalid Bayer order {order}rgb444be"
+    plane_names = order[0:2] if row % 2 == 0 else order[2:4]
+    plane_ids = list(PLANE_ORDER.index(plane_name) for plane_name in list(plane_names))
     return plane_ids
 
 
