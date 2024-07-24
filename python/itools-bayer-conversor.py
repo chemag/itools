@@ -811,8 +811,8 @@ def check_output_pix_fmt(o_pix_fmt):
     return o_pix_fmt
 
 
-# planar image is rgbp16be
-PLANE_ORDER = list("RGB")
+# planar image is gbrp16be
+PLANE_ORDER = list("GBR")
 
 
 def get_plane_id(plane_name):
