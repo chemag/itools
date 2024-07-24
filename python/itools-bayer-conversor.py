@@ -815,6 +815,10 @@ def check_output_pix_fmt(o_pix_fmt):
 PLANE_ORDER = list("RGB")
 
 
+def get_plane_id(plane_name):
+    return PLANE_ORDER.index(plane_name)
+
+
 def get_planes(order, row):
     assert order in COLOR_ORDER, f"error: invalid Bayer order {order}"
     plane_names = order[0:2] if row % 2 == 0 else order[2:4]
@@ -878,12 +882,12 @@ def rfun_image_file(infile, i_pix_fmt, width, height, cdepth, debug):
                 col2 = (col1 + 1) if col1 % 2 == 0 else (col1 - 1)
                 if debug > 1:
                     print(f"{row1=} {row2=} {col1=} {col2=}")
-                if row % 2 == 0 or plane_id != 1:
+                if row % 2 == 0 or plane_id != get_plane_id("G"):
                     planar_image[plane_id][row1][col1] = component
                     planar_image[plane_id][row1][col2] = component
                     planar_image[plane_id][row2][col1] = component
                     planar_image[plane_id][row2][col2] = component
-                else:  # if row % 2 == 1 and plane_id == 1:
+                else:  # if row % 2 == 1 and plane_id == get_plane_id("G"):
                     # TODO(chema) fix the second row in the G component (?)
                     # When converting an RGGB matrix to non-Bayer components,
                     # we repeat the R and B components 4x times. Now, for the
