@@ -83,33 +83,72 @@ PATTERN_COLORS = {
     "test": ("test1", "test2"),
 }
 
+
+# RGB components of every color, in 16-bit color
+COLOR_RGB_LIST = {
+    "black0": (0, 0, 0),
+    "black64": (64 << 6, 64 << 6, 64 << 6),
+    "gray100": (0x100 << 6, 0x100 << 6, 0x100 << 6),
+    "gray200": (0x200 << 6, 0x300 << 6, 0x300 << 6),
+    "gray300": (0x300 << 6, 0x400 << 6, 0x400 << 6),
+    "white": (0xFFFF, 0xFFFF, 0xFFFF),
+    "red": (0xFFFF, 0, 0),
+    "green": (0, 0xFFFF, 0),
+    "blue": (0, 0, 0xFFFF),
+    "test1": (2 << 6, 4 << 6, 6 << 6),
+    "test2": (8 << 6, 10 << 6, 12 << 6),
+}
+
 PATTERN_LIST = PATTERN_COLORS.keys()
 
 
 # MIPI-RAW10-RGGB generator (SGRBG10P, pgAA)
-def generate_bayer_pgAA(outfile, num_cols, num_rows, pattern, debug):
+def generate_bayer_pgAA(outfile, width, height, pattern, debug):
     with open(outfile, "wb") as fout:
         num_bands = len(PATTERN_COLORS[pattern])
-        delta_rows = num_rows // num_bands
-        row = 0
+        delta_rows = height // num_bands
 
-        while row < num_rows:
+        row = 0
+        while row < height:
             # select the color
             cur_band = min(num_bands - 1, row // delta_rows)
             cur_color = PATTERN_COLORS[pattern][cur_band]
             component_4_top, component_4_bot = COLOR_LIST[cur_color]
             # do the top row
             col = 0
-            while col < num_cols:
+            while col < width:
                 fout.write(component_4_top)
                 col += 4
             row += 1
             # do the bottom row
             col = 0
-            while col < num_cols:
+            while col < width:
                 fout.write(component_4_bot)
                 col += 4
             row += 1
+
+
+def generate_rgb16be(width, height, pattern, debug):
+    # create rgb16be image
+    rgb16be_image = np.zeros((3, height, width), dtype=np.uint16)
+    num_bands = len(PATTERN_COLORS[pattern])
+    delta_rows = height // num_bands
+
+    row = 0
+    while row < height:
+        col = 0
+        # select the color
+        cur_band = min(num_bands - 1, row // delta_rows)
+        cur_color = PATTERN_COLORS[pattern][cur_band]
+        color = COLOR_RGB_LIST[cur_color]
+        # do a row
+        while col < width:
+            rgb16be_image[0][row][col] = color[0]
+            rgb16be_image[1][row][col] = color[1]
+            rgb16be_image[2][row][col] = color[2]
+            col += 1
+        row += 1
+    return rgb16be_image
 
 
 def get_options(argv):

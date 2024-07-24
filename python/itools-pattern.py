@@ -16,6 +16,7 @@ import importlib
 
 itools_common = importlib.import_module("itools-common")
 itools_generate = importlib.import_module("itools-generate")
+itools_bayer_conversor = importlib.import_module("itools-bayer-conversor")
 
 
 RANGE_CONVERSION_LIST = ("fr2fr", "fr2lr", "lr2fr", "lr2lr")
@@ -396,11 +397,21 @@ def main(argv):
         print(options)
     # do something
     if options.func == "generate":
-        itools_generate.generate_bayer_pgAA(
-            options.outfile,
+        rgb16be_image = itools_generate.generate_rgb16be(
             options.width,
             options.height,
             options.pattern,
+            options.debug,
+        )
+        o_pix_fmt = "pgAA"
+        cdepth = 16
+        itools_bayer_conversor.wfun_image_file(
+            rgb16be_image,
+            options.outfile,
+            o_pix_fmt,
+            options.width,
+            options.height,
+            cdepth,
             options.debug,
         )
 

@@ -815,7 +815,7 @@ PLANE_ORDER = list("RGB")
 
 
 def get_planes(order, row):
-    assert order in COLOR_ORDER, f"error: invalid Bayer order {order}rgb444be"
+    assert order in COLOR_ORDER, f"error: invalid Bayer order {order}"
     plane_names = order[0:2] if row % 2 == 0 else order[2:4]
     plane_ids = list(PLANE_ORDER.index(plane_name) for plane_name in list(plane_names))
     return plane_ids
