@@ -313,7 +313,7 @@ def process_file(
                 print(f"running $ cp {encoded_infile} {enc_path}")
             shutil.copyfile(encoded_infile, enc_path)
         else:
-            encode_fun(exp_path, width, height, codec, quality, enc_path, debug)
+            stats = encode_fun(exp_path, width, height, codec, quality, enc_path, debug)
         # 5. calculate the encoded size
         encoded_size = os.path.getsize(enc_path)
         encoded_bpp = (8 * encoded_size) / (width * height)
@@ -372,6 +372,7 @@ def process_file(
             vmaf_column_list = list(
                 f"vmaf:{key if key != 'vmaf' else 'neg'}" for key in vmaf_neg.keys()
             )
+            stats_column_list = list(f"stats:{key}" for key in stats.keys())
             df = pd.DataFrame(
                 columns=COLUMN_LIST
                 + [
@@ -379,6 +380,7 @@ def process_file(
                     "vmaf:4k",
                 ]
                 + vmaf_column_list
+                + stats_column_list
             )
         df.loc[df.size] = (
             infile,
@@ -395,6 +397,7 @@ def process_file(
             vmaf_def["vmaf"],
             vmaf_4k["vmaf"],
             *list(vmaf_neg.values()),
+            *list(stats.values()),
         )
 
     # 9. clean up after yourself
@@ -423,6 +426,7 @@ def get_average_results(df):
         qpwcb_keys = list(key for key in df.columns.values if key.startswith("qpwcb:"))
         qpwcr_keys = list(key for key in df.columns.values if key.startswith("qpwcr:"))
         ctu_keys = list(key for key in df.columns.values if key.startswith("ctu:"))
+        stats_keys = list(key for key in df.columns.values if key.startswith("stats:"))
         mean_keys = (
             [
                 "width",
@@ -438,6 +442,7 @@ def get_average_results(df):
             + qpwcb_keys
             + qpwcr_keys
             + ctu_keys
+            + stats_keys
         )
         for key in mean_keys:
             derived_dict[key] = tmp_fd[key].mean()

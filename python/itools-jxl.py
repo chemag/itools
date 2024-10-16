@@ -60,5 +60,6 @@ def encode_jxl(infile, quality, outfile, debug):
     assert returncode == 0, f"error: {out = } {err = }"
     # not do the encoding
     command = f"{JPEGXL_ENC} {tmpppm} {outfile} -q {quality}"
-    returncode, out, err = itools_common.run(command, debug=debug)
+    returncode, out, err, stats = itools_common.run(command, debug=debug, gnu_time=True)
     assert returncode == 0, f"error: {out = } {err = }"
+    return stats

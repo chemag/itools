@@ -9,6 +9,7 @@ Module that contains common code.
 
 import enum
 import numpy as np
+import re
 import subprocess
 import sys
 
@@ -152,6 +153,11 @@ def run(command, **kwargs):
         print(f"running $ {command}")
     if dry_run:
         return 0, b"stdout", b"stderr"
+    gnu_time = kwargs.get("gnu_time", False)
+    if gnu_time:
+        # GNU /usr/bin/time support
+        command = f"/usr/bin/time -v {command}"
+
     p = subprocess.Popen(  # noqa: E501
         command,
         stdin=stdin,
@@ -171,6 +177,14 @@ def run(command, **kwargs):
     returncode = p.returncode
     # clean up
     del p
+    if gnu_time:
+        # make sure the stats are there
+        GNU_TIME_BYTES = b"\n\tUser time"
+        assert GNU_TIME_BYTES in err, "error: cannot find GNU time info in stderr"
+        gnu_time_str = err[err.index(GNU_TIME_BYTES) :].decode("ascii")
+        gnu_time_stats = gnu_time_parse(gnu_time_str)
+        err = err[0 : err.index(GNU_TIME_BYTES) :]
+        return returncode, out, err, gnu_time_stats
     # return results
     return returncode, out, err
 
@@ -350,3 +364,103 @@ class Config:
 
     def set(self, key, val):
         self.config_dict[key] = val
+
+
+GNU_TIME_DEFAULT_KEY_DICT = {
+    "Command being timed": "command",
+    "User time (seconds)": "usertime",
+    "System time (seconds)": "systemtime",
+    "Percent of CPU this job got": "cpu",
+    "Elapsed (wall clock) time (h:mm:ss or m:ss)": "elapsed",
+    "Average shared text size (kbytes)": "avgtext",
+    "Average unshared data size (kbytes)": "avgdata",
+    "Average stack size (kbytes)": "avgstack",
+    "Average total size (kbytes)": "avgtotal",
+    "Maximum resident set size (kbytes)": "maxrss",
+    "Average resident set size (kbytes)": "avgrss",
+    "Major (requiring I/O) page faults": "major_pagefaults",
+    "Minor (reclaiming a frame) page faults": "minor_pagefaults",
+    "Voluntary context switches": "voluntaryswitches",
+    "Involuntary context switches": "involuntaryswitches",
+    "Swaps": "swaps",
+    "File system inputs": "fileinputs",
+    "File system outputs": "fileoutputs",
+    "Socket messages sent": "socketsend",
+    "Socket messages received": "socketrecv",
+    "Signals delivered": "signals",
+    "Page size (bytes)": "page_size",
+    "Exit status": "status",
+}
+
+
+GNU_TIME_DEFAULT_VAL_TYPE = {
+    "int": [
+        "avgtext",
+        "avgdata",
+        "avgstack",
+        "avgtotal",
+        "maxrss",
+        "avgrss",
+        "major_pagefaults",
+        "minor_pagefaults",
+        "voluntaryswitches",
+        "involuntaryswitches",
+        "swaps",
+        "fileinputs",
+        "fileoutputs",
+        "socketsend",
+        "socketrecv",
+        "signals",
+        "page_size",
+        "status",
+        "usersystemtime",
+    ],
+    "float": [
+        "usertime",
+        "systemtime",
+    ],
+    "timedelta": [
+        "elapsed",
+    ],
+    "percent": [
+        "cpu",
+    ],
+}
+
+
+def gnu_time_parse(gnu_time_str):
+    gnu_time_stats = {}
+    for line in gnu_time_str.split("\n"):
+        if not line:
+            # empty line
+            continue
+        # check if we know the line
+        line = line.strip()
+        for key1, key2 in GNU_TIME_DEFAULT_KEY_DICT.items():
+            if line.startswith(key1):
+                break
+        else:
+            # unknown key
+            print(f"warn: unknown gnutime line: {line}")
+            continue
+        val = line[len(key1) + 1 :].strip()
+        # fix val type
+        if key2 in GNU_TIME_DEFAULT_VAL_TYPE["int"]:
+            val = int(val)
+        elif key2 in GNU_TIME_DEFAULT_VAL_TYPE["float"]:
+            val = float(val)
+        elif key2 in GNU_TIME_DEFAULT_VAL_TYPE["percent"]:
+            val = float(val[:-1])
+        elif key2 in GNU_TIME_DEFAULT_VAL_TYPE["timedelta"]:
+            # '0:00.02'
+            timedelta_re = r"((?P<min>\d+):(?P<sec>\d+).(?P<centisec>\d+))"
+            res = re.search(timedelta_re, val)
+            timedelta_sec = int(res.group("min")) * 60 + int(res.group("sec"))
+            timedelta_centisec = int(res.group("centisec"))
+            timedelta_sec += timedelta_centisec / 100.0
+            val = timedelta_sec
+        gnu_time_stats[key2] = val
+    gnu_time_stats["usersystemtime"] = (
+        gnu_time_stats["usertime"] + gnu_time_stats["systemtime"]
+    )
+    return gnu_time_stats

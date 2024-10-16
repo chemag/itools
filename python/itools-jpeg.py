@@ -50,8 +50,9 @@ def encode_libjpeg(infile, quality, outfile, debug):
     assert returncode == 0, f"error: {out = } {err = }"
     # 2. do the encoding
     command = f"{LIBJPEG_ENC} -quality {int(quality)} -outfile {outfile} {tmpppm}"
-    returncode, out, err = itools_common.run(command, debug=debug)
+    returncode, out, err, stats = itools_common.run(command, debug=debug, gnu_time=True)
     assert returncode == 0, f"error: {out = } {err = }"
+    return stats
 
 
 def encode_jpegli(infile, quality, outfile, debug):
@@ -62,5 +63,6 @@ def encode_jpegli(infile, quality, outfile, debug):
     assert returncode == 0, f"error: {out = } {err = }"
     # 2. do the encoding
     command = f"{JPEGLI_ENC} {tmpppm} {outfile} -q {int(quality)}"
-    returncode, out, err = itools_common.run(command, debug=debug)
+    returncode, out, err, stats = itools_common.run(command, debug=debug, gnu_time=True)
     assert returncode == 0, f"error: {out = } {err = }"
+    return stats

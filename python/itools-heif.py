@@ -516,8 +516,9 @@ def read_heif(infile, config_dict, debug=0):
 
 def encode_heif(infile, codec, quality, outfile, debug):
     command = f"{HEIF_ENC} {infile} -e {codec} -q {quality} {outfile}"
-    returncode, out, err = itools_common.run(command, debug=debug)
+    returncode, out, err, stats = itools_common.run(command, debug=debug, gnu_time=True)
     assert returncode == 0, f"error: {out = } {err = }"
+    return stats
 
 
 def decode_heif(infile, outfile_y4m, config_dict, output_colorrange=None, debug=0):
