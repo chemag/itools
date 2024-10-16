@@ -20,6 +20,7 @@ import tempfile
 itools_common = importlib.import_module("itools-common")
 itools_y4m = importlib.import_module("itools-y4m")
 
+LIBJPEG_ENC = os.environ.get("LIBJPEG_ENC", "cjpeg")
 
 def read_jpeg(infile, config_dict, debug=0):
     # 1. decode to y4m
@@ -35,5 +36,17 @@ def read_jpeg(infile, config_dict, debug=0):
 def decode_jpeg(infile, outfile, debug):
     # ffmpeg (default) jpeg decoder does not annotate y4m
     command = f"{itools_common.FFMPEG_SILENT} -i {infile} -color_range full {outfile}"
+    returncode, out, err = itools_common.run(command, debug=debug)
+    assert returncode == 0, f"error: {out = } {err = }"
+
+
+def encode_libjpeg(infile, quality, outfile, debug):
+    # 1. convert to ppm (libjpeg encoder wants ppm)
+    tmpppm = tempfile.NamedTemporaryFile(prefix="itools.jpegli.", suffix=".ppm").name
+    command = f"{itools_common.FFMPEG_SILENT} -i {infile} {tmpppm}"
+    returncode, out, err = itools_common.run(command, debug=debug)
+    assert returncode == 0, f"error: {out = } {err = }"
+    # 2. do the encoding
+    command = f"{LIBJPEG_ENC} -quality {int(quality)} -outfile {outfile} {tmpppm}"
     returncode, out, err = itools_common.run(command, debug=debug)
     assert returncode == 0, f"error: {out = } {err = }"

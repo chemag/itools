@@ -222,7 +222,12 @@ def heif_enc_encode_fun(infile, width, height, codec, quality, outfile, debug):
     return itools_heif.encode_heif(infile, codec, quality, outfile, debug)
 
 
-# 2. jxl
+# 2. libjpeg
+def libjpeg_encode_fun(infile, width, height, codec, quality, outfile, debug):
+    return itools_jpeg.encode_libjpeg(infile, quality, outfile, debug)
+
+
+# 3. jxl
 def jxl_encode_fun(infile, width, height, codec, quality, outfile, debug):
     return itools_jxl.encode_jxl(infile, quality, outfile, debug)
 
@@ -239,6 +244,7 @@ CODEC_CHOICES = {
     "kvazaar": (".heic", (None, None, heif_enc_encode_fun, None), (None, None)),
     "aom": (".avif", (None, None, heif_enc_encode_fun, None), (None, None)),
     "svt": (".avif", (None, None, heif_enc_encode_fun, None), (None, None)),
+    "libjpeg": (".jpeg", (None, None, libjpeg_encode_fun, None), (None, None)),
     "jxl": (".jxl", (None, None, jxl_encode_fun, None), (None, None)),
     "openjpeg": (".jpeg2000", (None, None, heif_enc_encode_fun, None), (None, None)),
     "empty": (None, (None, None, None, None), (None, None)),
