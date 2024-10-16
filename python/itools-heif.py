@@ -303,8 +303,7 @@ def parse_hevc_sps(tmpsps, config_dict, debug):
     h265nal_parser = config_dict.get("h265nal_parser")
     if h265nal_parser is None:
         return {}
-    h265nal_parser = "~/proj/h265nal/build/tools/h265nal.nalu"
-    command = f"{h265nal_parser} --no-as-one-line -i {tmpsps}"
+    command = f"{h265nal_parser} --nalu-length-bytes 0 --no-as-one-line -i {tmpsps}"
     returncode, out, err = itools_common.run(command, debug=debug)
     assert returncode == 0, f"error in {command}\n{err}"
     # look for the colorimetry
