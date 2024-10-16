@@ -454,9 +454,11 @@ def process_data(
     # 1. get a codec list (if present)
     codec_list = codec.split(",") if codec != "all" else codec_choices.keys()
     codec_valid_list = list(codec_choices.keys())
-    assert set(codec_list) <= set(
-        codec_valid_list
-    ), f"error: invalid codec in list: {codec_list}"
+    if not set(codec_list) <= set(codec_valid_list):
+        unknown_codec_list = [
+            codec for codec in codec_list if codec not in codec_valid_list
+        ]
+        raise AssertionError(f"unknown codec(s): {unknown_codec_list}")
     quality_list = list(float(v) for v in quality_list.split(","))
     results = ()
     for codec, infile in itertools.product(codec_list, infile_list):
