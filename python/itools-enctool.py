@@ -227,6 +227,10 @@ def libjpeg_encode_fun(infile, width, height, codec, quality, outfile, debug):
     return itools_jpeg.encode_libjpeg(infile, quality, outfile, debug)
 
 
+def jpegli_encode_fun(infile, width, height, codec, quality, outfile, debug):
+    return itools_jpeg.encode_jpegli(infile, quality, outfile, debug)
+
+
 # 3. jxl
 def jxl_encode_fun(infile, width, height, codec, quality, outfile, debug):
     return itools_jxl.encode_jxl(infile, quality, outfile, debug)
@@ -234,6 +238,8 @@ def jxl_encode_fun(infile, width, height, codec, quality, outfile, debug):
 
 def jxl_decode_fun(infile, outfile, debug):
     return itools_jxl.decode_jxl(infile, outfile, debug)
+
+
 
 
 # TODO(chema): use better mechanism here
@@ -246,6 +252,7 @@ CODEC_CHOICES = {
     "svt": (".avif", (None, None, heif_enc_encode_fun, None), (None, None)),
     "libjpeg": (".jpeg", (None, None, libjpeg_encode_fun, None), (None, None)),
     "jxl": (".jxl", (None, None, jxl_encode_fun, None), (None, None)),
+    "jpegli": (".jpeg", (None, None, jpegli_encode_fun, None), (None, None)),
     "openjpeg": (".jpeg2000", (None, None, heif_enc_encode_fun, None), (None, None)),
     "empty": (None, (None, None, None, None), (None, None)),
 }

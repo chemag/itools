@@ -21,6 +21,8 @@ itools_common = importlib.import_module("itools-common")
 itools_y4m = importlib.import_module("itools-y4m")
 
 LIBJPEG_ENC = os.environ.get("LIBJPEG_ENC", "cjpeg")
+JPEGLI_ENC = os.environ.get("JPEGLI_ENC", "cjpegli")
+
 
 def read_jpeg(infile, config_dict, debug=0):
     # 1. decode to y4m
@@ -48,5 +50,17 @@ def encode_libjpeg(infile, quality, outfile, debug):
     assert returncode == 0, f"error: {out = } {err = }"
     # 2. do the encoding
     command = f"{LIBJPEG_ENC} -quality {int(quality)} -outfile {outfile} {tmpppm}"
+    returncode, out, err = itools_common.run(command, debug=debug)
+    assert returncode == 0, f"error: {out = } {err = }"
+
+
+def encode_jpegli(infile, quality, outfile, debug):
+    # 1. convert to ppm (jpegli encoder wants ppm)
+    tmpppm = tempfile.NamedTemporaryFile(prefix="itools.jpegli.", suffix=".ppm").name
+    command = f"{itools_common.FFMPEG_SILENT} -i {infile} {tmpppm}"
+    returncode, out, err = itools_common.run(command, debug=debug)
+    assert returncode == 0, f"error: {out = } {err = }"
+    # 2. do the encoding
+    command = f"{JPEGLI_ENC} {tmpppm} {outfile} -q {int(quality)}"
     returncode, out, err = itools_common.run(command, debug=debug)
     assert returncode == 0, f"error: {out = } {err = }"
