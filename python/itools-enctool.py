@@ -240,8 +240,6 @@ def jxl_decode_fun(infile, outfile, debug):
     return itools_jxl.decode_jxl(infile, outfile, debug)
 
 
-
-
 # TODO(chema): use better mechanism here
 # codec: (extension, (config_fun, init_fun, encode_fun, fini_fun), (horizontal_alignment, vertical_alignment))
 # TODO(chema): add (decoder)
