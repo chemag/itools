@@ -101,7 +101,6 @@ VMAF_METRIC_LIST = [
     "float_ssim",
     "float_ms_ssim",
     "cambi",
-    "ciede2000",
 ]
 
 
@@ -152,7 +151,7 @@ def vmaf_get(distorted, reference, debug, vmaf_model=None):
         command += f"model=path={vmaf_model}:"
     command += (
         f"log_path={vmaf_file}:n_threads=16:log_fmt=json:"
-        "feature=name=psnr|name=psnr_hvs|name=float_ssim|name=float_ms_ssim|name=cambi|name=ciede'"
+        "feature=name=psnr|name=psnr_hvs|name=float_ssim|name=float_ms_ssim|name=cambi'"
         " -f null -"
     )
     returncode, out, err = itools_common.run(command, debug=debug)
