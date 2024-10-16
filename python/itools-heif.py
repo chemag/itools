@@ -391,23 +391,24 @@ def parse_heif_convert_output(tmpy4m, output, debug):
 
 
 QPEXTRACT_FIELDS = ("qp_avg", "qp_stddev", "qp_num", "qp_min", "qp_max")
-CTU_SIZE_VALUES = (8, 16, 32, 64)
+CTUEXTRACT_FIELDS = (
+    "ctu8_ratio",
+    "ctu16_ratio",
+    "ctu32_ratio",
+    "ctu64_ratio",
+    "ctu8w_ratio",
+    "ctu16w_ratio",
+    "ctu32w_ratio",
+    "ctu64w_ratio",
+)
 
 
-def parse_qpextract_bin_output(output, mode):
-    df = pd.read_csv(io.StringIO(output.decode("ascii")))
+def parse_qpextract_bin_output(outfile, mode):
+    df = pd.read_csv(outfile)
     if mode == "qp":
         return {key: df.iloc[0][key] for key in QPEXTRACT_FIELDS}
     elif mode == "ctu":
-        # get statistics
-        ctu_dict = {"mean": df["size"].mean(), "stddev": df["size"].std()}
-        ctu_dict.update(
-            {
-                f"ratio_{ctu_size}": (len(df[df["size"] == ctu_size]) / len(df))
-                for ctu_size in CTU_SIZE_VALUES
-            }
-        )
-        return ctu_dict
+        return {key: df.iloc[0][key] for key in CTUEXTRACT_FIELDS}
 
 
 def get_h265_values(infile, config_dict, debug):
@@ -423,33 +424,45 @@ def get_h265_values(infile, config_dict, debug):
         file_type = "hvc1"
         hvc1_id = df_item[df_item.type == file_type]["id"].iloc[0]
         # extract the 265 file of the first tile
-        tmp265 = tempfile.NamedTemporaryFile(prefix="itools.hvc1.", suffix=".265").name
-        command = f"MP4Box -dump-item {hvc1_id}:path={tmp265} {infile}"
+        tmp_265 = tempfile.NamedTemporaryFile(prefix="itools.hvc1.", suffix=".265").name
+        command = f"MP4Box -dump-item {hvc1_id}:path={tmp_265} {infile}"
         returncode, out, err = itools_common.run(command, debug=debug)
         assert returncode == 0, f"error in {command}\n{err}"
         # extract the QP-Y info for the first tile
-        command = f"{qpextract_bin} --qpymode -w -i {tmp265}"
+        tmp_qpymode = tempfile.NamedTemporaryFile(
+            prefix="itools.hvc1.", suffix=".265.qpymode.csv"
+        ).name
+        command = f"{qpextract_bin} --qpymode -w -i {tmp_265} -o {tmp_qpymode}"
         returncode, out, err = itools_common.run(command, debug=debug)
         assert returncode == 0, f"error in {command}\n{err}"
-        qp_dict_y = parse_qpextract_bin_output(out, "qp")
+        qp_dict_y = parse_qpextract_bin_output(tmp_qpymode, "qp")
         qp_dict.update({f"qpwy:{k}": v for k, v in qp_dict_y.items()})
         # extract the QP-Cb info for the first tile
-        command = f"{qpextract_bin} --qpcbmode -w -i {tmp265}"
+        tmp_qpcbmode = tempfile.NamedTemporaryFile(
+            prefix="itools.hvc1.", suffix=".265.qpcbmode.csv"
+        ).name
+        command = f"{qpextract_bin} --qpcbmode -w -i {tmp_265} -o {tmp_qpcbmode}"
         returncode, out, err = itools_common.run(command, debug=debug)
         assert returncode == 0, f"error in {command}\n{err}"
-        qp_dict_cb = parse_qpextract_bin_output(out, "qp")
+        qp_dict_cb = parse_qpextract_bin_output(tmp_qpcbmode, "qp")
         qp_dict.update({f"qpwcb:{k}": v for k, v in qp_dict_cb.items()})
         # extract the QP-Cr info for the first tile
-        command = f"{qpextract_bin} --qpcrmode -w -i {tmp265}"
+        tmp_qpcrmode = tempfile.NamedTemporaryFile(
+            prefix="itools.hvc1.", suffix=".265.qpcrmode.csv"
+        ).name
+        command = f"{qpextract_bin} --qpcrmode -w -i {tmp_265} -o {tmp_qpcrmode}"
         returncode, out, err = itools_common.run(command, debug=debug)
         assert returncode == 0, f"error in {command}\n{err}"
-        qp_dict_cr = parse_qpextract_bin_output(out, "qp")
+        qp_dict_cr = parse_qpextract_bin_output(tmp_qpcrmode, "qp")
         qp_dict.update({f"qpwcr:{k}": v for k, v in qp_dict_cr.items()})
         # extract the CTU info for the first tile
-        command = f"{qpextract_bin} --ctumode -w -i {tmp265}"
+        tmp_ctumode = tempfile.NamedTemporaryFile(
+            prefix="itools.hvc1.", suffix=".265.ctumode.csv"
+        ).name
+        command = f"{qpextract_bin} --ctumode -w -i {tmp_265} -o {tmp_ctumode}"
         returncode, out, err = itools_common.run(command, debug=debug)
         assert returncode == 0, f"error in {command}\n{err}"
-        ctu_dict = parse_qpextract_bin_output(out, "ctu")
+        ctu_dict = parse_qpextract_bin_output(tmp_ctumode, "ctu")
         qp_dict.update({f"ctu:{k}": v for k, v in ctu_dict.items()})
     return qp_dict
 
