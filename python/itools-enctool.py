@@ -13,7 +13,7 @@ Features:
 * Run experiments for different encoders.
 * Test multiple input quality parameter values.
 * Allow selection of input corpus.
-* Calculate result values (size, bpp, quality using vmaf/psnr/ssim).
+* Calculate result values (size, bpp, quality using vmaf/psnr/ssim/ssimulacra2).
 * Calculate averages for the different quality values.
 """
 
@@ -74,6 +74,7 @@ COLUMN_LIST = [
     "encoded_bpp",
     "psnr",
     "ssim",
+    "ssimulacra2",
 ]
 
 
@@ -188,6 +189,28 @@ def ssim_get(distorted, reference, debug):
     assert returncode == 0, f"error: {out = } {err = }"
     # 2. parse the output
     return ssim_parse(out)
+
+
+def ssimulacra2_get(distorted, reference, debug):
+    # 0. ssimulacra2 only accepts png as inputs
+    reference_png = f"{reference}.png"
+    command = f"{itools_common.FFMPEG_SILENT} -i {reference} {reference_png}"
+    returncode, out, err = itools_common.run(command, debug=debug)
+    assert returncode == 0, f"error: {out = } {err = }"
+    distorted_png = f"{distorted}.png"
+    command = f"{itools_common.FFMPEG_SILENT} -i {distorted} {distorted_png}"
+    returncode, out, err = itools_common.run(command, debug=debug)
+    assert returncode == 0, f"error: {out = } {err = }"
+    # 1. calculate the score
+    command = f"ssimulacra2 {reference_png} {distorted_png}"
+    returncode, out, err = itools_common.run(command, debug=debug)
+    if returncode == 127:
+        # no ssimulacra2 available
+        print(f"error: no ssimulacra2 available\n{err}")
+        return 0.0
+    assert returncode == 0, f"error: {out = } {err = }"
+    # 2. parse the output
+    return float(out.decode("ascii"))
 
 
 def escape_float(f):
@@ -333,6 +356,7 @@ def process_file(
         vmaf_4k = vmaf_get(distorted_path, ref_path, debug, VMAF_4K_MODEL)
         psnr = psnr_get(distorted_path, ref_path, debug)
         ssim = ssim_get(distorted_path, ref_path, debug)
+        ssimulacra2 = ssimulacra2_get(distorted_path, ref_path, debug)
         # 8. gather results
         if df is None:
             vmaf_column_list = list(
@@ -357,6 +381,7 @@ def process_file(
             encoded_bpp,
             psnr,
             ssim,
+            ssimulacra2,
             vmaf_def["vmaf"],
             vmaf_4k["vmaf"],
             *list(vmaf_neg.values()),
@@ -396,6 +421,7 @@ def get_average_results(df):
                 "encoded_bpp",
                 "psnr",
                 "ssim",
+                "ssimulacra2",
             ]
             + vmaf_keys
             + qpwy_keys
