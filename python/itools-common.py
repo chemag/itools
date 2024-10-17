@@ -149,8 +149,9 @@ def run(command, **kwargs):
     default_close_fds = True if sys.platform == "linux2" else False
     close_fds = kwargs.get("close_fds", default_close_fds)
     shell = kwargs.get("shell", type(command) in (type(""), type("")))
+    logfd = kwargs.get("logfd", sys.stdout)
     if debug > 0:
-        print(f"running $ {command}")
+        print(f"$ {command}", file=logfd)
     if dry_run:
         return 0, b"stdout", b"stderr"
     gnu_time = kwargs.get("gnu_time", False)
@@ -182,7 +183,7 @@ def run(command, **kwargs):
         GNU_TIME_BYTES = b"\n\tUser time"
         assert GNU_TIME_BYTES in err, "error: cannot find GNU time info in stderr"
         gnu_time_str = err[err.index(GNU_TIME_BYTES) :].decode("ascii")
-        gnu_time_stats = gnu_time_parse(gnu_time_str)
+        gnu_time_stats = gnu_time_parse(gnu_time_str, logfd, debug)
         err = err[0 : err.index(GNU_TIME_BYTES) :]
         return returncode, out, err, gnu_time_stats
     # return results
@@ -428,7 +429,7 @@ GNU_TIME_DEFAULT_VAL_TYPE = {
 }
 
 
-def gnu_time_parse(gnu_time_str):
+def gnu_time_parse(gnu_time_str, logfd, debug):
     gnu_time_stats = {}
     for line in gnu_time_str.split("\n"):
         if not line:
@@ -441,7 +442,7 @@ def gnu_time_parse(gnu_time_str):
                 break
         else:
             # unknown key
-            print(f"warn: unknown gnutime line: {line}")
+            print(f"warn: unknown gnutime line: {line}", file=logfd)
             continue
         val = line[len(key1) + 1 :].strip()
         # fix val type

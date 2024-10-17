@@ -45,6 +45,7 @@ default_values = {
     "infile": None,
     "infile2": None,
     "outfile": None,
+    "logfile": None,
 }
 
 
@@ -90,7 +91,7 @@ def write_ndarray_to_yuv420p10le(outfile, y, u, v, num_cols, num_rows):
 
 
 # yuv420p10le parser
-def parse(infile, num_cols, num_rows, pattern, debug):
+def parse(infile, num_cols, num_rows, pattern, logfd, debug):
     # read the input file
     y, u, v = read_yuv420p10le_to_ndarray(infile, num_cols, num_rows)
     # get the average representation for each color
@@ -107,7 +108,8 @@ def parse(infile, num_cols, num_rows, pattern, debug):
         # print results
         cur_color = itools_generate.PATTERN_COLORS[pattern][cur_band]
         print(
-            f"{cur_color:10}   Y: {int(yavg):4}   U: {int(uavg):4}   V: {int(vavg):4}    Ystd: {ystd} Ustd: {ustd} Vstd: {vstd}"
+            f"debug: {cur_color:10}   Y: {int(yavg):4}   U: {int(uavg):4}   V: {int(vavg):4}    Ystd: {ystd} Ustd: {ustd} Vstd: {vstd}",
+            file=logfd,
         )
 
 
@@ -125,7 +127,7 @@ def range_convert_using_range(matrix_in, imin, imax, omin, omax, ominabs, omaxab
 
 
 # yuv420p10le range conversion
-def range_convert(infile, outfile, num_cols, num_rows, range_conversion, debug):
+def range_convert(infile, outfile, num_cols, num_rows, range_conversion, logfd, debug):
     # read input image
     y, u, v = read_yuv420p10le_to_ndarray(infile, num_cols, num_rows)
     # convert range for each component
@@ -154,7 +156,15 @@ def range_convert(infile, outfile, num_cols, num_rows, range_conversion, debug):
 
 # yuv420p10le differ
 def diff(
-    infile1, infile2, outfile, num_cols, num_rows, diff_factor, diff_component, debug
+    infile1,
+    infile2,
+    outfile,
+    num_cols,
+    num_rows,
+    diff_factor,
+    diff_component,
+    logfd,
+    debug,
 ):
     # read the input files
     y1, u1, v1 = read_yuv420p10le_to_ndarray(infile1, num_cols, num_rows)
@@ -168,9 +178,9 @@ def diff(
     ud_mean, ud_std = ud.mean(), ud.std()
     vd_mean, vd_std = vd.mean(), vd.std()
     # print out values
-    print(f"y {{ mean: {yd_mean} stddev: {yd_std} }}")
-    print(f"u {{ mean: {ud_mean} stddev: {ud_std} }}")
-    print(f"v {{ mean: {vd_mean} stddev: {vd_std} }}")
+    print(f"y {{ mean: {yd_mean} stddev: {yd_std} }}", file=logfd)
+    print(f"u {{ mean: {ud_mean} stddev: {ud_std} }}", file=logfd)
+    print(f"v {{ mean: {vd_mean} stddev: {vd_std} }}", file=logfd)
     # choose the visual output
     if diff_component == "y":
         # use the luma for diff luma
@@ -200,8 +210,8 @@ def diff(
     # write the diff as a png file
     outfile_png = f"{outfile}.png"
     command = f"{itools_common.FFMPEG_SILENT} -f rawvideo -pixel_format yuv420p10le -s {num_cols}x{num_rows} -i {outfile} {outfile_png}"
-    itools_common.run(command, debug=debug)
-    print(f"output: {outfile} png: {outfile_png}")
+    itools_common.run(command, logfd=logfd, debug=debug)
+    print(f"debug: output: {outfile} png: {outfile_png}", file=logfd)
 
 
 def get_options(argv):
@@ -372,6 +382,15 @@ def get_options(argv):
         metavar="output-file",
         help="output file",
     )
+    parser.add_argument(
+        "--logfile",
+        action="store",
+        dest="logfile",
+        type=str,
+        default=default_values["logfile"],
+        metavar="log-file",
+        help="log file",
+    )
     # do the parsing
     options = parser.parse_args(argv[1:])
     if options.version:
@@ -386,7 +405,11 @@ def get_options(argv):
 def main(argv):
     # parse options
     options = get_options(argv)
-
+    # get logfile descriptor
+    if options.logfile is None:
+        logfd = sys.stdout
+    else:
+        logfd = open(options.logfile, "w")
     # get infile/outfile
     if options.infile == "-" or options.infile is None:
         options.infile = "/dev/fd/0"
@@ -394,13 +417,14 @@ def main(argv):
         options.outfile = "/dev/fd/1"
     # print results
     if options.debug > 0:
-        print(options)
+        print(f"debug: {options}")
     # do something
     if options.func == "generate":
         planar_image = itools_generate.generate_planar(
             options.width,
             options.height,
             options.pattern,
+            logfd,
             options.debug,
         )
         o_pix_fmt = "pgAA"
@@ -412,6 +436,7 @@ def main(argv):
             options.width,
             options.height,
             cdepth,
+            logfd,
             options.debug,
         )
 
@@ -421,6 +446,7 @@ def main(argv):
             options.width,
             options.height,
             options.pattern,
+            logfd,
             options.debug,
         )
 
@@ -431,6 +457,7 @@ def main(argv):
             options.width,
             options.height,
             options.range_conversion,
+            logfd,
             options.debug,
         )
 
@@ -447,6 +474,7 @@ def main(argv):
             options.height,
             options.diff_factor,
             options.diff_component,
+            logfd,
             options.debug,
         )
 

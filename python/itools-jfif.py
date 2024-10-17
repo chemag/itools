@@ -17,6 +17,7 @@ default_values = {
     "marker": "",
     "infile": None,
     "outfile": None,
+    "logfile": None,
 }
 
 
@@ -57,7 +58,7 @@ def parse_app0(blob):
         return blob_str, len(identifier_jfif)
 
     else:
-        print("parse_app0: invalid identifier (%s)" % blob[0:5])
+        print("error: parse_app0: invalid identifier (%s)" % blob[0:5], file=sys.stderr)
         sys.exit(-1)
 
 
@@ -97,7 +98,7 @@ def parse_app1(blob):
         return "Adobe extended XMP", len(identifier_extended_xmp)
 
     else:
-        print("parse_app1: invalid identifier (%s)" % blob[0:6])
+        print("error: parse_app1: invalid identifier (%s)" % blob[0:6], file=sys.stderr)
         sys.exit(-1)
 
 
@@ -117,7 +118,7 @@ def parse_app2(blob):
         return "MPF", len(identifier_mpf)
 
     else:
-        print("parse_app2: invalid identifier")
+        print("error: parse_app2: invalid identifier", file=sys.stderr)
         sys.exit(-1)
 
 
@@ -398,7 +399,7 @@ MARKER_MAP = {
 }
 
 
-def parse_jfif_file(infile, debug):
+def parse_jfif_file(infile, logfd, debug):
     marker_list = []
     # parse input file
     with open(infile, "rb") as fin:
@@ -418,11 +419,11 @@ def parse_jfif_file(infile, debug):
                 # read the full blob
                 blob = fin.read(length - length_size)
             if marker not in MARKER_MAP:
-                print("error: invalid marker: 0x%04x" % marker)
+                print("error: invalid marker: 0x%04x" % marker, file=sys.stderr)
                 sys.exit(-1)
             marker_str, marker_parser = MARKER_MAP[marker]
             if debug > 0:
-                print("marker: 0x%04x (%s)" % (marker, marker_str))
+                print("debug: marker: 0x%04x (%s)" % (marker, marker_str), file=logfd)
             if marker_parser is not None:
                 contents_str, payload_offset = marker_parser(blob)
                 contents_offset = offset + marker_size + length_size + payload_offset
@@ -491,7 +492,7 @@ def extract_marker(marker_list, marker_name, outfile, debug):
         if marker_str == marker_name:
             break
     else:
-        print(f"error: unknown marker: {marker_name}")
+        print(f"error: unknown marker: {marker_name}", file=sys.stderr)
         sys.exit(-1)
     # dump the contents
     with open(outfile, "wb") as fout:
@@ -571,6 +572,15 @@ def get_options(argv):
         metavar="output-file",
         help="output file",
     )
+    parser.add_argument(
+        "--logfile",
+        action="store",
+        dest="logfile",
+        type=str,
+        default=default_values["logfile"],
+        metavar="log-file",
+        help="log file",
+    )
     # do the parsing
     options = parser.parse_args(argv[1:])
     return options
@@ -579,6 +589,11 @@ def get_options(argv):
 def main(argv):
     # parse options
     options = get_options(argv)
+    # get logfile descriptor
+    if options.logfile is None:
+        logfd = sys.stdout
+    else:
+        logfd = open(options.logfile, "w")
     # get infile/outfile
     if options.infile == "-" or options.infile is None:
         options.infile = "/dev/fd/0"
@@ -586,9 +601,9 @@ def main(argv):
         options.outfile = "/dev/fd/1"
     # print results
     if options.debug > 0:
-        print(options)
+        print(f"debug: {options}")
     # do something
-    marker_list = parse_jfif_file(options.infile, options.debug)
+    marker_list = parse_jfif_file(options.infile, logfd, options.debug)
     if options.func == "parse":
         print_marker_list(marker_list, options.outfile, options.debug)
     elif options.func == "extract":

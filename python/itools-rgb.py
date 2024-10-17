@@ -10,7 +10,7 @@ import numpy as np
 
 
 # rgba is packed, R/G/B/A components
-def read_rgba(infile, iinfo):
+def read_rgba(infile, iinfo, logfd, debug):
     with open(infile, "rb") as fin:
         data = fin.read()
     outrgba = np.frombuffer(data, dtype=np.uint8)

@@ -268,7 +268,7 @@ def main(argv):
         options.outfile = "/dev/fd/1"
     # print results
     if options.debug > 0:
-        print(options)
+        print(f"debug: {options}")
     # do something
     generate_bayer_raw10_rggb(
         options.outfile,

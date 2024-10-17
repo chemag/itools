@@ -36,10 +36,10 @@ EXIFTOOL_KEYS = {
 }
 
 
-def get_exiftool(infile, short, config_dict, debug):
+def get_exiftool(infile, short, config_dict, logfd, debug):
     # parse the exif file of the first tile
     command = f"exiftool -g -j -b {infile}"
-    returncode, out, err = itools_common.run(command, debug=debug)
+    returncode, out, err = itools_common.run(command, logfd=logfd, debug=debug)
     assert returncode == 0, f"error in {command}\n{err}"
     exiftool_info = json.loads(out)
     exiftool_dict = exiftool_info[0]

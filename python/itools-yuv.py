@@ -13,7 +13,7 @@ itools_common = importlib.import_module("itools-common")
 
 
 # YUV is packed, Y/U/V components
-def read_yuv(infile, iinfo):
+def read_yuv(infile, iinfo, logfd, debug):
     with open(infile, "rb") as fin:
         data = fin.read()
     # assume nv12 for now
@@ -31,7 +31,8 @@ def read_yuv(infile, iinfo):
         outy = iny.reshape(iinfo.scanline, iinfo.stride)
     except ValueError as e:
         print(
-            f"warn: pad before reshaping Y component: {len(iny)} != {(iinfo.scanline) * (iinfo.stride)} {iinfo.scanline}x{iinfo.stride}"
+            f"warn: pad before reshaping Y component: {len(iny)} != {(iinfo.scanline) * (iinfo.stride)} {iinfo.scanline}x{iinfo.stride}",
+            file=logfd,
         )
         outy = np.resize(iny, (iinfo.scanline, iinfo.stride))
     # extract the chromas
@@ -42,14 +43,16 @@ def read_yuv(infile, iinfo):
         outu = inu.reshape(iinfo.scanline // 2, iinfo.stride // 2)
     except ValueError as e:
         print(
-            f"warn: pad before reshaping U component: {len(inu)} != {(iinfo.scanline // 2) * (iinfo.stride // 2)} {iinfo.scanline // 2}x{iinfo.stride // 2}"
+            f"warn: pad before reshaping U component: {len(inu)} != {(iinfo.scanline // 2) * (iinfo.stride // 2)} {iinfo.scanline // 2}x{iinfo.stride // 2}",
+            file=logfd,
         )
         outu = np.resize(inu, (iinfo.scanline // 2, iinfo.stride // 2))
     try:
         outv = inv.reshape(iinfo.scanline // 2, iinfo.stride // 2)
     except ValueError as e:
         print(
-            f"warn: pad before reshaping V component: {len(inv)} != {(iinfo.scanline // 2) * (iinfo.stride // 2)} {iinfo.scanline // 2}x{iinfo.stride // 2}"
+            f"warn: pad before reshaping V component: {len(inv)} != {(iinfo.scanline // 2) * (iinfo.stride // 2)} {iinfo.scanline // 2}x{iinfo.stride // 2}",
+            file=logfd,
         )
         outv = np.resize(inv, (iinfo.scanline // 2, iinfo.stride // 2))
     # undo the chroma subsample

@@ -9,6 +9,7 @@ Generic I/O functions.
 import cv2
 import os.path
 import importlib
+import sys
 
 itools_common = importlib.import_module("itools-common")
 itools_exiftool = importlib.import_module("itools-exiftool")
@@ -25,6 +26,7 @@ def read_image_file(
     flags=None,
     return_type=itools_common.ProcColor.bgr,
     iinfo=None,
+    logfd=sys.stdout,
     debug=0,
 ):
     outyvu = None
@@ -32,28 +34,31 @@ def read_image_file(
     infile_extension = os.path.splitext(infile)[1]
     if infile_extension == ".y4m":
         outyvu, _, _, status = itools_y4m.read_y4m(
-            infile, output_colorrange=itools_common.ColorRange.full, debug=debug
+            infile,
+            output_colorrange=itools_common.ColorRange.full,
+            logfd=logfd,
+            debug=debug,
         )
         if status is not None and status.get("broken", False):
             print(f"error: file {infile} is broken")
 
     elif infile_extension in (".yuv", ".YUV420NV12"):
-        outyvu, status = itools_yuv.read_yuv(infile, iinfo)
+        outyvu, status = itools_yuv.read_yuv(infile, iinfo, logfd, debug)
 
     elif infile_extension == ".rgba":
-        outbgr, status = itools_rgb.read_rgba(infile, iinfo)
+        outbgr, status = itools_rgb.read_rgba(infile, iinfo, logfd, debug)
 
     elif infile_extension in (".heic", ".avif", ".hif"):
-        outyvu, status = itools_heif.read_heif(infile, config_dict, debug)
+        outyvu, status = itools_heif.read_heif(infile, config_dict, logfd, debug)
 
     elif infile_extension == ".jxl":
-        outyvu, status = itools_jxl.read_jxl(infile, config_dict, debug)
+        outyvu, status = itools_jxl.read_jxl(infile, config_dict, logfd, debug)
 
     else:
         outbgr = cv2.imread(cv2.samples.findFile(infile, flags))
         # use exiftool to get the metadata
         status = itools_exiftool.get_exiftool(
-            infile, short=True, config_dict=config_dict, debug=debug
+            infile, short=True, config_dict=config_dict, logfd=logfd, debug=debug
         )
         if infile_extension in (".jpg", ".jpeg"):
             status["colorrange"] = itools_common.ColorRange.full
@@ -88,19 +93,21 @@ def read_image_file(
         return outbgr, outyvu, status
 
 
-def read_metadata(infile, debug):
+def read_metadata(infile, logfd, debug):
     config_dict = {
         "read_image_components": True,
         "qpextract_bin": False,
         "h265nal_parser": True,
         "isobmff_parser": True,
     }
-    _, status = read_image_file(infile, config_dict=config_dict, debug=debug)
+    _, status = read_image_file(
+        infile, config_dict=config_dict, logfd=logfd, debug=debug
+    )
     return status
 
 
-def read_colorrange(infile, debug):
-    status = read_metadata(infile, debug)
+def read_colorrange(infile, logfd, debug):
+    status = read_metadata(infile, logfd, debug)
     return itools_common.ColorRange.parse(status["colorrange"])
 
 

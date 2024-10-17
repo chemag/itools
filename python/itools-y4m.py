@@ -10,6 +10,7 @@ Runs generic y4m I/O. Similar to python-y4m.
 import importlib
 import numpy as np
 import os.path
+import sys
 
 itools_common = importlib.import_module("itools-common")
 
@@ -193,7 +194,7 @@ class Y4MHeader:
             return self.width * self.height * 3
         raise f"only support 420, 422, 444 colorspaces (not {self.colorspace})"
 
-    def read_frame(self, data, output_colorrange, debug):
+    def read_frame(self, data, output_colorrange, logfd, debug):
         # 1. read "FRAME\n" tidbit
         assert data[:6] == b"FRAME\n", f"error: invalid FRAME: starts with {data[:6]}"
         offset = 6
@@ -247,7 +248,8 @@ class Y4MHeader:
         )
         if debug > 0:
             print(
-                f"debug: y4m frame read with input_colorrange: {input_colorrange.name}"
+                f"debug: y4m frame read with input_colorrange: {input_colorrange.name}",
+                file=logfd,
             )
         status = {
             "y4m:colorrange": input_colorrange.name,
@@ -263,7 +265,8 @@ class Y4MHeader:
         ):
             if debug > 0:
                 print(
-                    f"debug: Y4MHeader.read_frame() converting colorrange from {input_colorrange.name} to {output_colorrange.name}"
+                    f"debug: Y4MHeader.read_frame() converting colorrange from {input_colorrange.name} to {output_colorrange.name}",
+                    file=logfd,
                 )
             ya, ua_full, va_full, tmp_status = color_range_conversion_components(
                 ya,
@@ -282,7 +285,7 @@ class Y4MHeader:
         return outyvu, offset, status
 
 
-def read_y4m(infile, output_colorrange=None, debug=0):
+def read_y4m(infile, output_colorrange=None, logfd=sys.stdout, debug=0):
     # read the y4m frame
     with open(infile, "rb") as fin:
         # read y4m header
@@ -290,7 +293,7 @@ def read_y4m(infile, output_colorrange=None, debug=0):
         header, offset = Y4MHeader.read(data)
         # read y4m frame
         frame, offset, status = header.read_frame(
-            data[offset:], output_colorrange, debug
+            data[offset:], output_colorrange, logfd, debug
         )
         return frame, header, offset, status
 

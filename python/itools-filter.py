@@ -107,16 +107,17 @@ default_values = {
     "infile": None,
     "infile2": None,
     "outfile": None,
+    "logfile": None,
 }
 
 
-def image_to_gray(infile, outfile, iinfo, proc_color, config_dict, debug):
+def image_to_gray(infile, outfile, iinfo, proc_color, config_dict, logfd, debug):
     assert (
         proc_color == itools_common.ProcColor.bgr
     ), f"error: image_to_gray unsupported in {proc_color}"
     # load the input image
     inbgr, status = itools_io.read_image_file(
-        infile, config_dict, iinfo=iinfo, debug=debug
+        infile, config_dict, iinfo=iinfo, logfd=logfd, debug=debug
     )
     assert inbgr is not None, f"error: cannot read {infile}"
     # convert to gray
@@ -126,13 +127,13 @@ def image_to_gray(infile, outfile, iinfo, proc_color, config_dict, debug):
     itools_io.write_image_file(outfile, outbgr, **status)
 
 
-def swap_xchroma(infile, outfile, iinfo, proc_color, config_dict, debug):
+def swap_xchroma(infile, outfile, iinfo, proc_color, config_dict, logfd, debug):
     assert (
         proc_color == itools_common.ProcColor.bgr
     ), f"error: swap_xchroma unsupported in {proc_color}"
     # load the input image
     inbgr, status = itools_io.read_image_file(
-        infile, config_dict, iinfo=iinfo, debug=debug
+        infile, config_dict, iinfo=iinfo, logfd=logfd, debug=debug
     )
     assert inbgr is not None, f"error: cannot read {infile}"
     # swap chromas
@@ -143,13 +144,13 @@ def swap_xchroma(infile, outfile, iinfo, proc_color, config_dict, debug):
     itools_io.write_image_file(outfile, outbgr, **status)
 
 
-def swap_xrgb2yuv(infile, outfile, iinfo, proc_color, config_dict, debug):
+def swap_xrgb2yuv(infile, outfile, iinfo, proc_color, config_dict, logfd, debug):
     assert (
         proc_color == itools_common.ProcColor.bgr
     ), f"error: swap_xrgb2yuv unsupported in {proc_color}"
     # load the input image
     inbgr, status = itools_io.read_image_file(
-        infile, config_dict, iinfo=iinfo, debug=debug
+        infile, config_dict, iinfo=iinfo, logfd=logfd, debug=debug
     )
     assert inbgr is not None, f"error: cannot read {infile}"
     inrgb = inbgr[:, :, [2, 1, 0]]
@@ -186,6 +187,7 @@ def mix_images(
     outfile,
     iinfo,
     config_dict,
+    logfd,
     debug,
 ):
     # load the input images as YVU
@@ -194,6 +196,7 @@ def mix_images(
         config_dict,
         iinfo=iinfo,
         return_type=itools_common.ProcColor.yvu,
+        logfd=logfd,
         debug=debug,
     )
     inyvu2, instatus2 = itools_io.read_image_file(
@@ -201,6 +204,7 @@ def mix_images(
         config_dict,
         iinfo=iinfo,
         return_type=itools_common.ProcColor.yvu,
+        logfd=logfd,
         debug=debug,
     )
     assert inyvu1 is not None, f"error: cannot read {infile1}"
@@ -223,13 +227,15 @@ def mix_images(
     )
 
 
-def add_noise(infile, outfile, iinfo, noise_level, proc_color, config_dict, debug):
+def add_noise(
+    infile, outfile, iinfo, noise_level, proc_color, config_dict, logfd, debug
+):
     assert (
         proc_color == itools_common.ProcColor.bgr
     ), f"error: add_noise unsupported in {proc_color}"
     # load the input image
     inbgr, status = itools_io.read_image_file(
-        infile, config_dict, iinfo=iinfo, debug=debug
+        infile, config_dict, iinfo=iinfo, logfd=logfd, debug=debug
     )
     assert inbgr is not None, f"error: cannot read {infile}"
     # convert to gray
@@ -244,10 +250,15 @@ def add_noise(infile, outfile, iinfo, noise_level, proc_color, config_dict, debu
     itools_io.write_image_file(outfile, outbgr, **status)
 
 
-def copy_image(infile, outfile, iinfo, proc_color, config_dict, debug):
+def copy_image(infile, outfile, iinfo, proc_color, config_dict, logfd, debug):
     # load the input image
     inabc, status = itools_io.read_image_file(
-        infile, config_dict, iinfo=iinfo, return_type=proc_color, debug=debug
+        infile,
+        config_dict,
+        iinfo=iinfo,
+        return_type=proc_color,
+        logfd=logfd,
+        debug=debug,
     )
     assert inabc is not None, f"error: cannot read {infile}"
     # write the output image
@@ -277,6 +288,7 @@ def diff_images(
     diff_color,
     diff_color_factor,
     config_dict,
+    logfd,
     debug,
 ):
     # load the input images as YVU
@@ -285,6 +297,7 @@ def diff_images(
         config_dict,
         iinfo=iinfo,
         return_type=itools_common.ProcColor.yvu,
+        logfd=logfd,
         debug=debug,
     )
     inyvu2, instatus2 = itools_io.read_image_file(
@@ -292,6 +305,7 @@ def diff_images(
         config_dict,
         iinfo=iinfo,
         return_type=itools_common.ProcColor.yvu,
+        logfd=logfd,
         debug=debug,
     )
     assert inyvu1 is not None, f"error: cannot read {infile1}"
@@ -378,13 +392,14 @@ def diff_images(
     return df
 
 
-def mse_image(infile, iinfo, mse_invert, config_dict, debug):
+def mse_image(infile, iinfo, mse_invert, config_dict, logfd, debug):
     # load the input image
     inyvu, instatus = itools_io.read_image_file(
         infile,
         config_dict,
         iinfo=iinfo,
         return_type=itools_common.ProcColor.yvu,
+        logfd=logfd,
         debug=debug,
     )
     assert inyvu is not None, f"error: cannot read {infile}"
@@ -404,7 +419,7 @@ def mse_image(infile, iinfo, mse_invert, config_dict, debug):
 
 
 # calculates a histogram of the luminance values
-def get_histogram(infile, outfile, iinfo, hist_component, config_dict, debug):
+def get_histogram(infile, outfile, iinfo, hist_component, config_dict, logfd, debug):
     # load the input image
     if hist_component in ("y", "v", "u"):
         inimg, instatus = itools_io.read_image_file(
@@ -412,11 +427,12 @@ def get_histogram(infile, outfile, iinfo, hist_component, config_dict, debug):
             config_dict,
             return_type=itools_common.ProcColor.yvu,
             iinfo=iinfo,
+            logfd=logfd,
             debug=debug,
         )
     else:  # hist_component in ("r", "g", "b"):
         inimg, instatus = itools_io.read_image_file(
-            infile, config_dict, iinfo=iinfo, debug=debug
+            infile, config_dict, iinfo=iinfo, logfd=logfd, debug=debug
         )
     assert inimg is not None, f"error: cannot read {infile}"
     # TODO(chema): use status (_) to deal with color ranges
@@ -445,10 +461,17 @@ def get_histogram(infile, outfile, iinfo, hist_component, config_dict, debug):
 
 
 # rotates infile
-def rotate_image(infile, rotate_angle, outfile, iinfo, proc_color, config_dict, debug):
+def rotate_image(
+    infile, rotate_angle, outfile, iinfo, proc_color, config_dict, logfd, debug
+):
     # load the input image
     inabc, status = itools_io.read_image_file(
-        infile, config_dict, iinfo=iinfo, return_type=proc_color, debug=debug
+        infile,
+        config_dict,
+        iinfo=iinfo,
+        return_type=proc_color,
+        logfd=logfd,
+        debug=debug,
     )
     assert inabc is not None, f"error: cannot read {infile}"
     # rotate it
@@ -461,18 +484,23 @@ def rotate_image(infile, rotate_angle, outfile, iinfo, proc_color, config_dict, 
 # composes infile2 on top of infile1, at (xloc, yloc)
 # uses alpha
 def compose_images(
-    infile1, infile2, iinfo, xloc, yloc, outfile, proc_color, config_dict, debug
+    infile1, infile2, iinfo, xloc, yloc, outfile, proc_color, config_dict, logfd, debug
 ):
     assert (
         proc_color == itools_common.ProcColor.bgr
     ), f"error: compose_images unsupported in {proc_color}"
     # load the input images
     inbgr1, _ = itools_io.read_image_file(
-        infile1, config_dict, iinfo=iinfo, debug=debug
+        infile1, config_dict, iinfo=iinfo, logfd=logfd, debug=debug
     )
     assert inbgr1 is not None, f"error: cannot read {infile1}"
     inbgr2, _ = itools_io.read_image_file(
-        infile2, config_dict, cv2.IMREAD_UNCHANGED, iinfo=iinfo, debug=debug
+        infile2,
+        config_dict,
+        cv2.IMREAD_UNCHANGED,
+        iinfo=iinfo,
+        logfd=logfd,
+        debug=debug,
     )
     assert inbgr2 is not None, f"error: cannot read {infile2}"
     # TODO(chema): use status (_) to deal with color ranges
@@ -503,17 +531,24 @@ def compose_images(
     itools_io.write_image_file(outfile, outbgr)
 
 
-def match_images(infile1, infile2, outfile, iinfo, proc_color, config_dict, debug):
+def match_images(
+    infile1, infile2, outfile, iinfo, proc_color, config_dict, logfd, debug
+):
     assert (
         proc_color == itools_common.ProcColor.bgr
     ), f"error: match_images unsupported in {proc_color}"
     # load the input images
     inbgr1, _ = itools_io.read_image_file(
-        infile1, config_dict, iinfo=iinfo, debug=debug
+        infile1, config_dict, iinfo=iinfo, logfd=logfd, debug=debug
     )
     assert inbgr1 is not None, f"error: cannot read {infile1}"
     inbgr2, _ = itools_io.read_image_file(
-        infile2, config_dict, cv2.IMREAD_UNCHANGED, iinfo=iinfo, debug=debug
+        infile2,
+        config_dict,
+        cv2.IMREAD_UNCHANGED,
+        iinfo=iinfo,
+        logfd=logfd,
+        debug=debug,
     )
     assert inbgr2 is not None, f"error: cannot read {infile2}"
     # TODO(chema): use status (_) to deal with color ranges
@@ -546,7 +581,7 @@ def match_images(infile1, infile2, outfile, iinfo, proc_color, config_dict, debu
     # get the location for the highest match[] value
     y0, x0 = np.unravel_index(match.argsort(axis=None)[-1], match.shape)
     if debug > 0:
-        print(f"{x0 = } {y0 = }")
+        print(f"{x0 = } {y0 = }", file=logfd)
     # prepare the output
     outbgr = inbgr1.astype(np.int16)
     xwidth, ywidth, _ = inbgr2.shape
@@ -580,11 +615,12 @@ def affine_transformation_matrix(
     b00,
     b10,
     config_dict,
+    logfd,
     debug,
 ):
     # load the input image
     inbgr, status = itools_io.read_image_file(
-        infile, config_dict, iinfo=iinfo, debug=debug
+        infile, config_dict, iinfo=iinfo, logfd=logfd, debug=debug
     )
     assert inbgr is not None, f"error: cannot read {infile}"
     # process the image
@@ -592,7 +628,7 @@ def affine_transformation_matrix(
     m1 = [a10, a11, b10]
     transform_matrix = np.array([m0, m1]).astype(np.float32)
     if debug > 0:
-        print(f"{transform_matrix = }")
+        print(f"{transform_matrix = }", file=logfd)
     width = width if width != 0 else inbgr.shape[1]
     height = height if height != 0 else inbgr.shape[0]
     outbgr = cv2.warpAffine(inbgr, transform_matrix, (width, height))
@@ -619,11 +655,12 @@ def affine_transformation_points(
     d2x,
     d2y,
     config_dict,
+    logfd,
     debug,
 ):
     # load the input image
     inbgr, status = itools_io.read_image_file(
-        infile, config_dict, iinfo=iinfo, debug=debug
+        infile, config_dict, iinfo=iinfo, logfd=logfd, debug=debug
     )
     assert inbgr is not None, f"error: cannot read {infile}"
     # process the image
@@ -637,7 +674,7 @@ def affine_transformation_points(
     dst_trio = np.array([d0, d1, d2]).astype(np.float32)
     transform_matrix = cv2.getAffineTransform(src_trio, dst_trio)
     if debug > 0:
-        print(f"{transform_matrix = }")
+        print(f"{transform_matrix = }", file=logfd)
     width = width if width != 0 else inbgr.shape[1]
     height = height if height != 0 else inbgr.shape[0]
     outbgr = cv2.warpAffine(inbgr, transform_matrix, (width, height))
@@ -1118,6 +1155,15 @@ def get_options(argv):
         metavar="output-file",
         help="output file",
     )
+    parser.add_argument(
+        "--logfile",
+        action="store",
+        dest="logfile",
+        type=str,
+        default=default_values["logfile"],
+        metavar="log-file",
+        help="log file",
+    )
     itools_common.Config.set_parser_options(parser)
     # do the parsing
     options = parser.parse_args(argv[1:])
@@ -1136,7 +1182,11 @@ def main(argv):
     if options.version:
         print("version: %s" % __version__)
         sys.exit(0)
-
+    # get logfile descriptor
+    if options.logfile is None:
+        logfd = sys.stdout
+    else:
+        logfd = open(options.logfile, "w")
     # get infile/outfile
     if options.infile == "-" or options.infile is None:
         options.infile = "/dev/fd/0"
@@ -1146,7 +1196,7 @@ def main(argv):
     config_dict = itools_common.Config.Create(options)
     # print results
     if options.debug > 0:
-        print(options)
+        print(f"debug: {options}")
 
     iinfo = itools_common.ImageInfo(
         options.iwidth,
@@ -1163,6 +1213,7 @@ def main(argv):
             iinfo,
             itools_common.ProcColor[options.proc_color],
             config_dict,
+            logfd,
             options.debug,
         )
 
@@ -1178,6 +1229,7 @@ def main(argv):
             options.diff_color,
             options.diff_color_factor,
             config_dict,
+            logfd,
             options.debug,
         )
         df.to_csv("/dev/fd/1", index=False)
@@ -1188,6 +1240,7 @@ def main(argv):
             iinfo,
             options.mse_invert,
             config_dict,
+            logfd,
             options.debug,
         )
         print(f"{mse = }\n{psnr = }")
@@ -1199,6 +1252,7 @@ def main(argv):
             iinfo,
             options.hist_component,
             config_dict,
+            logfd,
             options.debug,
         )
 
@@ -1210,6 +1264,7 @@ def main(argv):
             iinfo,
             itools_common.ProcColor[options.proc_color],
             config_dict,
+            logfd,
             options.debug,
         )
 
@@ -1223,6 +1278,7 @@ def main(argv):
             options.outfile,
             itools_common.ProcColor[options.proc_color],
             config_dict,
+            logfd,
             options.debug,
         )
 
@@ -1234,6 +1290,7 @@ def main(argv):
             iinfo,
             itools_common.ProcColor[options.proc_color],
             config_dict,
+            logfd,
             options.debug,
         )
 
@@ -1244,6 +1301,7 @@ def main(argv):
             iinfo,
             itools_common.ProcColor[options.proc_color],
             config_dict,
+            logfd,
             options.debug,
         )
 
@@ -1254,6 +1312,7 @@ def main(argv):
             iinfo,
             itools_common.ProcColor[options.proc_color],
             config_dict,
+            logfd,
             options.debug,
         )
 
@@ -1265,6 +1324,7 @@ def main(argv):
             options.outfile,
             iinfo,
             config_dict,
+            logfd,
             options.debug,
         )
 
@@ -1275,6 +1335,7 @@ def main(argv):
             iinfo,
             itools_common.ProcColor[options.proc_color],
             config_dict,
+            logfd,
             options.debug,
         )
 
@@ -1286,6 +1347,7 @@ def main(argv):
             options.noise_level,
             itools_common.ProcColor[options.proc_color],
             config_dict,
+            logfd,
             options.debug,
         )
 
@@ -1304,6 +1366,7 @@ def main(argv):
             options.b10,
             itools_common.ProcColor[options.proc_color],
             config_dict,
+            logfd,
             options.debug,
         )
 
@@ -1328,6 +1391,7 @@ def main(argv):
             options.d2y,
             itools_common.ProcColor[options.proc_color],
             config_dict,
+            logfd,
             options.debug,
         )
 

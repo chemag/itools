@@ -27,20 +27,20 @@ COLOR_ORDER = ["RGGB", "BGGR", "GRBG", "GBRG"]
 
 
 # 2 bytes -> 2 components
-def rfun_8(data):
+def rfun_8(data, logfd, debug):
     return data[0], data[1]
 
 
 # 2 bytes -> 2 components
-def wfun_8(c0, c1):
+def wfun_8(c0, c1, logfd, debug):
     return int(c0).to_bytes(1, "big") + int(c1).to_bytes(1, "big")
 
 
 # 4 bytes -> 2 components
-def rfun_10_expanded_to_16(data):
+def rfun_10_expanded_to_16(data, logfd, debug):
     # check the high 6 bits of both components are 0x0
     if (data[1] & 0xFC) != 0 or (data[3] & 0xFC) != 0:
-        print("warning: upper 6 bits are not zero")
+        print("warn: upper 6 bits are not zero", file=logfd)
     return (
         (data[0] << 6) | ((data[1] & 0x03) << 14),
         (data[2] << 6) | ((data[3] & 0x03) << 14),
@@ -48,14 +48,14 @@ def rfun_10_expanded_to_16(data):
 
 
 # 2 bytes -> 2 components
-def wfun_10_expanded_to_16(c0, c1):
+def wfun_10_expanded_to_16(c0, c1, logfd, debug):
     c0 >>= 6
     c1 >>= 6
     return int(c0).to_bytes(2, "little") + int(c1).to_bytes(2, "little")
 
 
 # 5 bytes -> 4 components
-def rfun_10_packed_expanded_to_16(data):
+def rfun_10_packed_expanded_to_16(data, logfd, debug):
     low = data[4]
     return (
         (data[0] << 8) | ((low & 0x03) << 6),
@@ -65,7 +65,7 @@ def rfun_10_packed_expanded_to_16(data):
     )
 
 
-def wfun_10_packed_expanded_to_16(c0, c1, c2, c3):
+def wfun_10_packed_expanded_to_16(c0, c1, c2, c3, logfd, debug):
     main = ((c0 >> 8) << 24) | ((c1 >> 8) << 16) | ((c2 >> 8) << 8) | ((c3 >> 8) << 0)
     remaining = (
         (((c3 >> 6) & 0x03) << 6)
@@ -77,49 +77,49 @@ def wfun_10_packed_expanded_to_16(c0, c1, c2, c3):
 
 
 # 2 bytes -> 2 components
-def rfun_10_alaw_expanded_to_16(data):
+def rfun_10_alaw_expanded_to_16(data, logfd, debug):
     raise AssertionError("rfun_10_alaw_expanded_to_16: unimplemented")
 
 
-def wfun_10_alaw_expanded_to_16(c0, c1):
+def wfun_10_alaw_expanded_to_16(c0, c1, logfd, debug):
     raise AssertionError("wfun_10_alaw_expanded_to_16: unimplemented")
 
 
 # 2 bytes -> 2 components
-def rfun_10_dpcm_expanded_to_16(data):
+def rfun_10_dpcm_expanded_to_16(data, logfd, debug):
     raise AssertionError("rfun_10_dpcm_expanded_to_16: unimplemented")
 
 
-def wfun_10_dpcm_expanded_to_16(c0, c1):
+def wfun_10_dpcm_expanded_to_16(c0, c1, logfd, debug):
     raise AssertionError("wfun_10_dpcm_expanded_to_16: unimplemented")
 
 
 # 32 bytes -> 25 components
-def rfun_10_ipu3_expanded_to_16(data):
+def rfun_10_ipu3_expanded_to_16(data, logfd, debug):
     raise AssertionError("rfun_10_ipu3_expanded_to_16: unimplemented")
 
 
-def wfun_10_ipu3_expanded_to_16(carray):
+def wfun_10_ipu3_expanded_to_16(carray, logfd, debug):
     raise AssertionError("wfun_10_ipu3_expanded_to_16: unimplemented")
 
 
 # 4 bytes -> 2 components
-def rfun_12_expanded_to_16(data):
+def rfun_12_expanded_to_16(data, logfd, debug):
     # check the high 4 bits of both components are 0x0
     if (data[1] & 0xF0) != 0 or (data[3] & 0xF0) != 0:
-        print("warning: upper 4 bits are not zero")
+        print("warn: upper 4 bits are not zero", file=logfd)
     return (
         (data[0] << 4) | ((data[1] & 0x0F) << 12),
         (data[2] << 4) | ((data[3] & 0x0F) << 12),
     )
 
 
-def wfun_12_expanded_to_16(c0, c1):
+def wfun_12_expanded_to_16(c0, c1, logfd, debug):
     raise AssertionError("wfun_12_expanded_to_16: unimplemented")
 
 
 # 3 bytes -> 2 components
-def rfun_12_packed_expanded_to_16(data):
+def rfun_12_packed_expanded_to_16(data, logfd, debug):
     low = data[2]
     return (
         (data[0] << 8) | ((low & 0x0F) << 4),
@@ -127,27 +127,27 @@ def rfun_12_packed_expanded_to_16(data):
     )
 
 
-def wfun_12_packed_expanded_to_16(c0, c1):
+def wfun_12_packed_expanded_to_16(c0, c1, logfd, debug):
     raise AssertionError("wfun_12_packed_expanded_to_16: unimplemented")
 
 
 # 4 bytes -> 2 components
-def rfun_14_expanded_to_16(data):
+def rfun_14_expanded_to_16(data, logfd, debug):
     # check the high 2 bits of both components are 0x0
     if (data[1] & 0xC0) != 0 or (data[3] & 0xC0) != 0:
-        print("warning: upper 2 bits are not zero")
+        print("warn: upper 2 bits are not zero", file=logfd)
     return (
         (data[0] << 2) | ((data[1] & 0x3F) << 10),
         (data[2] << 2) | ((data[3] & 0x3F) << 10),
     )
 
 
-def wfun_14_expanded_to_16(c0, c1):
+def wfun_14_expanded_to_16(c0, c1, logfd, debug):
     raise AssertionError("wfun_14_expanded_to_16: unimplemented")
 
 
 # 7 bytes -> 4 components
-def rfun_14_packed_expanded_to_16(data):
+def rfun_14_packed_expanded_to_16(data, logfd, debug):
     low0, low1, low2 = data[4:6]
     return (
         (data[0] << 8) | ((low0 & 0x3F) << 2),
@@ -157,19 +157,19 @@ def rfun_14_packed_expanded_to_16(data):
     )
 
 
-def wfun_14_packed_expanded_to_16(c0, c1, c2, c3):
+def wfun_14_packed_expanded_to_16(c0, c1, c2, c3, logfd, debug):
     raise AssertionError("wfun_14_packed_expanded_to_16: unimplemented")
 
 
 # 4 bytes -> 2 components
-def rfun_16le(data):
+def rfun_16le(data, logfd, debug):
     return (
         (data[0] << 0) | (data[1] << 8),
         (data[2] << 0) | (data[3] << 8),
     )
 
 
-def rfun_16be(data):
+def rfun_16be(data, logfd, debug):
     return (
         (data[1] << 0) | (data[0] << 8),
         (data[3] << 0) | (data[2] << 8),
@@ -177,11 +177,11 @@ def rfun_16be(data):
 
 
 # 4 bytes -> 2 components
-def wfun_16be(c0, c1):
+def wfun_16be(c0, c1, logfd, debug):
     return int(c0).to_bytes(2, "big") + int(c1).to_bytes(2, "big")
 
 
-def wfun_16le(c0, c1):
+def wfun_16le(c0, c1, logfd, debug):
     return int(c0).to_bytes(2, "little") + int(c1).to_bytes(2, "little")
 
 
@@ -779,6 +779,7 @@ default_values = {
     "height": 0,
     "infile": None,
     "outfile": None,
+    "logfile": None,
 }
 
 
@@ -826,7 +827,7 @@ def get_planes(order, row):
     return plane_ids
 
 
-def rfun_image_file(infile, i_pix_fmt, width, height, debug):
+def rfun_image_file(infile, i_pix_fmt, width, height, logfd, debug):
     # get format info
     irdepth = INPUT_FORMATS[i_pix_fmt]["rdepth"]
     iclen = INPUT_FORMATS[i_pix_fmt]["clen"]
@@ -855,7 +856,7 @@ def rfun_image_file(infile, i_pix_fmt, width, height, debug):
     with open(infile, "rb") as fin:
         while True:
             if debug > 0:
-                print(f"{row=} {col=}")
+                print(f"debug: {row=} {col=}", file=logfd)
             # 1. get affected plane IDs
             plane_ids = get_planes(iorder, row)
             # 2. read components from the input
@@ -864,7 +865,7 @@ def rfun_image_file(infile, i_pix_fmt, width, height, debug):
                 idata = fin.read(INPUT_FORMATS[i_pix_fmt]["blen"])
                 if not idata:
                     break
-                components += INPUT_FORMATS[i_pix_fmt]["rfun"](idata)
+                components += INPUT_FORMATS[i_pix_fmt]["rfun"](idata, logfd, debug)
             if len(components) < iclen:
                 # end of input
                 break
@@ -872,7 +873,7 @@ def rfun_image_file(infile, i_pix_fmt, width, height, debug):
             if irdepth < 16:
                 components = list(c << (16 - irdepth) for c in components)
             if debug > 1:
-                print(f"  {components=}")
+                print(f"debug:  {components=}", file=logfd)
             # 4. convert component order
             for component_id, component in enumerate(components):
                 plane_id = plane_ids[col % len(plane_ids)]
@@ -881,7 +882,7 @@ def rfun_image_file(infile, i_pix_fmt, width, height, debug):
                 col1 = col
                 col2 = (col1 + 1) if col1 % 2 == 0 else (col1 - 1)
                 if debug > 1:
-                    print(f"{row1=} {row2=} {col1=} {col2=}")
+                    print(f"debug: {row1=} {row2=} {col1=} {col2=}", file=logfd)
                 if row % 2 == 0 or plane_id != get_plane_id("G"):
                     planar_image[plane_id][row1][col1] = component
                     planar_image[plane_id][row1][col2] = component
@@ -918,7 +919,7 @@ def rfun_image_file(infile, i_pix_fmt, width, height, debug):
     return planar_image
 
 
-def wfun_image_file(planar_image, outfile, o_pix_fmt, width, height, debug):
+def wfun_image_file(planar_image, outfile, o_pix_fmt, width, height, logfd, debug):
     # get format info
     ordepth = OUTPUT_FORMATS[o_pix_fmt]["rdepth"]
     oclen = OUTPUT_FORMATS[o_pix_fmt]["clen"]
@@ -942,7 +943,7 @@ def wfun_image_file(planar_image, outfile, o_pix_fmt, width, height, debug):
             for component_id in range(oclen):
                 plane_id = plane_ids[col % len(plane_ids)]
                 if debug > 0:
-                    print(f"{plane_id=} {row=} {col=}")
+                    print(f"debug: {plane_id=} {row=} {col=}", file=logfd)
                 component = planar_image[plane_id][row][col]
                 components.append(component)
                 col += 1
@@ -950,9 +951,11 @@ def wfun_image_file(planar_image, outfile, o_pix_fmt, width, height, debug):
             if ordepth < 16:
                 components = list(c >> (16 - ordepth) for c in components)
             if debug > 1:
-                print(f"  {components=}")
+                print(f"debug:  {components=}", file=logfd)
             # 4. write components to the output
-            odata = OUTPUT_FORMATS[o_pix_fmt]["wfun"](*components[0:oclen])
+            odata = OUTPUT_FORMATS[o_pix_fmt]["wfun"](
+                *components[0:oclen], logfd, debug
+            )
             fout.write(odata)
             # 5. update row numbers
             if col == width:
@@ -1073,6 +1076,16 @@ def get_options(argv):
         metavar="output-file",
         help="output file",
     )
+    parser.add_argument(
+        "--logfile",
+        action="store",
+        dest="logfile",
+        type=str,
+        default=default_values["logfile"],
+        metavar="log-file",
+        help="log file",
+    )
+
     # do the parsing
     options = parser.parse_args(argv[1:])
     if options.version:
@@ -1086,7 +1099,11 @@ def main(argv):
     if options.version:
         print("version: %s" % __version__)
         sys.exit(0)
-
+    # get logfile descriptor
+    if options.logfile is None:
+        logfd = sys.stdout
+    else:
+        logfd = open(options.logfile, "w")
     # get infile/outfile
     if options.infile == "-" or options.infile is None:
         options.infile = "/dev/fd/0"
@@ -1094,7 +1111,7 @@ def main(argv):
         options.outfile = "/dev/fd/1"
     # print results
     if options.debug > 0:
-        print(options)
+        print(f"debug: {options}")
 
     # get common depth
     # check the input pixel format
@@ -1107,6 +1124,7 @@ def main(argv):
         i_pix_fmt,
         options.width,
         options.height,
+        logfd,
         options.debug,
     )
     # write planar into output image file
@@ -1116,12 +1134,13 @@ def main(argv):
         o_pix_fmt,
         options.width,
         options.height,
+        logfd,
         options.debug,
     )
     ffmpeg_support = OUTPUT_FORMATS[o_pix_fmt]["ffmpeg"]
     if ffmpeg_support:
         print(
-            f"{itools_common.FFMPEG_SILENT} -f rawvideo -pixel_format {options.o_pix_fmt} "
+            f"info: {itools_common.FFMPEG_SILENT} -f rawvideo -pixel_format {options.o_pix_fmt} "
             f"-s {options.width}x{options.height} -i {options.outfile} {options.outfile}.png"
         )
 

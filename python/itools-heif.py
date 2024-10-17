@@ -72,10 +72,10 @@ def parse_mp4box_info(output):
     return df
 
 
-def get_item_list(infile, debug=0):
+def get_item_list(infile, logfd, debug=0):
     # get the item list
     command = f"MP4Box -info {infile}"
-    returncode, out, err = itools_common.run(command, debug=debug)
+    returncode, out, err = itools_common.run(command, logfd=logfd, debug=debug)
     assert returncode == 0, f"error in {command}\n{err}"
     return parse_mp4box_info(err)
 
@@ -167,7 +167,7 @@ def parse_isomediafile_xml(tmpxml, config_dict):
 
 # parse hvcC (hevc configuration record, HEVCDecoderConfigurationRecord) box,
 # per ISO/IEC 14496-15:2022, Section 8.3.2.1.2
-def parse_hvcC_box(infile, config_dict, debug):
+def parse_hvcC_box(infile, config_dict, logfd, debug):
     with open(infile, "rb") as fin:
         hvcC_bin = fin.read()
     i = 0
@@ -283,7 +283,7 @@ def parse_hvcC_box(infile, config_dict, debug):
         #
         with open(tmpsps, "wb") as fout:
             fout.write(sps)
-        sps_dict = parse_hevc_sps(tmpsps, config_dict, debug)
+        sps_dict = parse_hevc_sps(tmpsps, config_dict, logfd, debug)
     # prefix all keys
     sps_dict = {("hvcC:" + key): value for key, value in sps_dict.items()}
     return sps_dict
@@ -299,12 +299,12 @@ SPS_PARAMETERS = {
 }
 
 
-def parse_hevc_sps(tmpsps, config_dict, debug):
+def parse_hevc_sps(tmpsps, config_dict, logfd, debug):
     h265nal_parser = config_dict.get("h265nal_parser")
     if h265nal_parser is None:
         return {}
     command = f"{h265nal_parser} --nalu-length-bytes 0 --no-as-one-line -i {tmpsps}"
-    returncode, out, err = itools_common.run(command, debug=debug)
+    returncode, out, err = itools_common.run(command, logfd=logfd, debug=debug)
     assert returncode == 0, f"error in {command}\n{err}"
     # look for the colorimetry
     sps_dict = {}
@@ -315,8 +315,8 @@ def parse_hevc_sps(tmpsps, config_dict, debug):
     return sps_dict
 
 
-def get_heif_colorimetry(infile, config_dict, debug):
-    df_item = get_item_list(infile, debug)
+def get_heif_colorimetry(infile, config_dict, logfd, debug):
+    df_item = get_item_list(infile, logfd, debug)
     file_type_list = df_item.type.unique()
     colorimetry = {}
     read_exif_info = config_dict.get("read_exif_info")
@@ -329,11 +329,11 @@ def get_heif_colorimetry(infile, config_dict, debug):
         # extract the 265 file of the first tile
         tmp265 = tempfile.NamedTemporaryFile(prefix="itools.tile.", suffix=".265").name
         command = f"MP4Box -dump-item {hvc1_id}:path={tmp265} {infile}"
-        returncode, out, err = itools_common.run(command, debug=debug)
+        returncode, out, err = itools_common.run(command, logfd=logfd, debug=debug)
         assert returncode == 0, f"error in {command}\n{err}"
         # extract the 265 file of the first tile
         command = f"{itools_common.FFMPEG_SILENT} -i {tmp265} -c:v copy -bsf:v trace_headers -f null -"
-        returncode, out, err = itools_common.run(command, debug=debug)
+        returncode, out, err = itools_common.run(command, logfd=logfd, debug=debug)
         assert returncode == 0, f"error in {command}\n{err}"
         hevc_dict = parse_ffmpeg_bsf_colorimetry(err)
         hevc_dict["hevc:ntiles"] = len(df_item[df_item.type == file_type]["id"])
@@ -345,10 +345,10 @@ def get_heif_colorimetry(infile, config_dict, debug):
         hvcC_box = "/meta/iprp/ipco/hvcC"
         tmphvcC = tempfile.NamedTemporaryFile(prefix="itools.hvcC.", suffix=".bin").name
         command = f"{isobmff_parser} -i {infile} --func extract-box --path {hvcC_box} -o {tmphvcC}"
-        returncode, out, err = itools_common.run(command, debug=debug)
+        returncode, out, err = itools_common.run(command, logfd=logfd, debug=debug)
         assert returncode == 0, f"error in {command}\n{err}"
         # parse the hvcC box
-        hvcC_dict = parse_hvcC_box(tmphvcC, config_dict, debug)
+        hvcC_dict = parse_hvcC_box(tmphvcC, config_dict, logfd, debug)
         colorimetry.update(hvcC_dict)
 
     # 3. get the Exif colorimetry
@@ -357,24 +357,24 @@ def get_heif_colorimetry(infile, config_dict, debug):
         # extract the exif file of the first tile
         tmpexif = tempfile.NamedTemporaryFile(prefix="itools.exif.", suffix=".bin").name
         command = f"MP4Box -dump-item {exif_id}:path={tmpexif} {infile}"
-        returncode, out, err = itools_common.run(command, debug=debug)
+        returncode, out, err = itools_common.run(command, logfd=logfd, debug=debug)
         assert returncode == 0, f"error in {command}\n{err}"
         # parse the exif file of the first tile
         exiftool_dict = itools_exiftool.get_exiftool(
-            tmpexif, short=True, config_dict=config_dict, debug=debug
+            tmpexif, short=True, config_dict=config_dict, logfd=logfd, debug=debug
         )
         colorimetry.update(exiftool_dict)
     # 4. get the `colr` colorimetry
     tmpxml = tempfile.NamedTemporaryFile(prefix="itools.xml.", suffix=".xml").name
     command = f"MP4Box -std -dxml {infile} > {tmpxml}"
-    returncode, out, err = itools_common.run(command, debug=debug)
+    returncode, out, err = itools_common.run(command, logfd=logfd, debug=debug)
     assert returncode == 0, f"error in {command}\n{err}"
     colr_dict = parse_isomediafile_xml(tmpxml, config_dict)
     colorimetry.update(colr_dict)
     return colorimetry
 
 
-def parse_heif_convert_output(tmpy4m, output, debug):
+def parse_heif_convert_output(tmpy4m, output, logfd, debug):
     # count the number of images
     num_images = None
     output_files = []
@@ -411,12 +411,12 @@ def parse_qpextract_bin_output(outfile, mode):
         return {key: df.iloc[0][key] for key in CTUEXTRACT_FIELDS}
 
 
-def get_h265_values(infile, config_dict, debug):
+def get_h265_values(infile, config_dict, logfd, debug):
     qpextract_bin = config_dict.get("qpextract_bin")
     if qpextract_bin is None:
         return {}
     qp_dict = {}
-    df_item = get_item_list(infile, debug)
+    df_item = get_item_list(infile, logfd, debug)
     file_type_list = df_item.type.unique()
     # 1. get the HEVC (h265) weighted QP distribution
     if "hvc1" in file_type_list:
@@ -426,14 +426,14 @@ def get_h265_values(infile, config_dict, debug):
         # extract the 265 file of the first tile
         tmp_265 = tempfile.NamedTemporaryFile(prefix="itools.hvc1.", suffix=".265").name
         command = f"MP4Box -dump-item {hvc1_id}:path={tmp_265} {infile}"
-        returncode, out, err = itools_common.run(command, debug=debug)
+        returncode, out, err = itools_common.run(command, logfd=logfd, debug=debug)
         assert returncode == 0, f"error in {command}\n{err}"
         # extract the QP-Y info for the first tile
         tmp_qpymode = tempfile.NamedTemporaryFile(
             prefix="itools.hvc1.", suffix=".265.qpymode.csv"
         ).name
         command = f"{qpextract_bin} --qpymode -w -i {tmp_265} -o {tmp_qpymode}"
-        returncode, out, err = itools_common.run(command, debug=debug)
+        returncode, out, err = itools_common.run(command, logfd=logfd, debug=debug)
         assert returncode == 0, f"error in {command}\n{err}"
         qp_dict_y = parse_qpextract_bin_output(tmp_qpymode, "qp")
         qp_dict.update({f"qpwy:{k}": v for k, v in qp_dict_y.items()})
@@ -442,7 +442,7 @@ def get_h265_values(infile, config_dict, debug):
             prefix="itools.hvc1.", suffix=".265.qpcbmode.csv"
         ).name
         command = f"{qpextract_bin} --qpcbmode -w -i {tmp_265} -o {tmp_qpcbmode}"
-        returncode, out, err = itools_common.run(command, debug=debug)
+        returncode, out, err = itools_common.run(command, logfd=logfd, debug=debug)
         assert returncode == 0, f"error in {command}\n{err}"
         qp_dict_cb = parse_qpextract_bin_output(tmp_qpcbmode, "qp")
         qp_dict.update({f"qpwcb:{k}": v for k, v in qp_dict_cb.items()})
@@ -451,7 +451,7 @@ def get_h265_values(infile, config_dict, debug):
             prefix="itools.hvc1.", suffix=".265.qpcrmode.csv"
         ).name
         command = f"{qpextract_bin} --qpcrmode -w -i {tmp_265} -o {tmp_qpcrmode}"
-        returncode, out, err = itools_common.run(command, debug=debug)
+        returncode, out, err = itools_common.run(command, logfd=logfd, debug=debug)
         assert returncode == 0, f"error in {command}\n{err}"
         qp_dict_cr = parse_qpextract_bin_output(tmp_qpcrmode, "qp")
         qp_dict.update({f"qpwcr:{k}": v for k, v in qp_dict_cr.items()})
@@ -460,31 +460,31 @@ def get_h265_values(infile, config_dict, debug):
             prefix="itools.hvc1.", suffix=".265.ctumode.csv"
         ).name
         command = f"{qpextract_bin} --ctumode -w -i {tmp_265} -o {tmp_ctumode}"
-        returncode, out, err = itools_common.run(command, debug=debug)
+        returncode, out, err = itools_common.run(command, logfd=logfd, debug=debug)
         assert returncode == 0, f"error in {command}\n{err}"
         ctu_dict = parse_qpextract_bin_output(tmp_ctumode, "ctu")
         qp_dict.update({f"ctu:{k}": v for k, v in ctu_dict.items()})
     return qp_dict
 
 
-def read_heif(infile, config_dict, debug=0):
+def read_heif(infile, config_dict, logfd, debug=0):
     # 1. get the heif colorimetry
-    colorimetry = get_heif_colorimetry(infile, config_dict, debug=debug)
+    colorimetry = get_heif_colorimetry(infile, config_dict, logfd, debug=debug)
     status = colorimetry
     # 2. get the actual image
     read_image_components = config_dict.get("read_image_components")
     if read_image_components:
         tmpy4m = tempfile.NamedTemporaryFile(prefix="itools.raw.", suffix=".y4m").name
         if debug > 0:
-            print(f"read_heif: using {tmpy4m}")
+            print(f"read_heif: using {tmpy4m}", file=logfd)
         # 2.1. decode the file using libheif (into y4m)
         command = f"{HEIF_DEC} {infile} {tmpy4m}"
-        returncode, out, err = itools_common.run(command, debug=debug)
+        returncode, out, err = itools_common.run(command, logfd=logfd, debug=debug)
         assert returncode == 0, f"error in {command}\n{err}"
-        tmpy4m = parse_heif_convert_output(tmpy4m, out, debug)
+        tmpy4m = parse_heif_convert_output(tmpy4m, out, logfd, debug)
         # 2.2. read the y4m frame ignoring the color range
         outyvu, _, _, tmp_status = itools_y4m.read_y4m(
-            tmpy4m, output_colorrange=None, debug=debug
+            tmpy4m, output_colorrange=None, logfd=logfd, debug=debug
         )
         status.update(tmp_status)
     else:
@@ -509,25 +509,29 @@ def read_heif(infile, config_dict, debug=0):
         actual_colorrange = itools_common.ColorRange.parse(actual_colorrange_id)
         status["colorrange"] = actual_colorrange
     # 4. get the heif QP distribution
-    qp_dict = get_h265_values(infile, config_dict, debug=debug)
+    qp_dict = get_h265_values(infile, config_dict, logfd, debug=debug)
     status.update(qp_dict)
     return outyvu, status
 
 
-def encode_heif(infile, codec, quality, outfile, debug):
+def encode_heif(infile, codec, quality, outfile, logfd, debug):
     command = f"{HEIF_ENC} {infile} -e {codec} -q {quality} {outfile}"
-    returncode, out, err, stats = itools_common.run(command, debug=debug, gnu_time=True)
+    returncode, out, err, stats = itools_common.run(
+        command, logfd=logfd, debug=debug, gnu_time=True
+    )
     assert returncode == 0, f"error: {out = } {err = }"
     return stats
 
 
-def decode_heif(infile, outfile_y4m, config_dict, output_colorrange=None, debug=0):
+def decode_heif(
+    infile, outfile_y4m, config_dict, output_colorrange=None, logfd=sys.stdout, debug=0
+):
     if debug > 0:
-        print(f"decode_heif() {infile} -> {outfile_y4m}")
+        print(f"decode_heif() {infile} -> {outfile_y4m}", file=logfd)
     # load the input (heic) image
     read_exif_info = False
     read_icc_info = False
-    inyvu, status = read_heif(infile, config_dict, debug)
+    inyvu, status = read_heif(infile, config_dict, logfd, debug)
     assert inyvu is not None, f"error: cannot read {infile}"
     # write the output image
     colorspace = "420"
@@ -541,7 +545,8 @@ def decode_heif(infile, outfile_y4m, config_dict, output_colorrange=None, debug=
     ):
         if debug > 0:
             print(
-                f"running $ itools-filter.py --filter range-convert -i ... -o {outfile_y4m}"
+                f"running $ itools-filter.py --filter range-convert -i ... -o {outfile_y4m}",
+                file=logfd,
             )
         outyvu = itools_y4m.color_range_conversion(
             inyvu, input_colorrange, output_colorrange

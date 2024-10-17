@@ -40,6 +40,7 @@ default_values = {
     "filter": "components",
     "infile_list": [],
     "outfile": None,
+    "logfile": None,
 }
 
 
@@ -50,14 +51,15 @@ SUMMARY_FIELDS_AVERAGE = ("delta_timestamp_ms",)
 
 
 # calculate average/stddev of all components
-def get_components(infile, roi, roi_dump, config_dict, debug):
+def get_components(infile, roi, roi_dump, config_dict, logfd, debug):
     if debug > 0:
-        print(f"analyzing {infile}")
+        print(f"debug: analyzing {infile}", file=logfd)
     # load the input image as both yuv and rgb
     inbgr, inyvu, status = itools_io.read_image_file(
         infile,
         config_dict,
         return_type=itools_common.ProcColor.both,
+        logfd=logfd,
         debug=debug,
     )
     read_image_components = config_dict.get("read_image_components")
@@ -267,6 +269,15 @@ def get_options(argv):
         metavar="output-file",
         help="output file",
     )
+    parser.add_argument(
+        "--logfile",
+        action="store",
+        dest="logfile",
+        type=str,
+        default=default_values["logfile"],
+        metavar="log-file",
+        help="log file",
+    )
     # do the parsing
     options = parser.parse_args(argv[1:])
     return options
@@ -275,12 +286,17 @@ def get_options(argv):
 def main(argv):
     # parse options
     options = get_options(argv)
+    # get logfile descriptor
+    if options.logfile is None:
+        logfd = sys.stdout
+    else:
+        logfd = open(options.logfile, "w")
     # get outfile
     if options.outfile is None or options.outfile == "-":
         options.outfile = "/dev/fd/1"
     # print results
     if options.debug > 0:
-        print(options)
+        print(f"debug: {options}")
     # create configuration
     config_dict = itools_common.Config.Create(options)
     # process infile
@@ -294,6 +310,7 @@ def main(argv):
                 roi,
                 options.roi_dump,
                 config_dict,
+                logfd,
                 options.debug,
             )
             df = dftmp if df is None else pd.concat([df, dftmp])

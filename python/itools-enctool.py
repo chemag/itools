@@ -61,6 +61,7 @@ default_values = {
     "workdir": tempfile.gettempdir(),
     "infile_list": None,
     "outfile": None,
+    "logfile": None,
 }
 
 COLUMN_LIST = [
@@ -78,9 +79,9 @@ COLUMN_LIST = [
 ]
 
 
-def get_video_dimensions(infile, debug):
+def get_video_dimensions(infile, logfd, debug):
     command = f"ffprobe -v 0 -of csv='p=0' -select_streams v:0 -show_entries stream=width,height {infile}"
-    returncode, out, err = itools_common.run(command, debug=debug)
+    returncode, out, err = itools_common.run(command, logfd=logfd, debug=debug)
     assert returncode == 0, f"error: {out = } {err = }"
     return [int(v) for v in out.decode("ascii").strip().split(",")]
 
@@ -139,7 +140,7 @@ def psnr_parse(stdout):
     return psnr
 
 
-def vmaf_get(distorted, reference, debug, vmaf_model=None):
+def vmaf_get(distorted, reference, logfd, debug, vmaf_model=None):
     vmaf_file = tempfile.NamedTemporaryFile(prefix="itools.vmaf.", suffix=".json").name
     # 1. calculate the score
     command = (
@@ -154,13 +155,13 @@ def vmaf_get(distorted, reference, debug, vmaf_model=None):
         "feature=name=psnr|name=psnr_hvs|name=float_ssim|name=float_ms_ssim|name=cambi'"
         " -f null -"
     )
-    returncode, out, err = itools_common.run(command, debug=debug)
+    returncode, out, err = itools_common.run(command, logfd=logfd, debug=debug)
     assert returncode == 0, f"error: {out = } {err = }"
     # 2. parse the output
     return vmaf_parse(out, err, vmaf_file)
 
 
-def psnr_get(distorted, reference, debug):
+def psnr_get(distorted, reference, logfd, debug):
     psnr_file = tempfile.NamedTemporaryFile(prefix="itools.psnr.", suffix=".txt").name
     # 1. calculate the score
     command = (
@@ -169,13 +170,13 @@ def psnr_get(distorted, reference, debug):
         f'"psnr=stats_file={psnr_file}" '
         f"-f null - 2>&1"
     )
-    returncode, out, err = itools_common.run(command, debug=debug)
+    returncode, out, err = itools_common.run(command, logfd=logfd, debug=debug)
     assert returncode == 0, f"error: {out = } {err = }"
     # 2. parse the output
     return psnr_parse(out)
 
 
-def ssim_get(distorted, reference, debug):
+def ssim_get(distorted, reference, logfd, debug):
     ssim_file = tempfile.NamedTemporaryFile(prefix="itools.ssim.", suffix=".txt").name
     # 1. calculate the score
     command = (
@@ -184,28 +185,28 @@ def ssim_get(distorted, reference, debug):
         f'"ssim=stats_file={ssim_file}" '
         f"-f null - 2>&1"
     )
-    returncode, out, err = itools_common.run(command, debug=debug)
+    returncode, out, err = itools_common.run(command, logfd=logfd, debug=debug)
     assert returncode == 0, f"error: {out = } {err = }"
     # 2. parse the output
     return ssim_parse(out)
 
 
-def ssimulacra2_get(distorted, reference, debug):
+def ssimulacra2_get(distorted, reference, logfd, debug):
     # 0. ssimulacra2 only accepts png as inputs
     reference_png = f"{reference}.png"
     command = f"{itools_common.FFMPEG_SILENT} -i {reference} {reference_png}"
-    returncode, out, err = itools_common.run(command, debug=debug)
+    returncode, out, err = itools_common.run(command, logfd=logfd, debug=debug)
     assert returncode == 0, f"error: {out = } {err = }"
     distorted_png = f"{distorted}.png"
     command = f"{itools_common.FFMPEG_SILENT} -i {distorted} {distorted_png}"
-    returncode, out, err = itools_common.run(command, debug=debug)
+    returncode, out, err = itools_common.run(command, logfd=logfd, debug=debug)
     assert returncode == 0, f"error: {out = } {err = }"
     # 1. calculate the score
     command = f"ssimulacra2 {reference_png} {distorted_png}"
-    returncode, out, err = itools_common.run(command, debug=debug)
+    returncode, out, err = itools_common.run(command, logfd=logfd, debug=debug)
     if returncode == 127:
         # no ssimulacra2 available
-        print(f"error: no ssimulacra2 available\n{err}")
+        print(f"error: no ssimulacra2 available\n{err}", file=sys.stderr)
         return 0.0
     assert returncode == 0, f"error: {out = } {err = }"
     # 2. parse the output
@@ -218,26 +219,26 @@ def escape_float(f):
 
 # encoding backends
 # 1. heif-enc
-def heif_enc_encode_fun(infile, width, height, codec, quality, outfile, debug):
-    return itools_heif.encode_heif(infile, codec, quality, outfile, debug)
+def heif_enc_encode_fun(infile, width, height, codec, quality, outfile, logfd, debug):
+    return itools_heif.encode_heif(infile, codec, quality, outfile, logfd, debug)
 
 
 # 2. libjpeg
-def libjpeg_encode_fun(infile, width, height, codec, quality, outfile, debug):
-    return itools_jpeg.encode_libjpeg(infile, quality, outfile, debug)
+def libjpeg_encode_fun(infile, width, height, codec, quality, outfile, logfd, debug):
+    return itools_jpeg.encode_libjpeg(infile, quality, outfile, logfd, debug)
 
 
-def jpegli_encode_fun(infile, width, height, codec, quality, outfile, debug):
-    return itools_jpeg.encode_jpegli(infile, quality, outfile, debug)
+def jpegli_encode_fun(infile, width, height, codec, quality, outfile, logfd, debug):
+    return itools_jpeg.encode_jpegli(infile, quality, outfile, logfd, debug)
 
 
 # 3. jxl
-def jxl_encode_fun(infile, width, height, codec, quality, outfile, debug):
-    return itools_jxl.encode_jxl(infile, quality, outfile, debug)
+def jxl_encode_fun(infile, width, height, codec, quality, outfile, logfd, debug):
+    return itools_jxl.encode_jxl(infile, quality, outfile, logfd, debug)
 
 
-def jxl_decode_fun(infile, outfile, debug):
-    return itools_jxl.decode_jxl(infile, outfile, debug)
+def jxl_decode_fun(infile, outfile, logfd, debug):
+    return itools_jxl.decode_jxl(infile, outfile, logfd, debug)
 
 
 # TODO(chema): use better mechanism here
@@ -265,6 +266,7 @@ def process_file(
     workdir,
     codec_choices,
     config_dict,
+    logfd,
     debug,
     encoded_infile=None,
     encoded_rotate=None,
@@ -279,7 +281,7 @@ def process_file(
     )
     vertical_alignment = vertical_alignment if vertical_alignment is not None else va
     # 2. crop input to alignment in vertical and horizontal
-    width, height = get_video_dimensions(infile, debug)
+    width, height = get_video_dimensions(infile, logfd, debug)
     width = (
         width
         if (horizontal_alignment is None or width % horizontal_alignment == 0)
@@ -293,13 +295,15 @@ def process_file(
     ref_basename = f"{os.path.basename(infile)}.{width}x{height}.codec_{codec}.y4m"
     ref_path = os.path.join(workdir, ref_basename)
     command = f'{itools_common.FFMPEG_SILENT} -i {infile} -vf "crop={width}:{height}:(iw-ow)/2:(ih-oh)/2" {ref_path}'
-    returncode, out, err = itools_common.run(command, debug=debug)
+    returncode, out, err = itools_common.run(command, logfd=logfd, debug=debug)
     assert returncode == 0, f"error: {out = } {err = }"
 
     # 3. prepare the input (reference) file
     if extension is None and encoded_infile is not None:
         extension = os.path.splitext(encoded_infile)[-1]
-    exp_path = init_fun(ref_path, workdir, debug) if init_fun is not None else ref_path
+    exp_path = (
+        init_fun(ref_path, workdir, logfd, debug) if init_fun is not None else ref_path
+    )
     exp_basename = os.path.basename(exp_path)
     for quality in quality_list:
         # 4. encode the file
@@ -310,10 +314,12 @@ def process_file(
         if codec == "empty":
             # copy the encoded file to the encoded path
             if debug > 0:
-                print(f"running $ cp {encoded_infile} {enc_path}")
+                print(f"$ cp {encoded_infile} {enc_path}", file=logfd)
             shutil.copyfile(encoded_infile, enc_path)
         else:
-            stats = encode_fun(exp_path, width, height, codec, quality, enc_path, debug)
+            stats = encode_fun(
+                exp_path, width, height, codec, quality, enc_path, logfd, debug
+            )
         # 5. calculate the encoded size
         encoded_size = os.path.getsize(enc_path)
         encoded_bpp = (8 * encoded_size) / (width * height)
@@ -321,25 +327,26 @@ def process_file(
         distorted_path = f"{enc_path}.y4m"
         enc_extension = os.path.splitext(enc_path)[-1]
         if enc_extension in (".heic", ".avif", ".jp2", ".j2k"):
-            ref_colorrange = itools_io.read_colorrange(ref_path, debug)
+            ref_colorrange = itools_io.read_colorrange(ref_path, logfd, debug)
             itools_heif.decode_heif(
                 enc_path,
                 distorted_path,
                 config_dict,
                 output_colorrange=ref_colorrange,
+                logfd=logfd,
                 debug=debug,
             )
         elif enc_extension in (".jpg", ".jpeg"):
             # copy the encoded file to the distorted path
-            itools_jpeg.decode_jpeg(enc_path, distorted_path, debug)
+            itools_jpeg.decode_jpeg(enc_path, distorted_path, logfd, debug)
         elif enc_extension in (".y4m",):
             # copy the encoded file to the distorted path
             if debug > 0:
-                print(f"running $ cp {encoded_infile} {distorted_path}")
+                print(f"$ cp {encoded_infile} {distorted_path}", file=logfd)
             shutil.copyfile(encoded_infile, distorted_path)
         elif enc_extension in (".jxl",):
             # copy the encoded file to the distorted path
-            jxl_decode_fun(enc_path, distorted_path, debug)
+            jxl_decode_fun(enc_path, distorted_path, logfd, debug)
         else:
             raise AssertionError(f"cannot decode file {enc_path}")
 
@@ -349,7 +356,8 @@ def process_file(
             proc_color = itools_common.ProcColor.yvu
             if debug > 0:
                 print(
-                    f"running $ itools-filter.py --filter rotate --rotate-angle {encoded_rotate} -i {distorted_path} -o {distorted_path}"
+                    f"$ itools-filter.py --filter rotate --rotate-angle {encoded_rotate} -i {distorted_path} -o {distorted_path}",
+                    file=logfd,
                 )
             itools_filter.rotate_image(
                 distorted_path,
@@ -361,12 +369,12 @@ def process_file(
                 debug,
             )
         # 7. analyze encoded file
-        vmaf_def = vmaf_get(distorted_path, ref_path, debug, VMAF_DEF_MODEL)
-        vmaf_neg = vmaf_get(distorted_path, ref_path, debug, VMAF_NEG_MODEL)
-        vmaf_4k = vmaf_get(distorted_path, ref_path, debug, VMAF_4K_MODEL)
-        psnr = psnr_get(distorted_path, ref_path, debug)
-        ssim = ssim_get(distorted_path, ref_path, debug)
-        ssimulacra2 = ssimulacra2_get(distorted_path, ref_path, debug)
+        vmaf_def = vmaf_get(distorted_path, ref_path, logfd, debug, VMAF_DEF_MODEL)
+        vmaf_neg = vmaf_get(distorted_path, ref_path, logfd, debug, VMAF_NEG_MODEL)
+        vmaf_4k = vmaf_get(distorted_path, ref_path, logfd, debug, VMAF_4K_MODEL)
+        psnr = psnr_get(distorted_path, ref_path, logfd, debug)
+        ssim = ssim_get(distorted_path, ref_path, logfd, debug)
+        ssimulacra2 = ssimulacra2_get(distorted_path, ref_path, logfd, debug)
         # 8. gather results
         if df is None:
             vmaf_column_list = list(
@@ -461,6 +469,7 @@ def process_data(
     config_dict,
     codec_choices,
     outfile_csv,
+    logfd,
     debug,
     encoded_infile=None,
     encoded_rotate=None,
@@ -491,6 +500,7 @@ def process_data(
             workdir,
             codec_choices,
             config_dict,
+            logfd,
             debug,
             encoded_infile=encoded_infile,
             encoded_rotate=encoded_rotate,
@@ -507,6 +517,7 @@ def process_data(
                 roi=((None, None), (None, None)),
                 roi_dump=None,
                 config_dict=config_dict,
+                logfd=logfd,
                 debug=debug,
             )
             df_analysis = (
@@ -667,6 +678,15 @@ def get_options(argv, codec_choices):
         metavar="output-file",
         help="output file",
     )
+    parser.add_argument(
+        "--logfile",
+        action="store",
+        dest="logfile",
+        type=str,
+        default=default_values["logfile"],
+        metavar="log-file",
+        help="log file",
+    )
     # do the parsing
     options = parser.parse_args(argv[1:])
     return options
@@ -679,12 +699,17 @@ def main(argv, codec_choices=CODEC_CHOICES):
     if options.workdir is not None:
         os.makedirs(options.workdir, exist_ok=True)
         tempfile.tempdir = options.workdir
+    # get logfile descriptor
+    if options.logfile is None:
+        logfd = sys.stdout
+    else:
+        logfd = open(options.logfile, "w")
     # get outfile
     if options.outfile is None or options.outfile == "-":
         options.outfile = "/dev/fd/1"
     # print results
     if options.debug > 0:
-        print(options)
+        print(f"debug: {options}")
     # create configuration
     config_dict = itools_common.Config.Create(options)
     # process infile
@@ -699,6 +724,7 @@ def main(argv, codec_choices=CODEC_CHOICES):
         config_dict,
         codec_choices,
         options.outfile,
+        logfd,
         options.debug,
         encoded_infile=options.encoded_infile,
         encoded_rotate=options.encoded_rotate,
