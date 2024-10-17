@@ -488,6 +488,9 @@ def get_average_results(df):
             & (df["preset"] == preset)
             & (df["quality"] == quality)
         ]
+        if tmp_fd.size == 0:
+            # no entries with this (codec, preset, quality) combo
+            continue
         # start with empty data
         derived_dict = {key: None for key in list(df.columns.values)}
         derived_dict["infile"] = "average"
