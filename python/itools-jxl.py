@@ -55,14 +55,18 @@ def decode_jxl(infile, outfile, logfd, debug):
     assert returncode == 0, f"error: {out = } {err = }"
 
 
-def encode_jxl(infile, quality, outfile, logfd, debug):
+def encode_jxl(infile, codec, preset, quality, outfile, logfd, debug):
     # 1. convert to ppm (jxl encoder wants ppm)
     tmpppm = tempfile.NamedTemporaryFile(prefix="itools.jxl.", suffix=".ppm").name
     command = f"{itools_common.FFMPEG_SILENT} -i {infile} {tmpppm}"
     returncode, out, err = itools_common.run(command, logfd=logfd, debug=debug)
     assert returncode == 0, f"error: {out = } {err = }"
-    # not do the encoding
-    command = f"{JPEGXL_ENC} {tmpppm} {outfile} -q {quality}"
+    # 2. do the encoding
+    if codec == "jxl" and preset is not None:
+        preset_str = f" -e {preset}"
+    else:
+        preset_str = ""
+    command = f"{JPEGXL_ENC} {tmpppm} {outfile} -q {quality} {preset_str}"
     returncode, out, err, stats = itools_common.run(
         command, logfd=logfd, debug=debug, gnu_time=True
     )

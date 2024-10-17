@@ -70,6 +70,7 @@ COLUMN_LIST = [
     "width",
     "height",
     "codec",
+    "preset",
     "quality",
     "encoded_size",
     "encoded_bpp",
@@ -219,22 +220,36 @@ def escape_float(f):
 
 # encoding backends
 # 1. heif-enc
-def heif_enc_encode_fun(infile, width, height, codec, quality, outfile, logfd, debug):
-    return itools_heif.encode_heif(infile, codec, quality, outfile, logfd, debug)
+def heif_enc_encode_fun(
+    infile, width, height, codec, preset, quality, outfile, logfd, debug
+):
+    return itools_heif.encode_heif(
+        infile, codec, preset, quality, outfile, logfd, debug
+    )
 
 
 # 2. libjpeg
-def libjpeg_encode_fun(infile, width, height, codec, quality, outfile, logfd, debug):
-    return itools_jpeg.encode_libjpeg(infile, quality, outfile, logfd, debug)
+def libjpeg_encode_fun(
+    infile, width, height, codec, preset, quality, outfile, logfd, debug
+):
+    return itools_jpeg.encode_libjpeg(
+        infile, codec, preset, quality, outfile, logfd, debug
+    )
 
 
-def jpegli_encode_fun(infile, width, height, codec, quality, outfile, logfd, debug):
-    return itools_jpeg.encode_jpegli(infile, quality, outfile, logfd, debug)
+def jpegli_encode_fun(
+    infile, width, height, codec, preset, quality, outfile, logfd, debug
+):
+    return itools_jpeg.encode_jpegli(
+        infile, codec, preset, quality, outfile, logfd, debug
+    )
 
 
 # 3. jxl
-def jxl_encode_fun(infile, width, height, codec, quality, outfile, logfd, debug):
-    return itools_jxl.encode_jxl(infile, quality, outfile, logfd, debug)
+def jxl_encode_fun(
+    infile, width, height, codec, preset, quality, outfile, logfd, debug
+):
+    return itools_jxl.encode_jxl(infile, codec, preset, quality, outfile, logfd, debug)
 
 
 def jxl_decode_fun(infile, outfile, logfd, debug):
@@ -242,24 +257,67 @@ def jxl_decode_fun(infile, outfile, logfd, debug):
 
 
 # TODO(chema): use better mechanism here
-# codec: (extension, (config_fun, init_fun, encode_fun, fini_fun), (horizontal_alignment, vertical_alignment))
+# codec: (extension, (config_fun, init_fun, encode_fun, fini_fun), (horizontal_alignment, vertical_alignment, preset_list))
 # TODO(chema): add (decoder)
+
+X265_PRESETS = [
+    "ultrafast",
+    "superfast",
+    "veryfast",
+    "faster",
+    "fast",
+    "medium",
+    "slow",
+    "slower",
+    "veryslow",
+    "placebo",
+]
+AOM_PRESETS = [str(i) for i in range(0, 10)]
+SVTAV1_PRESETS = [str(i) for i in range(0, 14)]
+JXL_PRESETS = [str(i) for i in range(1, 10)]
+
+
 CODEC_CHOICES = {
-    "x265": (".heic", (None, None, heif_enc_encode_fun, None), (None, None)),
-    "kvazaar": (".heic", (None, None, heif_enc_encode_fun, None), (None, None)),
-    "aom": (".avif", (None, None, heif_enc_encode_fun, None), (None, None)),
-    "svt": (".avif", (None, None, heif_enc_encode_fun, None), (None, None)),
-    "libjpeg": (".jpeg", (None, None, libjpeg_encode_fun, None), (None, None)),
-    "jxl": (".jxl", (None, None, jxl_encode_fun, None), (None, None)),
-    "jpegli": (".jpeg", (None, None, jpegli_encode_fun, None), (None, None)),
-    "openjpeg": (".jpeg2000", (None, None, heif_enc_encode_fun, None), (None, None)),
-    "empty": (None, (None, None, None, None), (None, None)),
+    "x265": (
+        ".heic",
+        (None, None, heif_enc_encode_fun, None),
+        (None, None, X265_PRESETS),
+    ),
+    "kvazaar": (
+        ".heic",
+        (None, None, heif_enc_encode_fun, None),
+        (None, None, X265_PRESETS),
+    ),
+    "aom": (
+        ".avif",
+        (None, None, heif_enc_encode_fun, None),
+        (None, None, AOM_PRESETS),
+    ),
+    "svt": (
+        ".avif",
+        (None, None, heif_enc_encode_fun, None),
+        (None, None, SVTAV1_PRESETS),
+    ),
+    "libjpeg": (".jpeg", (None, None, libjpeg_encode_fun, None), (None, None, [])),
+    "jxl": (
+        ".jxl",
+        (None, None, jxl_encode_fun, None),
+        (None, None, JXL_PRESETS),
+    ),
+    "jpegli": (".jpeg", (None, None, jpegli_encode_fun, None), (None, None, [])),
+    "openjpeg": (
+        ".jpeg2000",
+        (None, None, heif_enc_encode_fun, None),
+        (None, None, []),
+    ),
+    "empty": (None, (None, None, None, None), (None, None, [])),
 }
 
 
 def process_file(
     infile,
     codec,
+    preset,
     quality_list,
     horizontal_alignment,
     vertical_alignment,
@@ -273,9 +331,9 @@ def process_file(
 ):
     df = None
     # 1. select a codec
-    extension, (config_fun, init_fun, encode_fun, fini_fun), (ha, va) = codec_choices[
-        codec
-    ]
+    extension, (config_fun, init_fun, encode_fun, fini_fun), (ha, va, _) = (
+        codec_choices[codec]
+    )
     horizontal_alignment = (
         horizontal_alignment if horizontal_alignment is not None else ha
     )
@@ -305,11 +363,12 @@ def process_file(
         init_fun(ref_path, workdir, logfd, debug) if init_fun is not None else ref_path
     )
     exp_basename = os.path.basename(exp_path)
+    preset_name = preset if preset is not None else "default"
     for quality in quality_list:
         # 4. encode the file
         enc_path = os.path.join(
             workdir,
-            f"{exp_basename}.quality_{escape_float(quality)}{extension}",
+            f"{exp_basename}.quality_{escape_float(quality)}.preset_{preset_name}{extension}",
         )
         if codec == "empty":
             # copy the encoded file to the encoded path
@@ -318,7 +377,7 @@ def process_file(
             shutil.copyfile(encoded_infile, enc_path)
         else:
             stats = encode_fun(
-                exp_path, width, height, codec, quality, enc_path, logfd, debug
+                exp_path, width, height, codec, preset, quality, enc_path, logfd, debug
             )
         # 5. calculate the encoded size
         encoded_size = os.path.getsize(enc_path)
@@ -396,6 +455,7 @@ def process_file(
             width,
             height,
             codec,
+            preset_name,
             quality,
             encoded_size,
             encoded_bpp,
@@ -417,16 +477,22 @@ def process_file(
 def get_average_results(df):
     # import the results
     new_df = pd.DataFrame(columns=list(df.columns.values))
-    for codec, quality in itertools.product(
-        list(df["codec"].unique()), sorted(list(df["quality"].unique()))
+    for codec, preset, quality in itertools.product(
+        list(df["codec"].unique()),
+        list(df["preset"].unique()),
+        sorted(list(df["quality"].unique())),
     ):
         # select interesting data
-        tmp_fd = df[(df["codec"] == codec) & (df["quality"] == quality)]
+        tmp_fd = df[
+            (df["codec"] == codec)
+            & (df["preset"] == preset)
+            & (df["quality"] == quality)
+        ]
         # start with empty data
         derived_dict = {key: None for key in list(df.columns.values)}
         derived_dict["infile"] = "average"
         # copy a few columns
-        for col in ("quality", "codec"):
+        for col in ("quality", "codec", "preset"):
             derived_dict[col] = tmp_fd[col].values[0]
         # average a few columns
         vmaf_keys = list(key for key in df.columns.values if key.startswith("vmaf:"))
@@ -475,25 +541,32 @@ def process_data(
     encoded_rotate=None,
 ):
     df = None
-    # 1. get a codec list (if present)
+    # 1. get a codec/preset list (if present)
     codec_list = codec.split(",") if codec != "all" else codec_choices.keys()
     codec_valid_list = list(codec_choices.keys())
-    if not set(codec_list) <= set(codec_valid_list):
-        unknown_codec_list = [
-            codec for codec in codec_list if codec not in codec_valid_list
-        ]
-        raise AssertionError(f"unknown codec(s): {unknown_codec_list}")
+    for codec in codec_list:
+        codec, preset = codec.split("/")[0], (
+            codec.split("/")[1] if len(codec.split("/")) > 1 else None
+        )
+        assert codec in codec_valid_list, f"unknown codec: {codec}"
     quality_list = list(float(v) for v in quality_list.split(","))
     results = ()
     for codec, infile in itertools.product(codec_list, infile_list):
+        codec, preset = codec.split("/")[0], (
+            codec.split("/")[1] if len(codec.split("/")) > 1 else None
+        )
         # 2. configure codec/device
-        _, (config_fun, _, _, _), (_, _) = codec_choices[codec]
+        _, (config_fun, _, _, _), (_, _, preset_list) = codec_choices[codec]
         if config_fun is not None:
             config_fun(debug)
+        assert (
+            preset is None or preset in preset_list
+        ), f"unknown preset for codec {codec}: {preset}"
         # 3. run the experiments
         tmp_df = process_file(
             infile,
             codec,
+            preset,
             quality_list,
             horizontal_alignment,
             vertical_alignment,
@@ -601,7 +674,7 @@ def get_options(argv, codec_choices):
         dest="codec",
         default=default_values["codec"],
         metavar="[%s]" % (" | ".join(codec_list)),
-        help="codec arg",
+        help='codec arg: use "/preset" suffix to set a preset',
     )
     parser.add_argument(
         "--horizontal-alignment",

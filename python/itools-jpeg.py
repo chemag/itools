@@ -45,7 +45,7 @@ def decode_jpeg(infile, outfile, logfd, debug):
     assert returncode == 0, f"error: {out = } {err = }"
 
 
-def encode_libjpeg(infile, quality, outfile, logfd, debug):
+def encode_libjpeg(infile, codec, preset, quality, outfile, logfd, debug):
     # 1. convert to ppm (libjpeg encoder wants ppm)
     tmpppm = tempfile.NamedTemporaryFile(prefix="itools.jpegli.", suffix=".ppm").name
     command = f"{itools_common.FFMPEG_SILENT} -i {infile} {tmpppm}"
@@ -60,7 +60,7 @@ def encode_libjpeg(infile, quality, outfile, logfd, debug):
     return stats
 
 
-def encode_jpegli(infile, quality, outfile, logfd, debug):
+def encode_jpegli(infile, codec, preset, quality, outfile, logfd, debug):
     # 1. convert to ppm (jpegli encoder wants ppm)
     tmpppm = tempfile.NamedTemporaryFile(prefix="itools.jpegli.", suffix=".ppm").name
     command = f"{itools_common.FFMPEG_SILENT} -i {infile} {tmpppm}"

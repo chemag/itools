@@ -514,8 +514,16 @@ def read_heif(infile, config_dict, logfd, debug=0):
     return outyvu, status
 
 
-def encode_heif(infile, codec, quality, outfile, logfd, debug):
-    command = f"{HEIF_ENC} {infile} -e {codec} -q {quality} {outfile}"
+def encode_heif(infile, codec, preset, quality, outfile, logfd, debug):
+    if codec == "x265" and preset is not None:
+        preset_str = f" -p preset={preset}"
+    elif codec == "svt" and preset is not None:
+        preset_str = f"-p speed={preset}"
+    elif codec == "aom" and preset is not None:
+        preset_str = f"-p speed={preset}"
+    else:
+        preset_str = ""
+    command = f"{HEIF_ENC} {infile} -e {codec} -q {quality} {preset_str} {outfile}"
     returncode, out, err, stats = itools_common.run(
         command, logfd=logfd, debug=debug, gnu_time=True
     )
