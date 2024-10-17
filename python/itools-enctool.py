@@ -55,10 +55,10 @@ default_values = {
     "vertical_alignment": None,
     "quality_list": ",".join(str(v) for v in DEFAULT_QUALITY_LIST),
     "codec": "x265",
-    "tmpdir": tempfile.gettempdir(),
     "analysis": False,
     "encoded_infile": None,
     "encoded_rotate": 0,
+    "workdir": tempfile.gettempdir(),
     "infile_list": None,
     "outfile": None,
 }
@@ -262,7 +262,7 @@ def process_file(
     quality_list,
     horizontal_alignment,
     vertical_alignment,
-    tmpdir,
+    workdir,
     codec_choices,
     config_dict,
     debug,
@@ -291,7 +291,7 @@ def process_file(
         else (vertical_alignment * math.floor(height / vertical_alignment))
     )
     ref_basename = f"{os.path.basename(infile)}.{width}x{height}.codec_{codec}.y4m"
-    ref_path = os.path.join(tmpdir, ref_basename)
+    ref_path = os.path.join(workdir, ref_basename)
     command = f'{itools_common.FFMPEG_SILENT} -i {infile} -vf "crop={width}:{height}:(iw-ow)/2:(ih-oh)/2" {ref_path}'
     returncode, out, err = itools_common.run(command, debug=debug)
     assert returncode == 0, f"error: {out = } {err = }"
@@ -299,12 +299,12 @@ def process_file(
     # 3. prepare the input (reference) file
     if extension is None and encoded_infile is not None:
         extension = os.path.splitext(encoded_infile)[-1]
-    exp_path = init_fun(ref_path, tmpdir, debug) if init_fun is not None else ref_path
+    exp_path = init_fun(ref_path, workdir, debug) if init_fun is not None else ref_path
     exp_basename = os.path.basename(exp_path)
     for quality in quality_list:
         # 4. encode the file
         enc_path = os.path.join(
-            tmpdir,
+            workdir,
             f"{exp_basename}.quality_{escape_float(quality)}{extension}",
         )
         if codec == "empty":
@@ -456,7 +456,7 @@ def process_data(
     quality_list,
     horizontal_alignment,
     vertical_alignment,
-    tmpdir,
+    workdir,
     analysis,
     config_dict,
     codec_choices,
@@ -488,7 +488,7 @@ def process_data(
             quality_list,
             horizontal_alignment,
             vertical_alignment,
-            tmpdir,
+            workdir,
             codec_choices,
             config_dict,
             debug,
@@ -609,15 +609,6 @@ def get_options(argv, codec_choices):
         help='Vertical alignment [default: {default_values["vertical_alignment"]}]',
     )
     parser.add_argument(
-        "--tmpdir",
-        action="store",
-        type=str,
-        dest="tmpdir",
-        default=default_values["tmpdir"],
-        metavar="TMPDIR",
-        help="temporal dir",
-    )
-    parser.add_argument(
         "--analysis",
         action="store_true",
         dest="analysis",
@@ -650,6 +641,15 @@ def get_options(argv, codec_choices):
         help="use encoded rotation (for empty codec)",
     )
     parser.add_argument(
+        "--workdir",
+        action="store",
+        dest="workdir",
+        type=str,
+        default=default_values["workdir"],
+        metavar="Work directory",
+        help="work directory",
+    )
+    parser.add_argument(
         dest="infile_list",
         type=str,
         nargs="+",
@@ -675,6 +675,10 @@ def get_options(argv, codec_choices):
 def main(argv, codec_choices=CODEC_CHOICES):
     # parse options
     options = get_options(argv, codec_choices)
+    # set workdir
+    if options.workdir is not None:
+        os.makedirs(options.workdir, exist_ok=True)
+        tempfile.tempdir = options.workdir
     # get outfile
     if options.outfile is None or options.outfile == "-":
         options.outfile = "/dev/fd/1"
@@ -690,7 +694,7 @@ def main(argv, codec_choices=CODEC_CHOICES):
         options.quality_list,
         options.horizontal_alignment,
         options.vertical_alignment,
-        options.tmpdir,
+        options.workdir,
         options.analysis,
         config_dict,
         codec_choices,
