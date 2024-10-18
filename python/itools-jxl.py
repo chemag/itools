@@ -56,6 +56,11 @@ def decode_jxl(infile, outfile, logfd, debug):
 
 
 def encode_jxl(infile, codec, preset, quality, outfile, logfd, debug):
+    # 0. jxl crashes with quality 0 or 100
+    if quality == 0 or quality == 100:
+        raise itools_common.EncoderException(
+            f"jxl: Invalid quality parameter {quality=}"
+        )
     # 1. convert to ppm (jxl encoder wants ppm)
     tmpppm = tempfile.NamedTemporaryFile(prefix="itools.jxl.", suffix=".ppm").name
     command = f"{itools_common.FFMPEG_SILENT} -i {infile} {tmpppm}"

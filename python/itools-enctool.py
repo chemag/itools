@@ -376,9 +376,21 @@ def process_file(
                 print(f"$ cp {encoded_infile} {enc_path}", file=logfd)
             shutil.copyfile(encoded_infile, enc_path)
         else:
-            stats = encode_fun(
-                exp_path, width, height, codec, preset, quality, enc_path, logfd, debug
-            )
+            try:
+                stats = encode_fun(
+                    exp_path,
+                    width,
+                    height,
+                    codec,
+                    preset,
+                    quality,
+                    enc_path,
+                    logfd,
+                    debug,
+                )
+            except itools_common.EncoderException as e:
+                print(f"error: {codec=} {preset=} {quality=}\n{e}", file=sys.stderr)
+                continue
         # 5. calculate the encoded size
         encoded_size = os.path.getsize(enc_path)
         encoded_bpp = (8 * encoded_size) / (width * height)

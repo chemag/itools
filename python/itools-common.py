@@ -17,6 +17,10 @@ import sys
 FFMPEG_SILENT = "ffmpeg -hide_banner -y"
 
 
+class EncoderException(Exception):
+    """Encoder issue."""
+
+
 class ProcColor(enum.Enum):
     bgr = 0
     yvu = 1
