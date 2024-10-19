@@ -61,6 +61,11 @@ def encode_libjpeg(infile, codec, preset, quality, outfile, logfd, debug):
 
 
 def encode_jpegli(infile, codec, preset, quality, outfile, logfd, debug):
+    # 0. jpegli crashes with quality 0 or 100
+    if quality == 0 or quality == 100:
+        raise itools_common.EncoderException(
+            f"jpegli: Invalid quality parameter {quality=}"
+        )
     # 1. convert to ppm (jpegli encoder wants ppm)
     tmpppm = tempfile.NamedTemporaryFile(prefix="itools.jpegli.", suffix=".ppm").name
     command = f"{itools_common.FFMPEG_SILENT} -i {infile} {tmpppm}"
