@@ -24,10 +24,10 @@ JPEGXL_ENC = os.environ.get("JPEGXL_ENC", "cjxl")
 JPEGXL_DEC = os.environ.get("JPEGXL_DEC", "djxl")
 
 
-def read_jxl(infile, config_dict, logfd, debug=0):
+def read_jxl(infile, config_dict, cleanup, logfd, debug=0):
     # 1. decode to y4m
     tmpy4m = tempfile.NamedTemporaryFile(prefix="itools.jxl.", suffix=".y4m").name
-    decode_jxl(infile, tmpy4m, logfd, debug)
+    decode_jxl(infile, tmpy4m, cleanup, logfd, debug)
     # 2. read the y4m
     outyvu, _, _, _ = itools_y4m.read_y4m(
         tmpy4m,
@@ -39,10 +39,13 @@ def read_jxl(infile, config_dict, logfd, debug=0):
     status = {
         "colorrange": itools_common.ColorRange.full,
     }
+    # 4. cleanup
+    if cleanup > 0:
+        os.remove(tmpy4m)
     return outyvu, status
 
 
-def decode_jxl(infile, outfile, logfd, debug):
+def decode_jxl(infile, outfile, cleanup, logfd, debug):
     # 1. decode to ppm (jxl decoder produces ppm)
     tmpppm = tempfile.NamedTemporaryFile(prefix="itools.jxl.", suffix=".ppm").name
     # do the decoding
@@ -52,10 +55,13 @@ def decode_jxl(infile, outfile, logfd, debug):
     # We are forcing the output of jxl to be interpreted as full range
     command = f"{itools_common.FFMPEG_SILENT} -i {tmpppm} -pix_fmt yuv420p -vf scale=in_range=limited:out_range=full {outfile}"
     returncode, out, err = itools_common.run(command, logfd=logfd, debug=debug)
+    # 3. cleanup
+    if cleanup > 0:
+        os.remove(tmpppm)
     assert returncode == 0, f"error: {out = } {err = }"
 
 
-def encode_jxl(infile, codec, preset, quality, outfile, logfd, debug):
+def encode_jxl(infile, codec, preset, quality, outfile, cleanup, logfd, debug):
     # 0. jxl crashes with quality 0 or 100
     if quality == 0 or quality == 100:
         raise itools_common.EncoderException(
@@ -76,4 +82,7 @@ def encode_jxl(infile, codec, preset, quality, outfile, logfd, debug):
         command, logfd=logfd, debug=debug, gnu_time=True
     )
     assert returncode == 0, f"error: {out = } {err = }"
+    # 3. cleanup
+    if cleanup > 0:
+        os.remove(tmpppm)
     return stats

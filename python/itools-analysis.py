@@ -31,6 +31,7 @@ FILTER_CHOICES = {
 default_values = {
     "debug": 0,
     "dry_run": False,
+    "cleanup": 1,
     "header": True,
     "roi_x0": None,
     "roi_y0": None,
@@ -51,7 +52,7 @@ SUMMARY_FIELDS_AVERAGE = ("delta_timestamp_ms",)
 
 
 # calculate average/stddev of all components
-def get_components(infile, roi, roi_dump, config_dict, logfd, debug):
+def get_components(infile, roi, roi_dump, config_dict, cleanup, logfd, debug):
     if debug > 0:
         print(f"debug: analyzing {infile}", file=logfd)
     # load the input image as both yuv and rgb
@@ -59,6 +60,7 @@ def get_components(infile, roi, roi_dump, config_dict, logfd, debug):
         infile,
         config_dict,
         return_type=itools_common.ProcColor.both,
+        cleanup=cleanup,
         logfd=logfd,
         debug=debug,
     )
@@ -196,6 +198,32 @@ def get_options(argv):
         help="Dry run",
     )
     parser.add_argument(
+        "--cleanup",
+        action="store_const",
+        dest="cleanup",
+        const=1,
+        default=default_values["cleanup"],
+        help="Cleanup Raw Files%s"
+        % (" [default]" if default_values["cleanup"] == 1 else ""),
+    )
+    parser.add_argument(
+        "--full-cleanup",
+        action="store_const",
+        dest="cleanup",
+        const=2,
+        default=default_values["cleanup"],
+        help="Cleanup All Files%s"
+        % (" [default]" if default_values["cleanup"] == 2 else ""),
+    )
+    parser.add_argument(
+        "--no-cleanup",
+        action="store_const",
+        dest="cleanup",
+        const=0,
+        help="Do Not Cleanup Files%s"
+        % (" [default]" if not default_values["cleanup"] == 0 else ""),
+    )
+    parser.add_argument(
         "--no-header",
         action="store_const",
         const=False,
@@ -310,6 +338,7 @@ def main(argv):
                 roi,
                 options.roi_dump,
                 config_dict,
+                options.cleanup,
                 logfd,
                 options.debug,
             )

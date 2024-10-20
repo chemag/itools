@@ -26,6 +26,7 @@ def read_image_file(
     flags=None,
     return_type=itools_common.ProcColor.bgr,
     iinfo=None,
+    cleanup=1,
     logfd=sys.stdout,
     debug=0,
 ):
@@ -36,6 +37,7 @@ def read_image_file(
         outyvu, _, _, status = itools_y4m.read_y4m(
             infile,
             output_colorrange=itools_common.ColorRange.full,
+            cleanup=cleanup,
             logfd=logfd,
             debug=debug,
         )
@@ -43,22 +45,29 @@ def read_image_file(
             print(f"error: file {infile} is broken")
 
     elif infile_extension in (".yuv", ".YUV420NV12"):
-        outyvu, status = itools_yuv.read_yuv(infile, iinfo, logfd, debug)
+        outyvu, status = itools_yuv.read_yuv(infile, iinfo, cleanup, logfd, debug)
 
     elif infile_extension == ".rgba":
-        outbgr, status = itools_rgb.read_rgba(infile, iinfo, logfd, debug)
+        outbgr, status = itools_rgb.read_rgba(infile, iinfo, cleanup, logfd, debug)
 
     elif infile_extension in (".heic", ".avif", ".hif"):
-        outyvu, status = itools_heif.read_heif(infile, config_dict, logfd, debug)
+        outyvu, status = itools_heif.read_heif(
+            infile, config_dict, cleanup, logfd, debug
+        )
 
     elif infile_extension == ".jxl":
-        outyvu, status = itools_jxl.read_jxl(infile, config_dict, logfd, debug)
+        outyvu, status = itools_jxl.read_jxl(infile, config_dict, cleanup, logfd, debug)
 
     else:
         outbgr = cv2.imread(cv2.samples.findFile(infile, flags))
         # use exiftool to get the metadata
         status = itools_exiftool.get_exiftool(
-            infile, short=True, config_dict=config_dict, logfd=logfd, debug=debug
+            infile,
+            short=True,
+            config_dict=config_dict,
+            cleanup=cleanup,
+            logfd=logfd,
+            debug=debug,
         )
         if infile_extension in (".jpg", ".jpeg"):
             status["colorrange"] = itools_common.ColorRange.full
@@ -93,7 +102,7 @@ def read_image_file(
         return outbgr, outyvu, status
 
 
-def read_metadata(infile, logfd, debug):
+def read_metadata(infile, cleanup, logfd, debug):
     config_dict = {
         "read_image_components": True,
         "qpextract_bin": False,
@@ -101,13 +110,13 @@ def read_metadata(infile, logfd, debug):
         "isobmff_parser": True,
     }
     _, status = read_image_file(
-        infile, config_dict=config_dict, logfd=logfd, debug=debug
+        infile, config_dict=config_dict, cleanup=cleanup, logfd=logfd, debug=debug
     )
     return status
 
 
-def read_colorrange(infile, logfd, debug):
-    status = read_metadata(infile, logfd, debug)
+def read_colorrange(infile, cleanup, logfd, debug):
+    status = read_metadata(infile, cleanup, logfd, debug)
     return itools_common.ColorRange.parse(status["colorrange"])
 
 

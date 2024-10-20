@@ -167,7 +167,7 @@ def parse_isomediafile_xml(tmpxml, config_dict):
 
 # parse hvcC (hevc configuration record, HEVCDecoderConfigurationRecord) box,
 # per ISO/IEC 14496-15:2022, Section 8.3.2.1.2
-def parse_hvcC_box(infile, config_dict, logfd, debug):
+def parse_hvcC_box(infile, config_dict, cleanup, logfd, debug):
     with open(infile, "rb") as fin:
         hvcC_bin = fin.read()
     i = 0
@@ -284,6 +284,9 @@ def parse_hvcC_box(infile, config_dict, logfd, debug):
         with open(tmpsps, "wb") as fout:
             fout.write(sps)
         sps_dict = parse_hevc_sps(tmpsps, config_dict, logfd, debug)
+        # cleanup
+        if cleanup > 0:
+            os.remove(tmpsps)
     # prefix all keys
     sps_dict = {("hvcC:" + key): value for key, value in sps_dict.items()}
     return sps_dict
@@ -315,7 +318,7 @@ def parse_hevc_sps(tmpsps, config_dict, logfd, debug):
     return sps_dict
 
 
-def get_heif_colorimetry(infile, config_dict, logfd, debug):
+def get_heif_colorimetry(infile, config_dict, cleanup, logfd, debug):
     df_item = get_item_list(infile, logfd, debug)
     file_type_list = df_item.type.unique()
     colorimetry = {}
@@ -338,6 +341,9 @@ def get_heif_colorimetry(infile, config_dict, logfd, debug):
         hevc_dict = parse_ffmpeg_bsf_colorimetry(err)
         hevc_dict["hevc:ntiles"] = len(df_item[df_item.type == file_type]["id"])
         colorimetry.update(hevc_dict)
+        # cleanup
+        if cleanup > 0:
+            os.remove(tmp265)
     # 2. get the hvcC colorimetry
     isobmff_parser = config_dict.get("isobmff_parser")
     if "hvc1" in file_type_list and isobmff_parser is not None:
@@ -348,8 +354,11 @@ def get_heif_colorimetry(infile, config_dict, logfd, debug):
         returncode, out, err = itools_common.run(command, logfd=logfd, debug=debug)
         assert returncode == 0, f"error in {command}\n{err}"
         # parse the hvcC box
-        hvcC_dict = parse_hvcC_box(tmphvcC, config_dict, logfd, debug)
+        hvcC_dict = parse_hvcC_box(tmphvcC, config_dict, cleanup, logfd, debug)
         colorimetry.update(hvcC_dict)
+        # cleanup
+        if cleanup > 0:
+            os.remove(tmphvcC)
 
     # 3. get the Exif colorimetry
     if read_exif_info and len(df_item[df_item.type == "Exif"]["id"]) > 0:
@@ -361,9 +370,17 @@ def get_heif_colorimetry(infile, config_dict, logfd, debug):
         assert returncode == 0, f"error in {command}\n{err}"
         # parse the exif file of the first tile
         exiftool_dict = itools_exiftool.get_exiftool(
-            tmpexif, short=True, config_dict=config_dict, logfd=logfd, debug=debug
+            tmpexif,
+            short=True,
+            config_dict=config_dict,
+            cleanup=cleanup,
+            logfd=logfd,
+            debug=debug,
         )
         colorimetry.update(exiftool_dict)
+        # cleanup
+        if cleanup > 0:
+            os.remove(tmpexif)
     # 4. get the `colr` colorimetry
     tmpxml = tempfile.NamedTemporaryFile(prefix="itools.xml.", suffix=".xml").name
     command = f"MP4Box -std -dxml {infile} > {tmpxml}"
@@ -371,6 +388,9 @@ def get_heif_colorimetry(infile, config_dict, logfd, debug):
     assert returncode == 0, f"error in {command}\n{err}"
     colr_dict = parse_isomediafile_xml(tmpxml, config_dict)
     colorimetry.update(colr_dict)
+    # cleanup
+    if cleanup > 0:
+        os.remove(tmpxml)
     return colorimetry
 
 
@@ -411,7 +431,7 @@ def parse_qpextract_bin_output(outfile, mode):
         return {key: df.iloc[0][key] for key in CTUEXTRACT_FIELDS}
 
 
-def get_h265_values(infile, config_dict, logfd, debug):
+def get_h265_values(infile, config_dict, cleanup, logfd, debug):
     qpextract_bin = config_dict.get("qpextract_bin")
     if qpextract_bin is None:
         return {}
@@ -437,6 +457,8 @@ def get_h265_values(infile, config_dict, logfd, debug):
         assert returncode == 0, f"error in {command}\n{err}"
         qp_dict_y = parse_qpextract_bin_output(tmp_qpymode, "qp")
         qp_dict.update({f"qpwy:{k}": v for k, v in qp_dict_y.items()})
+        if cleanup > 1:
+            os.remove(tmp_qpymode)
         # extract the QP-Cb info for the first tile
         tmp_qpcbmode = tempfile.NamedTemporaryFile(
             prefix="itools.hvc1.", suffix=".265.qpcbmode.csv"
@@ -446,6 +468,8 @@ def get_h265_values(infile, config_dict, logfd, debug):
         assert returncode == 0, f"error in {command}\n{err}"
         qp_dict_cb = parse_qpextract_bin_output(tmp_qpcbmode, "qp")
         qp_dict.update({f"qpwcb:{k}": v for k, v in qp_dict_cb.items()})
+        if cleanup > 1:
+            os.remove(tmp_qpcbmode)
         # extract the QP-Cr info for the first tile
         tmp_qpcrmode = tempfile.NamedTemporaryFile(
             prefix="itools.hvc1.", suffix=".265.qpcrmode.csv"
@@ -455,6 +479,8 @@ def get_h265_values(infile, config_dict, logfd, debug):
         assert returncode == 0, f"error in {command}\n{err}"
         qp_dict_cr = parse_qpextract_bin_output(tmp_qpcrmode, "qp")
         qp_dict.update({f"qpwcr:{k}": v for k, v in qp_dict_cr.items()})
+        if cleanup > 1:
+            os.remove(tmp_qpcrmode)
         # extract the CTU info for the first tile
         tmp_ctumode = tempfile.NamedTemporaryFile(
             prefix="itools.hvc1.", suffix=".265.ctumode.csv"
@@ -464,12 +490,17 @@ def get_h265_values(infile, config_dict, logfd, debug):
         assert returncode == 0, f"error in {command}\n{err}"
         ctu_dict = parse_qpextract_bin_output(tmp_ctumode, "ctu")
         qp_dict.update({f"ctu:{k}": v for k, v in ctu_dict.items()})
+        if cleanup > 1:
+            os.remove(tmp_ctumode)
+        # cleanup
+        if cleanup > 1:
+            os.remove(tmp_265)
     return qp_dict
 
 
-def read_heif(infile, config_dict, logfd, debug=0):
+def read_heif(infile, config_dict, cleanup, logfd, debug=0):
     # 1. get the heif colorimetry
-    colorimetry = get_heif_colorimetry(infile, config_dict, logfd, debug=debug)
+    colorimetry = get_heif_colorimetry(infile, config_dict, cleanup, logfd, debug=debug)
     status = colorimetry
     # 2. get the actual image
     read_image_components = config_dict.get("read_image_components")
@@ -487,6 +518,9 @@ def read_heif(infile, config_dict, logfd, debug=0):
             tmpy4m, output_colorrange=None, logfd=logfd, debug=debug
         )
         status.update(tmp_status)
+        # 2.3. cleanup
+        if cleanup > 0:
+            os.remove(tmpy4m)
     else:
         outyvu = None
         status = {}
@@ -509,12 +543,12 @@ def read_heif(infile, config_dict, logfd, debug=0):
         actual_colorrange = itools_common.ColorRange.parse(actual_colorrange_id)
         status["colorrange"] = actual_colorrange
     # 4. get the heif QP distribution
-    qp_dict = get_h265_values(infile, config_dict, logfd, debug=debug)
+    qp_dict = get_h265_values(infile, config_dict, cleanup, logfd, debug=debug)
     status.update(qp_dict)
     return outyvu, status
 
 
-def encode_heif(infile, codec, preset, quality, outfile, logfd, debug):
+def encode_heif(infile, codec, preset, quality, outfile, cleanup, logfd, debug):
     if codec == "x265" and preset is not None:
         preset_str = f" -p preset={preset}"
     elif codec == "svt" and preset is not None:
@@ -532,14 +566,20 @@ def encode_heif(infile, codec, preset, quality, outfile, logfd, debug):
 
 
 def decode_heif(
-    infile, outfile_y4m, config_dict, output_colorrange=None, logfd=sys.stdout, debug=0
+    infile,
+    outfile_y4m,
+    config_dict,
+    output_colorrange=None,
+    cleanup=0,
+    logfd=sys.stdout,
+    debug=0,
 ):
     if debug > 0:
         print(f"decode_heif() {infile} -> {outfile_y4m}", file=logfd)
     # load the input (heic) image
     read_exif_info = False
     read_icc_info = False
-    inyvu, status = read_heif(infile, config_dict, logfd, debug)
+    inyvu, status = read_heif(infile, config_dict, cleanup, logfd, debug)
     assert inyvu is not None, f"error: cannot read {infile}"
     # write the output image
     colorspace = "420"

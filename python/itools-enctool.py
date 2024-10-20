@@ -51,6 +51,7 @@ DEFAULT_QUALITY_LIST = sorted(set(list(range(0, 101, 10)) + DEFAULT_QUALITIES))
 default_values = {
     "debug": 0,
     "dry_run": False,
+    "cleanup": 1,
     "horizontal_alignment": None,
     "vertical_alignment": None,
     "quality_list": ",".join(str(v) for v in DEFAULT_QUALITY_LIST),
@@ -141,7 +142,7 @@ def psnr_parse(stdout):
     return psnr
 
 
-def vmaf_get(distorted, reference, logfd, debug, vmaf_model=None):
+def vmaf_get(distorted, reference, cleanup, logfd, debug, vmaf_model=None):
     vmaf_file = tempfile.NamedTemporaryFile(prefix="itools.vmaf.", suffix=".json").name
     # 1. calculate the score
     command = (
@@ -159,10 +160,14 @@ def vmaf_get(distorted, reference, logfd, debug, vmaf_model=None):
     returncode, out, err = itools_common.run(command, logfd=logfd, debug=debug)
     assert returncode == 0, f"error: {out = } {err = }"
     # 2. parse the output
-    return vmaf_parse(out, err, vmaf_file)
+    vmaf_score = vmaf_parse(out, err, vmaf_file)
+    # 3. cleanup
+    if cleanup > 1:
+        os.remove(vmaf_file)
+    return vmaf_score
 
 
-def psnr_get(distorted, reference, logfd, debug):
+def psnr_get(distorted, reference, cleanup, logfd, debug):
     psnr_file = tempfile.NamedTemporaryFile(prefix="itools.psnr.", suffix=".txt").name
     # 1. calculate the score
     command = (
@@ -174,10 +179,14 @@ def psnr_get(distorted, reference, logfd, debug):
     returncode, out, err = itools_common.run(command, logfd=logfd, debug=debug)
     assert returncode == 0, f"error: {out = } {err = }"
     # 2. parse the output
-    return psnr_parse(out)
+    psnr_score = psnr_parse(out)
+    # 3. cleanup
+    if cleanup > 1:
+        os.remove(psnr_file)
+    return psnr_score
 
 
-def ssim_get(distorted, reference, logfd, debug):
+def ssim_get(distorted, reference, cleanup, logfd, debug):
     ssim_file = tempfile.NamedTemporaryFile(prefix="itools.ssim.", suffix=".txt").name
     # 1. calculate the score
     command = (
@@ -189,10 +198,14 @@ def ssim_get(distorted, reference, logfd, debug):
     returncode, out, err = itools_common.run(command, logfd=logfd, debug=debug)
     assert returncode == 0, f"error: {out = } {err = }"
     # 2. parse the output
-    return ssim_parse(out)
+    ssim_score = ssim_parse(out)
+    # 3. cleanup
+    if cleanup > 1:
+        os.remove(ssim_file)
+    return ssim_score
 
 
-def ssimulacra2_get(distorted, reference, logfd, debug):
+def ssimulacra2_get(distorted, reference, cleanup, logfd, debug):
     # 0. ssimulacra2 only accepts png as inputs
     reference_png = f"{reference}.png"
     command = f"{itools_common.FFMPEG_SILENT} -i {reference} {reference_png}"
@@ -211,7 +224,12 @@ def ssimulacra2_get(distorted, reference, logfd, debug):
         return 0.0
     assert returncode == 0, f"error: {out = } {err = }"
     # 2. parse the output
-    return float(out.decode("ascii"))
+    ssimulacra2_score = float(out.decode("ascii"))
+    # 3. cleanup
+    if cleanup > 0:
+        os.remove(reference_png)
+        os.remove(distorted_png)
+    return ssimulacra2_score
 
 
 def escape_float(f):
@@ -221,39 +239,41 @@ def escape_float(f):
 # encoding backends
 # 1. heif-enc
 def heif_enc_encode_fun(
-    infile, width, height, codec, preset, quality, outfile, logfd, debug
+    infile, width, height, codec, preset, quality, outfile, cleanup, logfd, debug
 ):
     return itools_heif.encode_heif(
-        infile, codec, preset, quality, outfile, logfd, debug
+        infile, codec, preset, quality, outfile, cleanup, logfd, debug
     )
 
 
 # 2. libjpeg
 def libjpeg_encode_fun(
-    infile, width, height, codec, preset, quality, outfile, logfd, debug
+    infile, width, height, codec, preset, quality, outfile, cleanup, logfd, debug
 ):
     return itools_jpeg.encode_libjpeg(
-        infile, codec, preset, quality, outfile, logfd, debug
+        infile, codec, preset, quality, outfile, cleanup, logfd, debug
     )
 
 
 def jpegli_encode_fun(
-    infile, width, height, codec, preset, quality, outfile, logfd, debug
+    infile, width, height, codec, preset, quality, outfile, cleanup, logfd, debug
 ):
     return itools_jpeg.encode_jpegli(
-        infile, codec, preset, quality, outfile, logfd, debug
+        infile, codec, preset, quality, outfile, cleanup, logfd, debug
     )
 
 
 # 3. jxl
 def jxl_encode_fun(
-    infile, width, height, codec, preset, quality, outfile, logfd, debug
+    infile, width, height, codec, preset, quality, outfile, cleanup, logfd, debug
 ):
-    return itools_jxl.encode_jxl(infile, codec, preset, quality, outfile, logfd, debug)
+    return itools_jxl.encode_jxl(
+        infile, codec, preset, quality, outfile, cleanup, logfd, debug
+    )
 
 
-def jxl_decode_fun(infile, outfile, logfd, debug):
-    return itools_jxl.decode_jxl(infile, outfile, logfd, debug)
+def jxl_decode_fun(infile, outfile, cleanup, logfd, debug):
+    return itools_jxl.decode_jxl(infile, outfile, cleanup, logfd, debug)
 
 
 # TODO(chema): use better mechanism here
@@ -324,6 +344,7 @@ def process_file(
     workdir,
     codec_choices,
     config_dict,
+    cleanup,
     logfd,
     debug,
     encoded_infile=None,
@@ -385,6 +406,7 @@ def process_file(
                     preset,
                     quality,
                     enc_path,
+                    cleanup,
                     logfd,
                     debug,
                 )
@@ -398,12 +420,13 @@ def process_file(
         distorted_path = f"{enc_path}.y4m"
         enc_extension = os.path.splitext(enc_path)[-1]
         if enc_extension in (".heic", ".avif", ".jp2", ".j2k"):
-            ref_colorrange = itools_io.read_colorrange(ref_path, logfd, debug)
+            ref_colorrange = itools_io.read_colorrange(ref_path, cleanup, logfd, debug)
             itools_heif.decode_heif(
                 enc_path,
                 distorted_path,
                 config_dict,
                 output_colorrange=ref_colorrange,
+                cleanup=cleanup,
                 logfd=logfd,
                 debug=debug,
             )
@@ -417,7 +440,7 @@ def process_file(
             shutil.copyfile(encoded_infile, distorted_path)
         elif enc_extension in (".jxl",):
             # copy the encoded file to the distorted path
-            jxl_decode_fun(enc_path, distorted_path, logfd, debug)
+            jxl_decode_fun(enc_path, distorted_path, cleanup, logfd, debug)
         else:
             raise AssertionError(f"cannot decode file {enc_path}")
 
@@ -440,12 +463,18 @@ def process_file(
                 debug,
             )
         # 7. analyze encoded file
-        vmaf_def = vmaf_get(distorted_path, ref_path, logfd, debug, VMAF_DEF_MODEL)
-        vmaf_neg = vmaf_get(distorted_path, ref_path, logfd, debug, VMAF_NEG_MODEL)
-        vmaf_4k = vmaf_get(distorted_path, ref_path, logfd, debug, VMAF_4K_MODEL)
-        psnr = psnr_get(distorted_path, ref_path, logfd, debug)
-        ssim = ssim_get(distorted_path, ref_path, logfd, debug)
-        ssimulacra2 = ssimulacra2_get(distorted_path, ref_path, logfd, debug)
+        vmaf_def = vmaf_get(
+            distorted_path, ref_path, cleanup, logfd, debug, VMAF_DEF_MODEL
+        )
+        vmaf_neg = vmaf_get(
+            distorted_path, ref_path, cleanup, logfd, debug, VMAF_NEG_MODEL
+        )
+        vmaf_4k = vmaf_get(
+            distorted_path, ref_path, cleanup, logfd, debug, VMAF_4K_MODEL
+        )
+        psnr = psnr_get(distorted_path, ref_path, cleanup, logfd, debug)
+        ssim = ssim_get(distorted_path, ref_path, cleanup, logfd, debug)
+        ssimulacra2 = ssimulacra2_get(distorted_path, ref_path, cleanup, logfd, debug)
         # 8. gather results
         if df is None:
             vmaf_column_list = list(
@@ -481,6 +510,10 @@ def process_file(
         )
 
     # 9. clean up after yourself
+    if cleanup > 0:
+        os.remove(ref_path)
+        os.remove(distorted_path)
+        # do not delete the encoded path yet
     if fini_fun is not None:
         fini_fun(exp_basename, debug)
     return df
@@ -550,6 +583,7 @@ def process_data(
     config_dict,
     codec_choices,
     outfile_csv,
+    cleanup,
     logfd,
     debug,
     encoded_infile=None,
@@ -588,6 +622,7 @@ def process_data(
             workdir,
             codec_choices,
             config_dict,
+            cleanup,
             logfd,
             debug,
             encoded_infile=encoded_infile,
@@ -605,6 +640,7 @@ def process_data(
                 roi=((None, None), (None, None)),
                 roi_dump=None,
                 config_dict=config_dict,
+                cleanup=cleanup,
                 logfd=logfd,
                 debug=debug,
             )
@@ -613,6 +649,8 @@ def process_data(
                 if df_analysis is None
                 else pd.concat([df_analysis, df_tmp_analysis])
             )
+            if cleanup > 1:
+                os.remove(outfile)
         df = pd.merge(df, df_analysis, left_on="outfile", right_on="filename")
     average_results = config_dict.get("average_results")
     if average_results:
@@ -670,6 +708,32 @@ def get_options(argv, codec_choices):
         dest="dry_run",
         default=default_values["dry_run"],
         help="Dry run",
+    )
+    parser.add_argument(
+        "--cleanup",
+        action="store_const",
+        dest="cleanup",
+        const=1,
+        default=default_values["cleanup"],
+        help="Cleanup Raw Files%s"
+        % (" [default]" if default_values["cleanup"] == 1 else ""),
+    )
+    parser.add_argument(
+        "--full-cleanup",
+        action="store_const",
+        dest="cleanup",
+        const=2,
+        default=default_values["cleanup"],
+        help="Cleanup All Files%s"
+        % (" [default]" if default_values["cleanup"] == 2 else ""),
+    )
+    parser.add_argument(
+        "--no-cleanup",
+        action="store_const",
+        dest="cleanup",
+        const=0,
+        help="Do Not Cleanup Files%s"
+        % (" [default]" if not default_values["cleanup"] == 0 else ""),
     )
     parser.add_argument(
         "--quality-list",
@@ -812,6 +876,7 @@ def main(argv, codec_choices=CODEC_CHOICES):
         config_dict,
         codec_choices,
         options.outfile,
+        options.cleanup,
         logfd,
         options.debug,
         encoded_infile=options.encoded_infile,

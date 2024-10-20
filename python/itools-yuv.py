@@ -13,7 +13,7 @@ itools_common = importlib.import_module("itools-common")
 
 
 # YUV is packed, Y/U/V components
-def read_yuv(infile, iinfo, logfd, debug):
+def read_yuv(infile, iinfo, cleanup, logfd, debug):
     with open(infile, "rb") as fin:
         data = fin.read()
     # assume nv12 for now

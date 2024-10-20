@@ -45,9 +45,9 @@ def decode_jpeg(infile, outfile, logfd, debug):
     assert returncode == 0, f"error: {out = } {err = }"
 
 
-def encode_libjpeg(infile, codec, preset, quality, outfile, logfd, debug):
+def encode_libjpeg(infile, codec, preset, quality, outfile, cleanup, logfd, debug):
     # 1. convert to ppm (libjpeg encoder wants ppm)
-    tmpppm = tempfile.NamedTemporaryFile(prefix="itools.jpegli.", suffix=".ppm").name
+    tmpppm = tempfile.NamedTemporaryFile(prefix="itools.libjpeg.", suffix=".ppm").name
     command = f"{itools_common.FFMPEG_SILENT} -i {infile} {tmpppm}"
     returncode, out, err = itools_common.run(command, logfd=logfd, debug=debug)
     assert returncode == 0, f"error: {out = } {err = }"
@@ -57,10 +57,13 @@ def encode_libjpeg(infile, codec, preset, quality, outfile, logfd, debug):
         command, logfd=logfd, debug=debug, gnu_time=True
     )
     assert returncode == 0, f"error: {out = } {err = }"
+    # 3. cleanup
+    if cleanup > 0:
+        os.remove(tmpppm)
     return stats
 
 
-def encode_jpegli(infile, codec, preset, quality, outfile, logfd, debug):
+def encode_jpegli(infile, codec, preset, quality, outfile, cleanup, logfd, debug):
     # 0. jpegli crashes with quality 0 or 100
     if quality == 0 or quality == 100:
         raise itools_common.EncoderException(
@@ -77,4 +80,7 @@ def encode_jpegli(infile, codec, preset, quality, outfile, logfd, debug):
         command, logfd=logfd, debug=debug, gnu_time=True
     )
     assert returncode == 0, f"error: {out = } {err = }"
+    # 3. cleanup
+    if cleanup > 0:
+        os.remove(tmpppm)
     return stats

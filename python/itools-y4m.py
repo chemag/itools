@@ -285,7 +285,7 @@ class Y4MHeader:
         return outyvu, offset, status
 
 
-def read_y4m(infile, output_colorrange=None, logfd=sys.stdout, debug=0):
+def read_y4m(infile, output_colorrange=None, cleanup=0, logfd=sys.stdout, debug=0):
     # read the y4m frame
     with open(infile, "rb") as fin:
         # read y4m header
