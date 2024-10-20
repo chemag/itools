@@ -23,6 +23,7 @@ import importlib
 import itertools
 import json
 import math
+import numpy as np
 import os
 import pandas as pd
 import re
@@ -537,7 +538,7 @@ def get_average_results(df):
             # no entries with this (codec, preset, quality) combo
             continue
         # start with empty data
-        derived_dict = {key: None for key in list(df.columns.values)}
+        derived_dict = {key: np.NaN for key in list(df.columns.values)}
         derived_dict["infile"] = "average"
         # copy a few columns
         for col in ("quality", "codec", "preset"):
@@ -656,11 +657,6 @@ def process_data(
     if average_results:
         # 5. get average results
         derived_df = get_average_results(df)
-        # TODO(chemag): fix this warning
-        # Likely cause is that some of the derived_df columns are dtype object
-        # ('dtype("O")') but have only null values (e.g. "ymean" column).
-        # \ref https://stackoverflow.com/a/60802429
-        # df = pd.concat([df, derived_df], ignore_index=True)
         df = pd.concat([df, derived_df], ignore_index=True, axis=0)
     # 6. write the results
     df.to_csv(outfile_csv, index=False)
