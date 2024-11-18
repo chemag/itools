@@ -74,7 +74,7 @@ def encode_jxl(infile, codec, preset, quality, outfile, cleanup, logfd, debug):
     assert returncode == 0, f"error: {out = } {err = }"
     # 2. do the encoding
     if codec == "jxl" and preset is not None:
-        preset_str = f" -e {preset}"
+        preset_str = f"-e {preset}"
     else:
         preset_str = ""
     command = f"{JPEGXL_ENC} {tmpppm} {outfile} -q {quality} {preset_str}"

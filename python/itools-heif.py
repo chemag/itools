@@ -550,7 +550,7 @@ def read_heif(infile, config_dict, cleanup, logfd, debug=0):
 
 def encode_heif(infile, codec, preset, quality, outfile, cleanup, logfd, debug):
     if codec == "x265" and preset is not None:
-        preset_str = f" -p preset={preset}"
+        preset_str = f"-p preset={preset}"
     elif codec == "svt" and preset is not None:
         preset_str = f"-p speed={preset}"
     elif codec == "aom" and preset is not None:
