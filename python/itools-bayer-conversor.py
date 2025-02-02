@@ -20,7 +20,7 @@ itools_common = importlib.import_module("itools-common")
 
 __version__ = "0.1"
 
-COLOR_ORDER = ["RGGB", "BGGR", "GRBG", "GBRG"]
+COLOR_ORDER = ["RGGB", "BGGR", "GRBG", "GBRG", "RGBG", "BGRG"]
 
 
 # read/write functions
@@ -249,6 +249,42 @@ BAYER_FORMATS = {
         "rdepth": 8,
         "rfun": rfun_8,
         "wfun": wfun_8,
+        "ffmpeg": True,
+    },
+    "bayer_rgbg8": {
+        # component order
+        "order": "RGBG",
+        # byte length
+        "blen": 2,
+        # component length
+        "clen": 2,
+        # component depth (in bits)
+        "cdepth": 8,
+        # component read depth (in bits)
+        "rdepth": 8,
+        # read function
+        "rfun": rfun_8,
+        # write function
+        "wfun": wfun_8,
+        # ffmpeg support
+        "ffmpeg": True,
+    },
+    "bayer_bgrg8": {
+        # component order
+        "order": "BGRG",
+        # byte length
+        "blen": 2,
+        # component length
+        "clen": 2,
+        # component depth (in bits)
+        "cdepth": 8,
+        # component read depth (in bits)
+        "rdepth": 8,
+        # read function
+        "rfun": rfun_8,
+        # write function
+        "wfun": wfun_8,
+        # ffmpeg support
         "ffmpeg": True,
     },
     # 10-bit Bayer formats expanded to 16 bits
