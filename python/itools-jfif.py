@@ -494,7 +494,38 @@ def parse_jfif_file(infile, logfd, debug):
                     contents_bin,
                 ]
             )
-            if marker in (0xFFD9, 0xFFDA):  # stop parsing after EOI or SOS
+            if marker == 0xFFDA:  # SOS
+                # compressed data
+                compressed_data_offset = fin.tell()
+                compressed_data_length = 0
+                while True:
+                    byte = fin.read(1)
+                    if not byte:
+                        # end of file reached
+                        break
+                    # check if this is 0xff
+                    if byte == b"\xff":
+                        byte2 = fin.read(1)
+                        if byte2 != b"\x00":
+                            # new marker
+                            break
+                    compressed_data_length += 1
+                if byte:
+                    # there is another marker
+                    fin.seek(fin.tell() - 2)
+                marker_list.append(
+                    [
+                        0,  # marker,
+                        "compressed_data",  # marker_str,
+                        fin.tell() - compressed_data_offset,
+                        compressed_data_length,
+                        compressed_data_offset,
+                        compressed_data_length,
+                        "",
+                        "",
+                    ]
+                )
+            if marker == 0xFFD9:  # stop parsing after EOI
                 break
     return marker_list
 
