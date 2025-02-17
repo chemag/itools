@@ -178,7 +178,25 @@ def parse_com(blob):
 
 
 def parse_dqt(blob):
-    return parse_unimplemented(0xFFDB, blob)
+    assert len(blob) == 65, f"invalid DQT length: {len(blob)} [should be 65]"
+    idx = 0
+    first_byte = blob[idx]
+    idx += 1
+    Pq = first_byte >> 4
+    Tq = first_byte & 0x0F
+    Q = []
+    for _ in range(64):
+        Q.append(blob[idx])
+        idx += 1
+    # print out string
+    blob_str = f"Pq: {Pq}"
+    blob_str += f" Tq: {Tq}"
+    blob_str += " Q: ["
+    for Qi in Q:
+        blob_str += f"{Qi}, "
+    blob_str = blob_str[:-2]
+    blob_str += "]"
+    return blob_str, 0
 
 
 def parse_dri(blob):
