@@ -2,6 +2,7 @@
 
 
 import argparse
+import collections
 import struct
 import sys
 
@@ -26,36 +27,36 @@ def parse_unimplemented(marker_id, blob):
 
 
 def parse_app0(blob):
+    contents = collections.OrderedDict()
     identifier_jfif = b"JFIF\x00"
     if blob[0 : len(identifier_jfif)] == identifier_jfif:
+        contents["type"] = "JFIF\\x00"
         idx = len(identifier_jfif)
         # JFIF APP0 marker segment
         assert len(blob) >= 14
         version_major = blob[idx]
+        contents["version_major"] = version_major
         idx += 1
         version_minor = blob[idx]
+        contents["version_minor"] = version_minor
         idx += 1
         density_units = blob[idx]
+        contents["density_units"] = density_units
         idx += 1
         xdensity = struct.unpack(">H", blob[idx : idx + 2])[0]
+        contents["xdensity"] = xdensity
         idx += 2
         ydensity = struct.unpack(">H", blob[idx : idx + 2])[0]
+        contents["ydensity"] = ydensity
         idx += 2
         xthumbnail = blob[idx]
+        contents["xthumbnail"] = xthumbnail
         idx += 1
         ythumbnail = blob[idx]
+        contents["ythumbnail"] = ythumbnail
         idx += 1
         # thumbnail_data = ...
-        blob_str = ""
-        blob_str += 'type: "JFIF\\x00"'
-        blob_str += f" version_major: {version_major}"
-        blob_str += f" version_minor: {version_minor}"
-        blob_str += f" density_units: {density_units}"
-        blob_str += f" xdensity: {xdensity}"
-        blob_str += f" ydensity: {ydensity}"
-        blob_str += f" xthumbnail: {xthumbnail}"
-        blob_str += f" ythumbnail: {ythumbnail}"
-        return blob_str, len(identifier_jfif)
+        return contents
 
     else:
         print("error: parse_app0: invalid identifier (%s)" % blob[0:5], file=sys.stderr)
@@ -64,6 +65,7 @@ def parse_app0(blob):
 
 # http://www.exif.org/Exif2-2.PDF
 def parse_app1(blob):
+    contents = collections.OrderedDict()
     identifier_exif = (b"Exif\x00\x00", b"Exif\x00\xff")
     identifier_xmp = b"http://ns.adobe.com/xap/1.0/\x00"
     identifier_extended_xmp = b"http://ns.adobe.com/xmp/extension/\x00"
@@ -72,6 +74,7 @@ def parse_app1(blob):
         len(blob) >= len(identifier_exif[0])
         and blob[0 : len(identifier_exif[0])] in identifier_exif
     ):
+        contents["type"] = "EXIF\\x00\\x00"
         idx = len(identifier_exif[0])
         assert len(blob) >= 14
         _padding = blob[idx]
@@ -81,21 +84,23 @@ def parse_app1(blob):
         ifd_count = struct.unpack(">I", blob[idx + 4 : idx + 8])[0]
         ifd_value_offset = struct.unpack(">I", blob[idx + 8 : idx + 12])[0]
         # thumbnail_data = ...
-        return "EXIF", len(identifier_exif[0])
+        return contents
 
     elif (
         len(blob) >= len(identifier_xmp)
         and blob[0 : len(identifier_xmp)] == identifier_xmp
     ):
+        contents["type"] = "Adobe XMP"
         idx = len(identifier_xmp)
-        return "Adobe XMP", len(identifier_xmp)
+        return contents
 
     elif (
         len(blob) >= len(identifier_extended_xmp)
         and blob[0 : len(identifier_extended_xmp)] == identifier_extended_xmp
     ):
+        contents["type"] = "Adobe extended XMP"
         idx = len(identifier_extended_xmp)
-        return "Adobe extended XMP", len(identifier_extended_xmp)
+        return contents
 
     else:
         print("error: parse_app1: invalid identifier (%s)" % blob[0:6], file=sys.stderr)
@@ -104,18 +109,21 @@ def parse_app1(blob):
 
 # https://www.color.org/specification/ICC1v43_2010-12.pdf
 def parse_app2(blob):
+    contents = collections.OrderedDict()
     identifier_icc_profile = b"ICC_PROFILE\x00"
     identifier_mpf = b"MPF\x00"
     if blob[0 : len(identifier_icc_profile)] == identifier_icc_profile:
+        contents["type"] = "ICC_PROFILE"
         idx = len(identifier_icc_profile)
         icc_chunk_count = blob[idx]
         idx += 1
         icc_total_chunks = blob[idx]
         idx += 1
-        return "ICC_PROFILE", idx
+        return contents
 
     elif blob[0:4] == identifier_mpf:
-        return "MPF", len(identifier_mpf)
+        contents["type"] = "MPF"
+        return contents
 
     else:
         print("error: parse_app2: invalid identifier", file=sys.stderr)
@@ -151,94 +159,95 @@ ADOBE_COLOR_TRANSFORM = {
 
 
 def parse_app14(blob):
+    contents = collections.OrderedDict()
     identifier_adobe = b"Adobe\x00"
     assert blob[0 : len(identifier_adobe)] == identifier_adobe
     idx = len(identifier_adobe)
     DCTEncodeVersion = blob[idx]
+    contents["DCTEncodeVersion"] = DCTEncodeVersion
     idx += 1
     APP14Flags0 = blob[idx]
+    contents["APP14Flags0"] = APP14Flags0
     idx += 1
     APP14Flags1 = blob[idx]
+    contents["APP14Flags1"] = APP14Flags1
     idx += 1
     ColorTransform = blob[idx]
+    contents["ColorTransform"] = ColorTransform
     idx += 1
     ColorTransformStr = ADOBE_COLOR_TRANSFORM[ColorTransform]
-    blob_str = f"DCTEncodeVersion: {DCTEncodeVersion}"
-    blob_str += f" APP14Flags0: {APP14Flags0}"
-    blob_str += f" APP14Flags1: {APP14Flags1}"
-    blob_str += f" ColorTransform: {ColorTransform}"
-    blob_str += f' ColorTransformStr: "{ColorTransformStr}"'
-    return blob_str, len(identifier_adobe)
+    contents["ColorTransformStr"] = ColorTransformStr
+    return contents
 
 
 def parse_com(blob):
+    contents = collections.OrderedDict()
     comment = 'comment: "%s"' % blob.decode("ascii", "ignore")
     comment = comment.replace("\x00", "\\x00")
-    return comment, 0
+    contents["comment"] = comment
+    return contents
 
 
 def parse_dqt(blob):
+    contents = collections.OrderedDict()
     assert len(blob) == 65, f"invalid DQT length: {len(blob)} [should be 65]"
     idx = 0
     first_byte = blob[idx]
     idx += 1
     Pq = first_byte >> 4
+    contents["Pq"] = Pq
     Tq = first_byte & 0x0F
+    contents["Tq"] = Tq
     Q = []
     for _ in range(64):
         Q.append(blob[idx])
         idx += 1
-    # print out string
-    blob_str = f"Pq: {Pq}"
-    blob_str += f" Tq: {Tq}"
-    blob_str += " Q: ["
-    for Qi in Q:
-        blob_str += f"{Qi}, "
-    blob_str = blob_str[:-2]
-    blob_str += "]"
-    return blob_str, 0
+    contents["Q"] = Q
+    return contents
 
 
 def parse_dri(blob):
+    contents = collections.OrderedDict()
     assert len(blob) == 2
     size = struct.unpack(">H", blob[0:2])[0]
-    blob_str = f"size: {size}"
-    return blob_str, 0
+    contents["size"] = size
+    return contents
 
 
 def parse_sos(blob):
+    contents = collections.OrderedDict()
     assert len(blob) >= 6
     idx = 0
     number_of_components = blob[idx]
+    contents["number_of_components"] = number_of_components
     idx += 1
     assert len(blob) == 1 + number_of_components * 2 + 3
     components = []
     for _ in range(number_of_components):
-        component_id = blob[idx]
+        component = collections.OrderedDict()
+        component["component_id"] = blob[idx]
+        component["component_id"] = COMPONENT_ID_STR[component["component_id"]]
         idx += 1
-        huffman_ac_table = blob[idx] & 0x0F
-        huffman_dc_table = blob[idx] >> 4
+        component["huffman_ac_table"] = blob[idx] & 0x0F
+        component["huffman_dc_table"] = blob[idx] >> 4
         idx += 1
-        components.append(
-            [
-                component_id,
-                COMPONENT_ID_STR[component_id],
-                huffman_ac_table,
-                huffman_dc_table,
-            ]
-        )
+    contents["components"] = components
     start_of_spectral_selection = blob[idx]
     idx += 1
     end_of_spectral_selection = blob[idx]
     idx += 1
+    contents["spectral_selection"] = (
+        {start_of_spectral_selection},
+        {end_of_spectral_selection},
+    )
     approximation_bit_position_high = blob[idx] & 0x0F
     approximation_bit_position_low = blob[idx] >> 4
     idx += 1
-    blob_str = f"number_of_components: {number_of_components}"
-    blob_str += f" components: {components}"
-    blob_str += f" spectral_selection: ({start_of_spectral_selection}, {end_of_spectral_selection})"
-    blob_str += f" approximation_bit: ({approximation_bit_position_high}, {approximation_bit_position_low})"
-    return blob_str, 0
+    contents["approximation_bit"] = (
+        {approximation_bit_position_high},
+        {approximation_bit_position_low},
+    )
+    return contents
 
 
 SOF_ID_STR = {
@@ -331,45 +340,51 @@ def parse_sof15(blob):
 
 
 def parse_sof(sof_id, blob):
+    contents = collections.OrderedDict()
     sof_str = SOF_ID_STR[sof_id]
+    contents["sof_str"] = sof_str
     assert len(blob) >= 6
     idx = 0
     sample_precision = blob[idx]
+    contents["sample_precision"] = sample_precision
     idx += 1
-    number_of_lines_precision = struct.unpack(">H", blob[idx : idx + 2])[0]
+    number_of_lines = struct.unpack(">H", blob[idx : idx + 2])[0]
+    contents["number_of_lines"] = number_of_lines
     idx += 2
     number_of_samples_per_line = struct.unpack(">H", blob[idx : idx + 2])[0]
+    contents["number_of_samples_per_line"] = number_of_samples_per_line
     idx += 2
     number_of_components_in_frame = blob[idx]
+    contents["number_of_components_in_frame"] = number_of_components_in_frame
     idx += 1
     # assert len(blob) == 6 + number_of_components_in_frame * 3
     components = []
-    # TODO(chema): check this
-    for i in range(number_of_components_in_frame):
-        component_id = blob[6 + 3 * i + 0]
-        vsampling = blob[6 + 3 * i + 1] & 0x0F
-        hsampling = blob[6 + 3 * i + 1] >> 4
-        qtable = blob[6 + 3 * i + 2]
-        components.append(
-            [component_id, COMPONENT_ID_STR[component_id], vsampling, hsampling, qtable]
-        )
-
-    blob_str = f'sof_str: "{sof_str}"'
-    blob_str += f" sample_precision: {sample_precision}"
-    blob_str += f" number_of_lines_precision: {number_of_lines_precision}"
-    blob_str += f" number_of_samples_per_line: {number_of_samples_per_line}"
-    blob_str += f" number_of_components_in_frame: {number_of_components_in_frame}"
-    blob_str += f" components: {components}"
-    return blob_str, 0
+    for _ in range(number_of_components_in_frame):
+        component = collections.OrderedDict()
+        component["component_id"] = blob[idx]
+        component["component_id_str"] = COMPONENT_ID_STR[component["component_id"]]
+        idx += 1
+        the_byte = blob[idx]
+        idx += 1
+        component["horizontal_sampling_factor"] = the_byte >> 4
+        component["vertical_sampling_factor"] = the_byte & 0x0F
+        component["quantization_table_selector"] = blob[idx]
+        idx += 1
+        components.append(component)
+    contents["components"] = components
+    return contents
 
 
 def parse_dht(blob):
+    contents = collections.OrderedDict()
     assert len(blob) > 16, f"invalid DHT length: {len(blob)} [should be at least 17]"
     idx = 0
     first_byte = blob[idx]
     idx += 1
     Tc = first_byte >> 4
+    contents["Tc"] = Tc
     Th = first_byte & 0x0F
+    contents["Th"] = Th
     L = []
     for _ in range(16):
         L.append(blob[idx])
@@ -381,23 +396,12 @@ def parse_dht(blob):
             Vi.append(blob[idx])
             idx += 1
         V.append(Vi)
-    # print out string
-    blob_str = f"Tc: {Tc}"
-    blob_str += f" Th: {Th}"
-    blob_str += " L: ["
-    for Li in L:
-        blob_str += f"{Li}, "
-    blob_str = blob_str[:-2]
-    blob_str += "]"
+    contents["L"] = L
     for i, Vi in enumerate(V):
         if not Vi:
             continue
-        blob_str += f" V{i}: ["
-        for Vij in Vi:
-            blob_str += f"{Vij}, "
-        blob_str = blob_str[:-2]
-        blob_str += "]"
-    return blob_str, 0
+        contents[f"V{i}"] = Vi
+    return contents
 
 
 def parse_jpg(blob):
@@ -471,27 +475,17 @@ def parse_jfif_file(infile, logfd, debug):
             if debug > 0:
                 print("debug: marker: 0x%04x (%s)" % (marker, marker_str), file=logfd)
             if marker_parser is not None:
-                contents_str, payload_offset = marker_parser(blob)
-                contents_offset = offset + marker_size + length_size + payload_offset
-                contents_length = length - length_size - payload_offset
-                contents_bin = blob[payload_offset:]
+                contents = marker_parser(blob)
 
             else:
-                contents_str = ""
-                payload_offset = 0
-                contents_offset = offset + length_size + payload_offset
-                contents_length = length - length_size - payload_offset
-                contents_bin = ""
+                contents = collections.OrderedDict()
             marker_list.append(
                 [
                     marker,
                     marker_str,
                     offset,
                     length,
-                    contents_offset,
-                    contents_length,
-                    contents_str,
-                    contents_bin,
+                    contents,
                 ]
             )
             if marker == 0xFFDA:  # SOS
@@ -513,16 +507,14 @@ def parse_jfif_file(infile, logfd, debug):
                 if byte:
                     # there is another marker
                     fin.seek(fin.tell() - 2)
+                contents = collections.OrderedDict()
                 marker_list.append(
                     [
                         0,  # marker,
                         "compressed_data",  # marker_str,
                         fin.tell() - compressed_data_offset,
                         compressed_data_length,
-                        compressed_data_offset,
-                        compressed_data_length,
-                        "",
-                        "",
+                        contents,
                     ]
                 )
             if marker == 0xFFD9:  # stop parsing after EOI
@@ -538,22 +530,29 @@ def print_marker_list(marker_list, outfile, debug):
             marker_str,
             offset,
             length,
-            contents_offset,
-            contents_length,
-            contents_str,
-            _contents_bin,
+            contents,
         ) in marker_list:
-            contents_str_full = f"contents {{ "
-            contents_str_full += f"offset: 0x{contents_offset:08x} "
-            contents_str_full += f"length: {contents_length} "
-            contents_str_full += f"data {{ {contents_str} }}"
-            contents_str_full += "}"
             fout.write(f"marker: {marker_str}\n")
+            fout.write(f"  offset: 0x{offset:08x}\n")
             fout.write(f"  marker_id: 0x{_marker:04x}\n")
-            fout.write(f"  header: 0x{offset:08x}\n")
             fout.write(f"  length: {length}\n")
-            if contents_str_full:
-                fout.write(f"  contents: {contents_str_full}\n")
+            for k, v in contents.items():
+                if (
+                    isinstance(v, (list, tuple))
+                    and v
+                    and isinstance(v[0], collections.OrderedDict)
+                ):
+                    for i, d in enumerate(v):
+                        fout.write(f"    {i}:")
+                        for k2, v2 in d.items():
+                            fout.write(f" {k2}: {v2}")
+                        fout.write("\n")
+                    continue
+                elif isinstance(v, (list, tuple)):
+                    v_str = "[" + ",".join(list(str(element) for element in v)) + "]"
+                else:
+                    v_str = str(v)
+                fout.write(f"  {k}: {v}\n")
 
 
 def extract_marker(marker_list, marker_name, outfile, debug):
