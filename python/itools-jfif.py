@@ -28,33 +28,33 @@ def parse_unimplemented(marker_id, blob):
 def parse_app0(blob):
     identifier_jfif = b"JFIF\x00"
     if blob[0 : len(identifier_jfif)] == identifier_jfif:
-        i = len(identifier_jfif)
+        idx = len(identifier_jfif)
         # JFIF APP0 marker segment
         assert len(blob) >= 14
-        version_major = blob[i]
-        i += 1
-        version_minor = blob[i]
-        i += 1
-        density_units = blob[i]
-        i += 1
-        xdensity = struct.unpack(">H", blob[i : i + 2])[0]
-        i += 2
-        ydensity = struct.unpack(">H", blob[i : i + 2])[0]
-        i += 2
-        xthumbnail = blob[i]
-        i += 1
-        ythumbnail = blob[i]
-        i += 1
+        version_major = blob[idx]
+        idx += 1
+        version_minor = blob[idx]
+        idx += 1
+        density_units = blob[idx]
+        idx += 1
+        xdensity = struct.unpack(">H", blob[idx : idx + 2])[0]
+        idx += 2
+        ydensity = struct.unpack(">H", blob[idx : idx + 2])[0]
+        idx += 2
+        xthumbnail = blob[idx]
+        idx += 1
+        ythumbnail = blob[idx]
+        idx += 1
         # thumbnail_data = ...
         blob_str = ""
         blob_str += 'type: "JFIF\\x00"'
-        blob_str += " version_major: %i" % version_major
-        blob_str += " version_minor: %i" % version_minor
-        blob_str += " density_units: %i" % density_units
-        blob_str += " xdensity: %i" % xdensity
-        blob_str += " ydensity: %i" % ydensity
-        blob_str += " xthumbnail: %i" % xthumbnail
-        blob_str += " ythumbnail: %i" % ythumbnail
+        blob_str += f" version_major: {version_major}"
+        blob_str += f" version_minor: {version_minor}"
+        blob_str += f" density_units: {density_units}"
+        blob_str += f" xdensity: {xdensity}"
+        blob_str += f" ydensity: {ydensity}"
+        blob_str += f" xthumbnail: {xthumbnail}"
+        blob_str += f" ythumbnail: {ythumbnail}"
         return blob_str, len(identifier_jfif)
 
     else:
@@ -72,14 +72,14 @@ def parse_app1(blob):
         len(blob) >= len(identifier_exif[0])
         and blob[0 : len(identifier_exif[0])] in identifier_exif
     ):
-        i = len(identifier_exif[0])
+        idx = len(identifier_exif[0])
         assert len(blob) >= 14
-        _padding = blob[i]
-        i += 1
-        ifd_tag = struct.unpack(">H", blob[i : i + 2])[0]
-        ifd_type = struct.unpack(">H", blob[i + 2 : i + 4])[0]
-        ifd_count = struct.unpack(">I", blob[i + 4 : i + 8])[0]
-        ifd_value_offset = struct.unpack(">I", blob[i + 8 : i + 12])[0]
+        _padding = blob[idx]
+        idx += 1
+        ifd_tag = struct.unpack(">H", blob[idx : idx + 2])[0]
+        ifd_type = struct.unpack(">H", blob[idx + 2 : idx + 4])[0]
+        ifd_count = struct.unpack(">I", blob[idx + 4 : idx + 8])[0]
+        ifd_value_offset = struct.unpack(">I", blob[idx + 8 : idx + 12])[0]
         # thumbnail_data = ...
         return "EXIF", len(identifier_exif[0])
 
@@ -87,14 +87,14 @@ def parse_app1(blob):
         len(blob) >= len(identifier_xmp)
         and blob[0 : len(identifier_xmp)] == identifier_xmp
     ):
-        i = len(identifier_xmp)
+        idx = len(identifier_xmp)
         return "Adobe XMP", len(identifier_xmp)
 
     elif (
         len(blob) >= len(identifier_extended_xmp)
         and blob[0 : len(identifier_extended_xmp)] == identifier_extended_xmp
     ):
-        i = len(identifier_extended_xmp)
+        idx = len(identifier_extended_xmp)
         return "Adobe extended XMP", len(identifier_extended_xmp)
 
     else:
@@ -107,12 +107,12 @@ def parse_app2(blob):
     identifier_icc_profile = b"ICC_PROFILE\x00"
     identifier_mpf = b"MPF\x00"
     if blob[0 : len(identifier_icc_profile)] == identifier_icc_profile:
-        i = len(identifier_icc_profile)
-        icc_chunk_count = blob[i]
-        i += 1
-        icc_total_chunks = blob[i]
-        i += 1
-        return "ICC_PROFILE", i
+        idx = len(identifier_icc_profile)
+        icc_chunk_count = blob[idx]
+        idx += 1
+        icc_total_chunks = blob[idx]
+        idx += 1
+        return "ICC_PROFILE", idx
 
     elif blob[0:4] == identifier_mpf:
         return "MPF", len(identifier_mpf)
@@ -153,21 +153,21 @@ ADOBE_COLOR_TRANSFORM = {
 def parse_app14(blob):
     identifier_adobe = b"Adobe\x00"
     assert blob[0 : len(identifier_adobe)] == identifier_adobe
-    i = len(identifier_adobe)
-    DCTEncodeVersion = blob[i]
-    i += 1
-    APP14Flags0 = blob[i]
-    i += 1
-    APP14Flags1 = blob[i]
-    i += 1
-    ColorTransform = blob[i]
-    i += 1
+    idx = len(identifier_adobe)
+    DCTEncodeVersion = blob[idx]
+    idx += 1
+    APP14Flags0 = blob[idx]
+    idx += 1
+    APP14Flags1 = blob[idx]
+    idx += 1
+    ColorTransform = blob[idx]
+    idx += 1
     ColorTransformStr = ADOBE_COLOR_TRANSFORM[ColorTransform]
-    blob_str = "DCTEncodeVersion: %i" % DCTEncodeVersion
-    blob_str = " APP14Flags0: %i" % APP14Flags0
-    blob_str = " APP14Flags1: %i" % APP14Flags1
-    blob_str = " ColorTransform: %i" % ColorTransform
-    blob_str = ' ColorTransformStr: "%s"' % ColorTransformStr
+    blob_str = f"DCTEncodeVersion: {DCTEncodeVersion}"
+    blob_str += f" APP14Flags0: {APP14Flags0}"
+    blob_str += f" APP14Flags1: {APP14Flags1}"
+    blob_str += f" ColorTransform: {ColorTransform}"
+    blob_str += f' ColorTransformStr: "{ColorTransformStr}"'
     return blob_str, len(identifier_adobe)
 
 
@@ -184,23 +184,23 @@ def parse_dqt(blob):
 def parse_dri(blob):
     assert len(blob) == 2
     size = struct.unpack(">H", blob[0:2])[0]
-    blob_str = "size: %i" % (size)
+    blob_str = f"size: {size}"
     return blob_str, 0
 
 
 def parse_sos(blob):
     assert len(blob) >= 6
-    i = 0
-    number_of_components = blob[i]
-    i += 1
+    idx = 0
+    number_of_components = blob[idx]
+    idx += 1
     assert len(blob) == 1 + number_of_components * 2 + 3
     components = []
     for _ in range(number_of_components):
-        component_id = blob[i]
-        i += 1
-        huffman_ac_table = blob[i] & 0x0F
-        huffman_dc_table = blob[i] >> 4
-        i += 1
+        component_id = blob[idx]
+        idx += 1
+        huffman_ac_table = blob[idx] & 0x0F
+        huffman_dc_table = blob[idx] >> 4
+        idx += 1
         components.append(
             [
                 component_id,
@@ -209,23 +209,17 @@ def parse_sos(blob):
                 huffman_dc_table,
             ]
         )
-    start_of_spectral_selection = blob[i]
-    i += 1
-    end_of_spectral_selection = blob[i]
-    i += 1
-    approximation_bit_position_high = blob[i] & 0x0F
-    approximation_bit_position_low = blob[i] >> 4
-    i += 1
-    blob_str = "number_of_components: %i" % number_of_components
-    blob_str = "components: %r" % components
-    blob_str = "spectral_selection: (%i, %i)" % (
-        start_of_spectral_selection,
-        end_of_spectral_selection,
-    )
-    blob_str = "approximation_bit: (%i, %i)" % (
-        approximation_bit_position_high,
-        approximation_bit_position_low,
-    )
+    start_of_spectral_selection = blob[idx]
+    idx += 1
+    end_of_spectral_selection = blob[idx]
+    idx += 1
+    approximation_bit_position_high = blob[idx] & 0x0F
+    approximation_bit_position_low = blob[idx] >> 4
+    idx += 1
+    blob_str = f"number_of_components: {number_of_components}"
+    blob_str += f" components: {components}"
+    blob_str += f" spectral_selection: ({start_of_spectral_selection}, {end_of_spectral_selection})"
+    blob_str += f" approximation_bit: ({approximation_bit_position_high}, {approximation_bit_position_low})"
     return blob_str, 0
 
 
@@ -321,17 +315,18 @@ def parse_sof15(blob):
 def parse_sof(sof_id, blob):
     sof_str = SOF_ID_STR[sof_id]
     assert len(blob) >= 6
-    i = 0
-    sample_precision = blob[i]
-    i += 1
-    number_of_lines_precision = struct.unpack(">H", blob[i : i + 2])[0]
-    i += 2
-    number_of_samples_per_line = struct.unpack(">H", blob[i : i + 2])[0]
-    i += 2
-    number_of_components_in_frame = blob[i]
-    i += 1
+    idx = 0
+    sample_precision = blob[idx]
+    idx += 1
+    number_of_lines_precision = struct.unpack(">H", blob[idx : idx + 2])[0]
+    idx += 2
+    number_of_samples_per_line = struct.unpack(">H", blob[idx : idx + 2])[0]
+    idx += 2
+    number_of_components_in_frame = blob[idx]
+    idx += 1
     # assert len(blob) == 6 + number_of_components_in_frame * 3
     components = []
+    # TODO(chema): check this
     for i in range(number_of_components_in_frame):
         component_id = blob[6 + 3 * i + 0]
         vsampling = blob[6 + 3 * i + 1] & 0x0F
@@ -341,12 +336,12 @@ def parse_sof(sof_id, blob):
             [component_id, COMPONENT_ID_STR[component_id], vsampling, hsampling, qtable]
         )
 
-    blob_str = 'sof_str: "%s"' % sof_str
-    blob_str = " sample_precision: %i" % sample_precision
-    blob_str = " number_of_lines_precision: %i" % number_of_lines_precision
-    blob_str = " number_of_samples_per_line: %i" % number_of_samples_per_line
-    blob_str = " number_of_components_in_frame: %i" % (number_of_components_in_frame)
-    blob_str = " components: %r" % components
+    blob_str = f'sof_str: "{sof_str}"'
+    blob_str += f" sample_precision: {sample_precision}"
+    blob_str += f" number_of_lines_precision: {number_of_lines_precision}"
+    blob_str += f" number_of_samples_per_line: {number_of_samples_per_line}"
+    blob_str += f" number_of_components_in_frame: {number_of_components_in_frame}"
+    blob_str += f" components: {components}"
     return blob_str, 0
 
 
@@ -467,11 +462,12 @@ def print_marker_list(marker_list, outfile, debug):
             _contents_bin,
         ) in marker_list:
             contents_str_full = f"contents {{ "
-            contents_str_full += f"offset: {contents_offset} "
+            contents_str_full += f"offset: 0x{contents_offset:08x} "
             contents_str_full += f"length: {contents_length} "
             contents_str_full += f"data {{ {contents_str} }}"
             contents_str_full += "}"
             fout.write(f"marker: {marker_str}\n")
+            fout.write(f"  marker_id: 0x{_marker:04x}\n")
             fout.write(f"  header: 0x{offset:08x}\n")
             fout.write(f"  length: {length}\n")
             if contents_str_full:
