@@ -346,7 +346,40 @@ def parse_sof(sof_id, blob):
 
 
 def parse_dht(blob):
-    return parse_unimplemented(0xFFC4, blob)
+    assert len(blob) > 16, f"invalid DHT length: {len(blob)} [should be at least 17]"
+    idx = 0
+    first_byte = blob[idx]
+    idx += 1
+    Tc = first_byte >> 4
+    Th = first_byte & 0x0F
+    L = []
+    for _ in range(16):
+        L.append(blob[idx])
+        idx += 1
+    V = []
+    for i in range(16):
+        Vi = []
+        for _ in range(L[i]):
+            Vi.append(blob[idx])
+            idx += 1
+        V.append(Vi)
+    # print out string
+    blob_str = f"Tc: {Tc}"
+    blob_str += f" Th: {Th}"
+    blob_str += " L: ["
+    for Li in L:
+        blob_str += f"{Li}, "
+    blob_str = blob_str[:-2]
+    blob_str += "]"
+    for i, Vi in enumerate(V):
+        if not Vi:
+            continue
+        blob_str += f" V{i}: ["
+        for Vij in Vi:
+            blob_str += f"{Vij}, "
+        blob_str = blob_str[:-2]
+        blob_str += "]"
+    return blob_str, 0
 
 
 def parse_jpg(blob):
