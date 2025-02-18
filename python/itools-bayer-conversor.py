@@ -1132,36 +1132,59 @@ def main(argv):
     if options.debug > 0:
         print(f"debug: {options}")
 
-    # get common depth
-    # check the input pixel format
-    i_pix_fmt = check_input_pix_fmt(options.i_pix_fmt)
-    # check the output pixel format
-    o_pix_fmt = check_output_pix_fmt(options.o_pix_fmt)
-    # read input image file (packed) into planar
-    planar_image = rfun_image_file(
+    process_image(
         options.infile,
-        i_pix_fmt,
+        options.i_pix_fmt,
         options.width,
         options.height,
+        options.outfile,
+        options.o_pix_fmt,
         logfd,
         options.debug,
+    )
+
+
+def process_image(infile, i_pix_fmt, width, height, outfile, o_pix_fmt, logfd, debug):
+    # get common depth
+    # check the input pixel format
+    i_pix_fmt = check_input_pix_fmt(i_pix_fmt)
+    # check the output pixel format
+    o_pix_fmt = check_output_pix_fmt(o_pix_fmt)
+
+    irdepth = INPUT_FORMATS[i_pix_fmt]["rdepth"]
+    ordepth = OUTPUT_FORMATS[o_pix_fmt]["rdepth"]
+    process_using_8bits = False
+    if irdepth == 8 and ordepth == 8:
+        # process the planes in 8-bit planes
+        process_using_8bits = True
+
+    # read input image file (packed) into planar
+    planar_image = rfun_image_file(
+        infile,
+        i_pix_fmt,
+        width,
+        height,
+        process_using_8bits,
+        logfd,
+        debug,
     )
 
     # write planar into output image file (packed)
     wfun_image_file(
         planar_image,
-        options.outfile,
+        outfile,
         o_pix_fmt,
-        options.width,
-        options.height,
+        width,
+        height,
+        process_using_8bits,
         logfd,
-        options.debug,
+        debug,
     )
     ffmpeg_support = OUTPUT_FORMATS[o_pix_fmt]["ffmpeg"]
     if ffmpeg_support:
         print(
-            f"info: {itools_common.FFMPEG_SILENT} -f rawvideo -pixel_format {options.o_pix_fmt} "
-            f"-s {options.width}x{options.height} -i {options.outfile} {options.outfile}.png"
+            f"info: {itools_common.FFMPEG_SILENT} -f rawvideo -pixel_format {o_pix_fmt} "
+            f"-s {width}x{height} -i {outfile} {outfile}.png"
         )
 
 
