@@ -826,6 +826,7 @@ def get_planes(order, row):
     return plane_ids
 
 
+# read bayer packed format into bayer planar image
 def rfun_image_file(infile, i_pix_fmt, width, height, logfd, debug):
     # get format info
     irdepth = INPUT_FORMATS[i_pix_fmt]["rdepth"]
@@ -918,6 +919,7 @@ def rfun_image_file(infile, i_pix_fmt, width, height, logfd, debug):
     return planar_image
 
 
+# write bayer planar format into bayer packed image
 def wfun_image_file(planar_image, outfile, o_pix_fmt, width, height, logfd, debug):
     # get format info
     ordepth = OUTPUT_FORMATS[o_pix_fmt]["rdepth"]
@@ -1117,7 +1119,7 @@ def main(argv):
     i_pix_fmt = check_input_pix_fmt(options.i_pix_fmt)
     # check the output pixel format
     o_pix_fmt = check_output_pix_fmt(options.o_pix_fmt)
-    # read input image file into planar
+    # read input image file (packed) into planar
     planar_image = rfun_image_file(
         options.infile,
         i_pix_fmt,
@@ -1126,7 +1128,7 @@ def main(argv):
         logfd,
         options.debug,
     )
-    # write planar into output image file
+    # write planar into output image file (packed)
     wfun_image_file(
         planar_image,
         options.outfile,
