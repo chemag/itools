@@ -863,7 +863,9 @@ def get_planes(order, row):
 
 
 # read bayer packed format into bayer planar image
-def rfun_image_file(infile, i_pix_fmt, width, height, logfd, debug):
+def rfun_image_file(
+    infile, i_pix_fmt, width, height, process_using_8bits, logfd, debug
+):
     # check input image resolution
     assert width % 2 == 0, f"error: only accept images with even width {width=}"
     assert height % 2 == 0, f"error: only accept images with even height {height=}"
@@ -888,7 +890,8 @@ def rfun_image_file(infile, i_pix_fmt, width, height, logfd, debug):
     ), f"error: invalid dimensions: {height}x{width}, {i_pix_fmt=}, {expected_size=}, {file_size=}"
 
     # create bayer planar image
-    planar_image = np.zeros((4, height // 2, width // 2), dtype=np.uint16)
+    dtype = np.uint8 if process_using_8bits else np.uint16
+    planar_image = np.zeros((4, height // 2, width // 2), dtype=dtype)
 
     # open infile
     row = 0
@@ -910,8 +913,8 @@ def rfun_image_file(infile, i_pix_fmt, width, height, logfd, debug):
                 # end of input
                 break
             # 3. convert component depth to 16-bit
-            if irdepth < 16:
-               components = list(c << (16 - irdepth) for c in components)
+            if not process_using_8bits and irdepth < 16:
+                components = list(c << (16 - irdepth) for c in components)
             if debug > 1:
                 print(f"debug:  {components=}", file=logfd)
             # 4. convert component order
@@ -932,7 +935,9 @@ def rfun_image_file(infile, i_pix_fmt, width, height, logfd, debug):
 
 
 # write bayer planar format into bayer packed image
-def wfun_image_file(planar_image, outfile, o_pix_fmt, width, height, logfd, debug):
+def wfun_image_file(
+    planar_image, outfile, o_pix_fmt, width, height, process_using_8bits, logfd, debug
+):
     # get format info
     ordepth = OUTPUT_FORMATS[o_pix_fmt]["rdepth"]
     oclen = OUTPUT_FORMATS[o_pix_fmt]["clen"]
@@ -964,8 +969,8 @@ def wfun_image_file(planar_image, outfile, o_pix_fmt, width, height, logfd, debu
                 components.append(component)
                 col += 1
             # 3. convert component depth from 16-bit
-            if ordepth < 16:
-               components = list(c >> (16 - ordepth) for c in components)
+            if not process_using_8bits and ordepth < 16:
+                components = list(c >> (16 - ordepth) for c in components)
             if debug > 1:
                 print(f"debug:  {components=}", file=logfd)
             # 4. write components to the output
