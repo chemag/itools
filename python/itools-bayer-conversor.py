@@ -20,7 +20,7 @@ itools_common = importlib.import_module("itools-common")
 
 __version__ = "0.1"
 
-COLOR_ORDER = ["RGGB", "BGGR", "GRBG", "GBRG", "RGBG", "BGRG"]
+COLOR_ORDER = ["RGgB", "BGgR", "GRBg", "GBRg", "RGBg", "BGRg"]
 
 
 # read/write functions
@@ -193,7 +193,7 @@ BAYER_FORMATS = {
             "SBGGR8",
         ),
         # component order
-        "order": "BGGR",
+        "order": "BGgR",
         # byte length
         "blen": 2,
         # component length
@@ -214,7 +214,7 @@ BAYER_FORMATS = {
             "RGGB",
             "SRGGB8",
         ),
-        "order": "RGGB",
+        "order": "RGgB",
         "blen": 2,
         "clen": 2,
         "cdepth": 8,
@@ -228,7 +228,7 @@ BAYER_FORMATS = {
             "GBRG",
             "SGBRG8",
         ),
-        "order": "GBRG",
+        "order": "GBRg",
         "blen": 2,
         "clen": 2,
         "cdepth": 8,
@@ -242,7 +242,7 @@ BAYER_FORMATS = {
             "GRBG",
             "SGRBG8",
         ),
-        "order": "GRBG",
+        "order": "GRBg",
         "blen": 2,
         "clen": 2,
         "cdepth": 8,
@@ -253,7 +253,7 @@ BAYER_FORMATS = {
     },
     "bayer_rgbg8": {
         # component order
-        "order": "RGBG",
+        "order": "RGBg",
         # byte length
         "blen": 2,
         # component length
@@ -271,7 +271,7 @@ BAYER_FORMATS = {
     },
     "bayer_bgrg8": {
         # component order
-        "order": "BGRG",
+        "order": "BGRg",
         # byte length
         "blen": 2,
         # component length
@@ -297,7 +297,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_10_expanded_to_16,
         "wfun": wfun_10_expanded_to_16,
-        "order": "RGGB",
+        "order": "RGgB",
         "ffmpeg": False,
     },
     "BA10": {
@@ -308,7 +308,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_10_expanded_to_16,
         "wfun": wfun_10_expanded_to_16,
-        "order": "GRBG",
+        "order": "GRBg",
         "ffmpeg": False,
     },
     "GB10": {
@@ -319,7 +319,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_10_expanded_to_16,
         "wfun": wfun_10_expanded_to_16,
-        "order": "GBRG",
+        "order": "GBRg",
         "ffmpeg": False,
     },
     "BG10": {
@@ -330,7 +330,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_10_expanded_to_16,
         "wfun": wfun_10_expanded_to_16,
-        "order": "BGGR",
+        "order": "BGgR",
         "ffmpeg": False,
     },
     # 10-bit Bayer formats (packed)
@@ -342,7 +342,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_10_packed_expanded_to_16,
         "wfun": wfun_10_packed_expanded_to_16,
-        "order": "RGGB",
+        "order": "RGgB",
         "ffmpeg": False,
     },
     "pgAA": {
@@ -353,7 +353,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_10_packed_expanded_to_16,
         "wfun": wfun_10_packed_expanded_to_16,
-        "order": "GRBG",
+        "order": "GRBg",
         "ffmpeg": False,
     },
     "pGAA": {
@@ -364,7 +364,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_10_packed_expanded_to_16,
         "wfun": wfun_10_packed_expanded_to_16,
-        "order": "GBRG",
+        "order": "GBRg",
         "ffmpeg": False,
     },
     "pBAA": {
@@ -375,7 +375,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_10_packed_expanded_to_16,
         "wfun": wfun_10_packed_expanded_to_16,
-        "order": "BGGR",
+        "order": "BGgR",
         "ffmpeg": False,
     },
     # 10-bit Bayer formats compressed to 8 bits using a-law
@@ -387,7 +387,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_10_alaw_expanded_to_16,
         "wfun": wfun_10_alaw_expanded_to_16,
-        "order": "RGGB",
+        "order": "RGgB",
         "ffmpeg": False,
     },
     "aBA8": {
@@ -398,7 +398,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_10_alaw_expanded_to_16,
         "wfun": wfun_10_alaw_expanded_to_16,
-        "order": "BGGR",
+        "order": "BGgR",
         "ffmpeg": False,
     },
     "aGA8": {
@@ -409,7 +409,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_10_alaw_expanded_to_16,
         "wfun": wfun_10_alaw_expanded_to_16,
-        "order": "GBRG",
+        "order": "GBRg",
         "ffmpeg": False,
     },
     "agA8": {
@@ -420,7 +420,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_10_alaw_expanded_to_16,
         "wfun": wfun_10_alaw_expanded_to_16,
-        "order": "GRBG",
+        "order": "GRBg",
         "ffmpeg": False,
     },
     # 10-bit Bayer formats compressed to 8 bits using dpcm
@@ -432,7 +432,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_10_dpcm_expanded_to_16,
         "wfun": wfun_10_dpcm_expanded_to_16,
-        "order": "RGGB",
+        "order": "RGgB",
         "ffmpeg": False,
     },
     "bBA8": {
@@ -443,7 +443,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_10_dpcm_expanded_to_16,
         "wfun": wfun_10_dpcm_expanded_to_16,
-        "order": "BGGR",
+        "order": "BGgR",
         "ffmpeg": False,
     },
     "bGA8": {
@@ -454,7 +454,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_10_dpcm_expanded_to_16,
         "wfun": wfun_10_dpcm_expanded_to_16,
-        "order": "GBRG",
+        "order": "GBRg",
         "ffmpeg": False,
     },
     "BD10": {
@@ -465,7 +465,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_10_dpcm_expanded_to_16,
         "wfun": wfun_10_dpcm_expanded_to_16,
-        "order": "GRBG",
+        "order": "GRBg",
         "ffmpeg": False,
     },
     # 10-bit Bayer formats compressed a la Intel IPU3 driver
@@ -477,7 +477,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_10_ipu3_expanded_to_16,
         "wfun": wfun_10_ipu3_expanded_to_16,
-        "order": "RGGB",
+        "order": "RGgB",
         "ffmpeg": False,
     },
     "ip3b": {
@@ -488,7 +488,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_10_ipu3_expanded_to_16,
         "wfun": wfun_10_ipu3_expanded_to_16,
-        "order": "BGGR",
+        "order": "BGgR",
         "ffmpeg": False,
     },
     "ip3g": {
@@ -499,7 +499,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_10_ipu3_expanded_to_16,
         "wfun": wfun_10_ipu3_expanded_to_16,
-        "order": "GBRG",
+        "order": "GBRg",
         "ffmpeg": False,
     },
     "ip3G": {
@@ -510,7 +510,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_10_ipu3_expanded_to_16,
         "wfun": wfun_10_ipu3_expanded_to_16,
-        "order": "GRBG",
+        "order": "GRBg",
         "ffmpeg": False,
     },
     # 12-bit Bayer formats expanded to 16 bits
@@ -522,7 +522,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_12_expanded_to_16,
         "wfun": wfun_12_expanded_to_16,
-        "order": "RGGB",
+        "order": "RGgB",
         "ffmpeg": False,
     },
     "BA12": {
@@ -533,7 +533,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_12_expanded_to_16,
         "wfun": wfun_12_expanded_to_16,
-        "order": "GRBG",
+        "order": "GRBg",
         "ffmpeg": False,
     },
     "GB12": {
@@ -544,7 +544,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_12_expanded_to_16,
         "wfun": wfun_12_expanded_to_16,
-        "order": "GBRG",
+        "order": "GBRg",
         "ffmpeg": False,
     },
     "BG12": {
@@ -555,7 +555,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_12_expanded_to_16,
         "wfun": wfun_12_expanded_to_16,
-        "order": "BGGR",
+        "order": "BGgR",
         "ffmpeg": False,
     },
     # 12-bit Bayer formats (packed)
@@ -567,7 +567,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_12_packed_expanded_to_16,
         "wfun": wfun_12_packed_expanded_to_16,
-        "order": "RGGB",
+        "order": "RGgB",
         "ffmpeg": False,
     },
     "pgCC": {
@@ -578,7 +578,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_12_packed_expanded_to_16,
         "wfun": wfun_12_packed_expanded_to_16,
-        "order": "GRBG",
+        "order": "GRBg",
         "ffmpeg": False,
     },
     "pGCC": {
@@ -589,7 +589,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_12_packed_expanded_to_16,
         "wfun": wfun_12_packed_expanded_to_16,
-        "order": "GBRG",
+        "order": "GBRg",
         "ffmpeg": False,
     },
     "pBCC": {
@@ -600,7 +600,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_12_packed_expanded_to_16,
         "wfun": wfun_12_packed_expanded_to_16,
-        "order": "BGGR",
+        "order": "BGgR",
         "ffmpeg": False,
     },
     # 14-bit Bayer formats expanded to 16 bits
@@ -612,7 +612,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_14_expanded_to_16,
         "wfun": wfun_14_expanded_to_16,
-        "order": "RGGB",
+        "order": "RGgB",
         "ffmpeg": False,
     },
     "GR14": {
@@ -623,7 +623,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_14_expanded_to_16,
         "wfun": wfun_14_expanded_to_16,
-        "order": "GRBG",
+        "order": "GRBg",
         "ffmpeg": False,
     },
     "GB14": {
@@ -634,7 +634,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_14_expanded_to_16,
         "wfun": wfun_14_expanded_to_16,
-        "order": "GBRG",
+        "order": "GBRg",
         "ffmpeg": False,
     },
     "BG14": {
@@ -645,7 +645,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_14_expanded_to_16,
         "wfun": wfun_14_expanded_to_16,
-        "order": "BGGR",
+        "order": "BGgR",
         "ffmpeg": False,
     },
     # 14-bit Bayer formats (packed)
@@ -657,7 +657,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_14_packed_expanded_to_16,
         "wfun": wfun_14_packed_expanded_to_16,
-        "order": "RGGB",
+        "order": "RGgB",
         "ffmpeg": False,
     },
     "pgEE": {
@@ -668,7 +668,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_14_packed_expanded_to_16,
         "wfun": wfun_14_packed_expanded_to_16,
-        "order": "GRBG",
+        "order": "GRBg",
         "ffmpeg": False,
     },
     "pGEE": {
@@ -679,7 +679,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_14_packed_expanded_to_16,
         "wfun": wfun_14_packed_expanded_to_16,
-        "order": "GBRG",
+        "order": "GBRg",
         "ffmpeg": False,
     },
     "pBEE": {
@@ -690,7 +690,7 @@ BAYER_FORMATS = {
         "rdepth": 16,
         "rfun": rfun_14_packed_expanded_to_16,
         "wfun": wfun_14_packed_expanded_to_16,
-        "order": "BGGR",
+        "order": "BGgR",
         "ffmpeg": False,
     },
     # 16-bit Bayer formats
@@ -700,7 +700,7 @@ BAYER_FORMATS = {
             "BYR2",
             "SBGGR16",
         ),
-        "order": "BGGR",
+        "order": "BGgR",
         "ffmpeg": True,
         "blen": 4,
         "clen": 2,
@@ -710,7 +710,7 @@ BAYER_FORMATS = {
         "wfun": wfun_16le,
     },
     "bayer_rggb16le": {
-        "order": "RGGB",
+        "order": "RGgB",
         "ffmpeg": True,
         "alias": (
             "RG16",
@@ -728,7 +728,7 @@ BAYER_FORMATS = {
             "GB16",
             "SGBRG16",
         ),
-        "order": "GBRG",
+        "order": "GBRg",
         "ffmpeg": True,
         "blen": 4,
         "clen": 2,
@@ -742,7 +742,7 @@ BAYER_FORMATS = {
             "GR16",
             "SGRBG16",
         ),
-        "order": "GRBG",
+        "order": "GRBg",
         "ffmpeg": True,
         "blen": 4,
         "clen": 2,
@@ -752,7 +752,7 @@ BAYER_FORMATS = {
         "wfun": wfun_16le,
     },
     "bayer_bggr16be": {
-        "order": "BGGR",
+        "order": "BGgR",
         "ffmpeg": True,
         "blen": 4,
         "clen": 2,
@@ -762,7 +762,7 @@ BAYER_FORMATS = {
         "wfun": wfun_16be,
     },
     "bayer_rggb16be": {
-        "order": "RGGB",
+        "order": "RGgB",
         "ffmpeg": True,
         "blen": 4,
         "clen": 2,
@@ -772,7 +772,7 @@ BAYER_FORMATS = {
         "wfun": wfun_16be,
     },
     "bayer_gbrg16be": {
-        "order": "GBRG",
+        "order": "GBRg",
         "ffmpeg": True,
         "blen": 4,
         "clen": 2,
@@ -782,7 +782,7 @@ BAYER_FORMATS = {
         "wfun": wfun_16be,
     },
     "bayer_grbg16be": {
-        "order": "GRBG",
+        "order": "GRBg",
         "ffmpeg": True,
         "blen": 4,
         "clen": 2,
@@ -847,8 +847,8 @@ def check_output_pix_fmt(o_pix_fmt):
         raise AssertionError(f"error: unknown output pix_fmt: {o_pix_fmt}")
 
 
-# planar image is gbrp16be
-PLANE_ORDER = list("GBR")
+# internal planar bayer image format is G1G2BR
+PLANE_ORDER = list("GgBR")
 
 
 def get_plane_id(plane_name):
@@ -864,6 +864,10 @@ def get_planes(order, row):
 
 # read bayer packed format into bayer planar image
 def rfun_image_file(infile, i_pix_fmt, width, height, logfd, debug):
+    # check input image resolution
+    assert width % 2 == 0, f"error: only accept images with even width {width=}"
+    assert height % 2 == 0, f"error: only accept images with even height {height=}"
+
     # get format info
     irdepth = INPUT_FORMATS[i_pix_fmt]["rdepth"]
     iclen = INPUT_FORMATS[i_pix_fmt]["clen"]
@@ -883,8 +887,8 @@ def rfun_image_file(infile, i_pix_fmt, width, height, logfd, debug):
         expected_size == file_size
     ), f"error: invalid dimensions: {height}x{width}, {i_pix_fmt=}, {expected_size=}, {file_size=}"
 
-    # create planar image
-    planar_image = np.zeros((3, height, width), dtype=np.uint16)
+    # create bayer planar image
+    planar_image = np.zeros((4, height // 2, width // 2), dtype=np.uint16)
 
     # open infile
     row = 0
@@ -907,51 +911,23 @@ def rfun_image_file(infile, i_pix_fmt, width, height, logfd, debug):
                 break
             # 3. convert component depth to 16-bit
             if irdepth < 16:
-                components = list(c << (16 - irdepth) for c in components)
+               components = list(c << (16 - irdepth) for c in components)
             if debug > 1:
                 print(f"debug:  {components=}", file=logfd)
             # 4. convert component order
-            for component_id, component in enumerate(components):
+            for component in components:
                 plane_id = plane_ids[col % len(plane_ids)]
-                row1 = row
-                row2 = (row1 + 1) if row1 % 2 == 0 else (row1 - 1)
-                col1 = col
-                col2 = (col1 + 1) if col1 % 2 == 0 else (col1 - 1)
+                # get planar row and col
+                prow = row // 2
+                pcol = col // 2
+                planar_image[plane_id][prow][pcol] = component
                 if debug > 1:
-                    print(f"debug: {row1=} {row2=} {col1=} {col2=}", file=logfd)
-                if row % 2 == 0 or plane_id != get_plane_id("G"):
-                    planar_image[plane_id][row1][col1] = component
-                    planar_image[plane_id][row1][col2] = component
-                    planar_image[plane_id][row2][col1] = component
-                    planar_image[plane_id][row2][col2] = component
-                else:  # if row % 2 == 1 and plane_id == get_plane_id("G"):
-                    # TODO(chema) fix the second row in the G component (?)
-                    # When converting an RGGB matrix to non-Bayer components,
-                    # we repeat the R and B components 4x times. Now, for the
-                    # G component, we need to combine 2x different G
-                    # components. We opt for respecting rows, as it allows
-                    # going back and forth between different formats
-                    # losslessly.
-                    # e.g. a (0, 2, 4, 6) RGGB 2x2 matrix will be converted to
-                    # * R = [[0, 0], [0, 0]},
-                    # * R = [[2, 2], [4, 4]},
-                    # * B = [[6, 6], [6, 6]}.
-                    # do not touch value in the previous row
-                    # planar_image[plane_id][row2][col1] = (
-                    #    planar_image[plane_id][row1][col1] + component
-                    # ) // 2
-                    # planar_image[plane_id][row2][col2] = (
-                    #    planar_image[plane_id][row1][col2] + component
-                    # ) // 2
-                    # overwrite main value
-                    planar_image[plane_id][row1][col1] = component
-                    planar_image[plane_id][row1][col2] = component
+                    print(f"debug: {plane_id=} {prow=} {pcol=}", file=logfd)
                 col += 1
-            # 5. update row numbers
+            # 5. update input row numbers
             if col == width:
                 col = 0
                 row += 1
-
     return planar_image
 
 
@@ -979,14 +955,17 @@ def wfun_image_file(planar_image, outfile, o_pix_fmt, width, height, logfd, debu
             components = []
             for component_id in range(oclen):
                 plane_id = plane_ids[col % len(plane_ids)]
+                # get planar row and col
+                prow = row // 2
+                pcol = col // 2
                 if debug > 0:
-                    print(f"debug: {plane_id=} {row=} {col=}", file=logfd)
-                component = planar_image[plane_id][row][col]
+                    print(f"debug: {plane_id=} {prow=} {pcol=}", file=logfd)
+                component = planar_image[plane_id][prow][pcol]
                 components.append(component)
                 col += 1
             # 3. convert component depth from 16-bit
             if ordepth < 16:
-                components = list(c >> (16 - ordepth) for c in components)
+               components = list(c >> (16 - ordepth) for c in components)
             if debug > 1:
                 print(f"debug:  {components=}", file=logfd)
             # 4. write components to the output
@@ -998,8 +977,6 @@ def wfun_image_file(planar_image, outfile, o_pix_fmt, width, height, logfd, debu
             if col == width:
                 col = 0
                 row += 1
-
-    return planar_image
 
 
 def get_options(argv):
@@ -1164,6 +1141,7 @@ def main(argv):
         logfd,
         options.debug,
     )
+
     # write planar into output image file (packed)
     wfun_image_file(
         planar_image,
