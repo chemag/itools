@@ -20,7 +20,7 @@ itools_common = importlib.import_module("itools-common")
 
 __version__ = "0.1"
 
-COLOR_ORDER = ["RGgB", "BGgR", "GRBg", "GBRg", "RGBg", "BGRg", "GgBR", "GgRB"]
+COLOR_COMPONENTS = set("RGgB")
 
 
 # read/write functions
@@ -892,7 +892,7 @@ def get_plane_id(plane_name):
 
 
 def get_planes(order, row):
-    assert order in COLOR_ORDER, f"error: invalid Bayer order {order}"
+    assert set(order) == COLOR_COMPONENTS, f"error: invalid Bayer components {order}"
     plane_names = order[0:2] if row % 2 == 0 else order[2:4]
     plane_ids = list(PLANE_ORDER.index(plane_name) for plane_name in list(plane_names))
     return plane_ids
