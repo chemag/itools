@@ -887,10 +887,6 @@ def check_output_pix_fmt(o_pix_fmt):
 PLANE_ORDER = list("GgBR")
 
 
-def get_plane_id(plane_name):
-    return PLANE_ORDER.index(plane_name)
-
-
 def get_planes(order, row):
     assert set(order) == COLOR_COMPONENTS, f"error: invalid Bayer components {order}"
     plane_names = order[0:2] if row % 2 == 0 else order[2:4]
