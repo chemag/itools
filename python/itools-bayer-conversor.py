@@ -799,17 +799,16 @@ def check_input_pix_fmt(i_pix_fmt):
 def check_output_pix_fmt(o_pix_fmt):
     # convert output pixel format to the canonical name
     if o_pix_fmt in OUTPUT_CANONICAL_LIST:
-        o_pix_fmt = o_pix_fmt
+        return o_pix_fmt
     elif o_pix_fmt in OUTPUT_ALIAS_LIST:
         # find the canonical name
         for canonical, v in OUTPUT_FORMATS.items():
             if o_pix_fmt in v["alias"]:
                 o_pix_fmt = canonical
                 break
+        return o_pix_fmt
     else:
         raise AssertionError(f"error: unknown output pix_fmt: {o_pix_fmt}")
-
-    return o_pix_fmt
 
 
 # planar image is gbrp16be
