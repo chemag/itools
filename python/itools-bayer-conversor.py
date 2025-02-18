@@ -22,8 +22,8 @@ __version__ = "0.1"
 
 COLOR_COMPONENTS = set("RGgB")
 
-# internal planar bayer image format is G1G2BR
-DEFAULT_PLANE_ORDER = list("GgBR")
+# internal planar bayer image format is G1G2RB
+DEFAULT_PLANE_ORDER = list("GgRB")
 
 
 # read/write functions
