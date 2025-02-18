@@ -22,6 +22,9 @@ __version__ = "0.1"
 
 COLOR_COMPONENTS = set("RGgB")
 
+# internal planar bayer image format is G1G2BR
+DEFAULT_PLANE_ORDER = list("GgBR")
+
 
 # read/write functions
 
@@ -883,20 +886,23 @@ def check_output_pix_fmt(o_pix_fmt):
         raise AssertionError(f"error: unknown output pix_fmt: {o_pix_fmt}")
 
 
-# internal planar bayer image format is G1G2BR
-PLANE_ORDER = list("GgBR")
-
-
-def get_planes(order, row):
+def get_planes(order, row, plane_order):
     assert set(order) == COLOR_COMPONENTS, f"error: invalid Bayer components {order}"
     plane_names = order[0:2] if row % 2 == 0 else order[2:4]
-    plane_ids = list(PLANE_ORDER.index(plane_name) for plane_name in list(plane_names))
+    plane_ids = list(plane_order.index(plane_name) for plane_name in list(plane_names))
     return plane_ids
 
 
 # read bayer packed format into bayer planar image
 def rfun_image_file(
-    infile, i_pix_fmt, width, height, process_using_8bits, logfd, debug
+    infile,
+    i_pix_fmt,
+    width,
+    height,
+    process_using_8bits,
+    logfd,
+    debug,
+    plane_order=DEFAULT_PLANE_ORDER,
 ):
     # check input image resolution
     assert width % 2 == 0, f"error: only accept images with even width {width=}"
@@ -933,7 +939,7 @@ def rfun_image_file(
             if debug > 0:
                 print(f"debug: {row=} {col=}", file=logfd)
             # 1. get affected plane IDs
-            plane_ids = get_planes(iorder, row)
+            plane_ids = get_planes(iorder, row, plane_order)
             # 2. read components from the input
             components = ()
             while len(components) < iclen:
@@ -968,7 +974,15 @@ def rfun_image_file(
 
 # write bayer planar format into bayer packed image
 def wfun_image_file(
-    planar_image, outfile, o_pix_fmt, width, height, process_using_8bits, logfd, debug
+    planar_image,
+    outfile,
+    o_pix_fmt,
+    width,
+    height,
+    process_using_8bits,
+    logfd,
+    debug,
+    plane_order=DEFAULT_PLANE_ORDER,
 ):
     # get format info
     ordepth = OUTPUT_FORMATS[o_pix_fmt]["rdepth"]
@@ -987,7 +1001,7 @@ def wfun_image_file(
     with open(outfile, "wb") as fout:
         while row < height:
             # 1. get affected plane IDs
-            plane_ids = get_planes(oorder, row)
+            plane_ids = get_planes(oorder, row, plane_order)
             # 2. get components in order
             components = []
             for component_id in range(oclen):
