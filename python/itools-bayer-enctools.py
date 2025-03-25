@@ -123,7 +123,20 @@ def unclip_minus_255_to_255(arr):
 
 # Malvar Sullivan, "Progressive to Lossless Compression of Color Filter
 # Array Images Using Macropixel Spectral Spatial Transformation", 2012
-def convert_rg1g2b_to_ydgcocg(bayer_r, bayer_g1, bayer_g2, bayer_b):
+def convert_rg1g2b_to_ydgcocg(bayer_image):
+    # 1. separate RGGB components
+    bayer_r = bayer_image[::2, ::2]
+    bayer_g1 = bayer_image[::2, 1::2]
+    bayer_g2 = bayer_image[1::2, ::2]
+    bayer_b = bayer_image[1::2, 1::2]
+    # 2. do the color conversion
+    bayer_y, bayer_dg, bayer_co, bayer_cg = convert_rg1g2b_to_ydgcocg_components(
+        bayer_r, bayer_g1, bayer_g2, bayer_b
+    )
+    return bayer_y, bayer_dg, bayer_co, bayer_cg
+
+
+def convert_rg1g2b_to_ydgcocg_components(bayer_r, bayer_g1, bayer_g2, bayer_b):
     # 1. convert values
     bayer_r = bayer_r.astype(np.int16)
     bayer_g1 = bayer_g1.astype(np.int16)
@@ -153,6 +166,20 @@ def convert_rg1g2b_to_ydgcocg(bayer_r, bayer_g1, bayer_g2, bayer_b):
 
 
 def convert_ydgcocg_to_rg1g2b(bayer_y, bayer_dg, bayer_co, bayer_cg):
+    # 1. do the color conversion
+    bayer_r, bayer_g1, bayer_g2, bayer_b = convert_ydgcocg_to_rg1g2b_components(
+        bayer_y, bayer_dg, bayer_co, bayer_cg
+    )
+    # 2. merge RGGB components
+    bayer_image = np.zeros(list(2 * dim for dim in bayer_r.shape), dtype=bayer_r.dtype)
+    bayer_image[::2, ::2] = bayer_r
+    bayer_image[::2, 1::2] = bayer_g1
+    bayer_image[1::2, ::2] = bayer_g2
+    bayer_image[1::2, 1::2] = bayer_b
+    return bayer_image
+
+
+def convert_ydgcocg_to_rg1g2b_components(bayer_y, bayer_dg, bayer_co, bayer_cg):
     # 1. unclip matrices from uint8
     bayer_y = unclip_0_to_255(bayer_y)
     bayer_dg = unclip_minus_255_to_255(bayer_dg)
@@ -182,6 +209,19 @@ def convert_ydgcocg_to_rg1g2b(bayer_y, bayer_dg, bayer_co, bayer_cg):
     return bayer_r, bayer_g1, bayer_g2, bayer_b
 
 
+def read_bayer_image(infile, width, height):
+    # read the input file
+    with open(infile, "rb") as fin:
+        raw_contents = fin.read()
+    assert width * height == len(
+        raw_contents
+    ), f"Image {infile} has size {len(raw_contents)} != {width * height} ({width=} * {height=})"
+    # reshape the array as an MxN binary array
+    binary_list = [int(byte) for byte in raw_contents]
+    bayer_image = np.array(binary_list, dtype=np.uint8).reshape(width, height)
+    return bayer_image
+
+
 # Bayer processing stack
 def process_file_bayer(
     infile,
@@ -192,39 +232,41 @@ def process_file_bayer(
     cleanup,
     debug,
 ):
+    bayer_image = read_bayer_image(infile, width, height)
+    return process_file_bayer_array(
+        bayer_image,
+        infile,
+        quality_list,
+        workdir,
+        cleanup,
+        debug,
+    )
+
+
+def process_file_bayer_array(
+    bayer_image,
+    infile,
+    quality_list,
+    workdir,
+    cleanup,
+    debug,
+):
     df = pd.DataFrame(columns=COLUMN_LIST)
+    width, height = bayer_image.shape
 
-    # 1. read the input file
-    with open(infile, "rb") as fin:
-        raw_contents = fin.read()
-    assert width * height == len(
-        raw_contents
-    ), f"Image {infile} has size {len(raw_contents)} != {width * height} ({width=} * {height=})"
-    # reshape the array as an MxN binary array
-    binary_list = [int(byte) for byte in raw_contents]
-    bayer_image = np.array(binary_list, dtype=np.uint8).reshape(width, height)
-
-    # 2. demosaic raw image to RGB
+    # 1. demosaic raw image to RGB
     rgb_image = cv2.cvtColor(bayer_image, cv2.COLOR_BAYER_BG2RGB)
     rgb_r, rgb_g, rgb_b = cv2.split(rgb_image)
 
-    # 3. convert RGB to YUV
+    # 2. convert RGB to YUV
     yuv_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2YUV)
     yuv_y, yuv_u, yuv_v = cv2.split(yuv_image)
 
-    # 4. demosaic Bayer image to YDgCoCg
-    # separate RGGB components
-    bayer_r = bayer_image[::2, ::2]
-    bayer_g1 = bayer_image[::2, 1::2]
-    bayer_g2 = bayer_image[1::2, ::2]
-    bayer_b = bayer_image[1::2, 1::2]
-    # do the color conversion
-    bayer_y, bayer_dg, bayer_co, bayer_cg = convert_rg1g2b_to_ydgcocg(
-        bayer_r, bayer_g1, bayer_g2, bayer_b
-    )
+    # 3. demosaic Bayer image to YDgCoCg
+    bayer_y, bayer_dg, bayer_co, bayer_cg = convert_rg1g2b_to_ydgcocg(bayer_image)
 
     for quality in quality_list:
-        # 5. encode the 4 planes
+        # 4. encode the 4 planes
         success, bayer_y_encoded = cv2.imencode(
             ".jpg", bayer_y, [cv2.IMWRITE_JPEG_QUALITY, quality]
         )
@@ -238,35 +280,26 @@ def process_file_bayer(
             ".jpg", bayer_cg, [cv2.IMWRITE_JPEG_QUALITY, quality]
         )
 
-        # 6. decode the jpeg images
+        # 5. decode the jpeg images
         bayer_y_prime = cv2.imdecode(bayer_y_encoded, cv2.IMREAD_GRAYSCALE)
         bayer_dg_prime = cv2.imdecode(bayer_dg_encoded, cv2.IMREAD_GRAYSCALE)
         bayer_co_prime = cv2.imdecode(bayer_co_encoded, cv2.IMREAD_GRAYSCALE)
         bayer_cg_prime = cv2.imdecode(bayer_cg_encoded, cv2.IMREAD_GRAYSCALE)
 
-        # 7. convert YDgCoCg image back to Bayer
-        bayer_r_prime, bayer_g1_prime, bayer_g2_prime, bayer_b_prime = (
-            convert_ydgcocg_to_rg1g2b(
-                bayer_y_prime, bayer_dg_prime, bayer_co_prime, bayer_cg_prime
-            )
+        # 6. convert YDgCoCg image back to Bayer
+        bayer_image_prime = convert_ydgcocg_to_rg1g2b(
+            bayer_y_prime, bayer_dg_prime, bayer_co_prime, bayer_cg_prime
         )
-        bayer_image_prime = np.zeros(
-            list(2 * dim for dim in bayer_r.shape), dtype=bayer_r.dtype
-        )
-        bayer_image_prime[::2, ::2] = bayer_r_prime
-        bayer_image_prime[::2, 1::2] = bayer_g1_prime
-        bayer_image_prime[1::2, ::2] = bayer_g2_prime
-        bayer_image_prime[1::2, 1::2] = bayer_b_prime
 
-        # 8. demosaic raw image to RGB
+        # 7. demosaic raw image to RGB
         rgb_image_prime = cv2.cvtColor(bayer_image_prime, cv2.COLOR_BAYER_BG2RGB)
         rgb_r_prime, rgb_g_prime, rgb_b_prime = cv2.split(rgb_image_prime)
 
-        # 9. convert RGB to YUV
+        # 8. convert RGB to YUV
         yuv_image_prime = cv2.cvtColor(rgb_image_prime, cv2.COLOR_RGB2YUV)
         yuv_y_prime, yuv_u_prime, yuv_v_prime = cv2.split(yuv_image_prime)
 
-        # 10. calculate results
+        # 9. calculate results
         # sizes
         encoded_size_bayer_y = len(bayer_y_encoded)
         encoded_size_bayer_dg = len(bayer_dg_encoded)
@@ -331,28 +364,38 @@ def process_file_yuv(
     cleanup,
     debug,
 ):
+    bayer_image = read_bayer_image(infile, width, height)
+    return process_file_yuv_array(
+        bayer_image,
+        infile,
+        quality_list,
+        workdir,
+        cleanup,
+        debug,
+    )
+
+
+def process_file_yuv_array(
+    bayer_image,
+    infile,
+    quality_list,
+    workdir,
+    cleanup,
+    debug,
+):
     df = pd.DataFrame(columns=COLUMN_LIST)
+    width, height = bayer_image.shape
 
-    # 1. read the input file
-    with open(infile, "rb") as fin:
-        raw_contents = fin.read()
-    assert width * height == len(
-        raw_contents
-    ), f"Image {infile} has size {len(raw_contents)} != {width * height} ({width=} * {height=})"
-    # reshape the array as an MxN binary array
-    binary_list = [int(byte) for byte in raw_contents]
-    bayer_image = np.array(binary_list, dtype=np.uint8).reshape(width, height)
-
-    # 2. demosaic raw image to RGB
+    # 1. demosaic raw image to RGB
     rgb_image = cv2.cvtColor(bayer_image, cv2.COLOR_BAYER_BG2RGB)
     rgb_r, rgb_g, rgb_b = cv2.split(rgb_image)
 
-    # 3. convert RGB to YUV
+    # 2. convert RGB to YUV
     yuv_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2YUV)
     yuv_y, yuv_u, yuv_v = cv2.split(yuv_image)
 
     for quality in quality_list:
-        # 4. encode the 3 planes
+        # 3. encode the 3 planes
         success, yuv_y_encoded = cv2.imencode(
             ".jpg", yuv_y, [cv2.IMWRITE_JPEG_QUALITY, quality]
         )
@@ -363,20 +406,20 @@ def process_file_yuv(
             ".jpg", yuv_v, [cv2.IMWRITE_JPEG_QUALITY, quality]
         )
 
-        # 5. decode the jpeg images
+        # 4. decode the jpeg images
         yuv_y_prime = cv2.imdecode(yuv_y_encoded, cv2.IMREAD_GRAYSCALE)
         yuv_u_prime = cv2.imdecode(yuv_u_encoded, cv2.IMREAD_GRAYSCALE)
         yuv_v_prime = cv2.imdecode(yuv_v_encoded, cv2.IMREAD_GRAYSCALE)
         yuv_image_prime = cv2.merge([yuv_y_prime, yuv_u_prime, yuv_v_prime])
 
-        # 6. convert YUV image back to RGB
+        # 5. convert YUV image back to RGB
         rgb_image_prime = cv2.cvtColor(yuv_image_prime, cv2.COLOR_YUV2RGB)
         rgb_b_prime, rgb_g_prime, rgb_r_prime = cv2.split(rgb_image_prime)
 
-        # 7. remosaic RGB image back to raw
+        # 6. remosaic RGB image back to raw
         bayer_image_prime = remosaic_rgb_image(rgb_image_prime)
 
-        # 8. calculate results
+        # 7. calculate results
         # sizes
         encoded_size_yuv_y = len(yuv_y_encoded)
         encoded_size_yuv_u = len(yuv_u_encoded)
@@ -430,28 +473,38 @@ def process_file_rgb(
     cleanup,
     debug,
 ):
+    bayer_image = read_bayer_image(infile, width, height)
+    return process_file_rgb_array(
+        bayer_image,
+        infile,
+        quality_list,
+        workdir,
+        cleanup,
+        debug,
+    )
+
+
+def process_file_rgb_array(
+    bayer_image,
+    infile,
+    quality_list,
+    workdir,
+    cleanup,
+    debug,
+):
     df = pd.DataFrame(columns=COLUMN_LIST)
+    width, height = bayer_image.shape
 
-    # 1. read the input file
-    with open(infile, "rb") as fin:
-        raw_contents = fin.read()
-    assert width * height == len(
-        raw_contents
-    ), f"Image {infile} has size {len(raw_contents)} != {width * height} ({width=} * {height=})"
-    # reshape the array as an MxN binary array
-    binary_list = [int(byte) for byte in raw_contents]
-    bayer_image = np.array(binary_list, dtype=np.uint8).reshape(width, height)
-
-    # 2. demosaic raw image to RGB
+    # 1. demosaic raw image to RGB
     rgb_image = cv2.cvtColor(bayer_image, cv2.COLOR_BAYER_BG2RGB)
     rgb_r, rgb_g, rgb_b = cv2.split(rgb_image)
 
-    # 3. convert RGB to YUV
+    # 2. convert RGB to YUV
     yuv_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2YUV)
     yuv_y, yuv_u, yuv_v = cv2.split(yuv_image)
 
     for quality in quality_list:
-        # 4. encode the 3 planes
+        # 3. encode the 3 planes
         success, rgb_r_encoded = cv2.imencode(
             ".jpg", rgb_r, [cv2.IMWRITE_JPEG_QUALITY, quality]
         )
@@ -462,20 +515,20 @@ def process_file_rgb(
             ".jpg", rgb_b, [cv2.IMWRITE_JPEG_QUALITY, quality]
         )
 
-        # 5. decode the jpeg images
+        # 4. decode the jpeg images
         rgb_r_prime = cv2.imdecode(rgb_r_encoded, cv2.IMREAD_GRAYSCALE)
         rgb_g_prime = cv2.imdecode(rgb_g_encoded, cv2.IMREAD_GRAYSCALE)
         rgb_b_prime = cv2.imdecode(rgb_b_encoded, cv2.IMREAD_GRAYSCALE)
         rgb_image_prime = cv2.merge([rgb_r_prime, rgb_g_prime, rgb_b_prime])
 
-        # 6. convert RGB to YUV
+        # 5. convert RGB to YUV
         yuv_image_prime = cv2.cvtColor(rgb_image_prime, cv2.COLOR_RGB2YUV)
         yuv_y_prime, yuv_u_prime, yuv_v_prime = cv2.split(yuv_image_prime)
 
-        # 7. remosaic RGB image back to raw
+        # 6. remosaic RGB image back to raw
         bayer_image_prime = remosaic_rgb_image(rgb_image_prime)
 
-        # 8. calculate results
+        # 7. calculate results
         # sizes
         encoded_size_rgb_r = len(rgb_r_encoded)
         encoded_size_rgb_g = len(rgb_g_encoded)
