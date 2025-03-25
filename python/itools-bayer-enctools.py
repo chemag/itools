@@ -420,6 +420,105 @@ def process_file_yuv(
     return df
 
 
+# RGB camera stack
+def process_file_rgb(
+    infile,
+    width,
+    height,
+    quality_list,
+    workdir,
+    cleanup,
+    debug,
+):
+    df = pd.DataFrame(columns=COLUMN_LIST)
+
+    # 1. read the input file
+    with open(infile, "rb") as fin:
+        raw_contents = fin.read()
+    assert width * height == len(
+        raw_contents
+    ), f"Image {infile} has size {len(raw_contents)} != {width * height} ({width=} * {height=})"
+    # reshape the array as an MxN binary array
+    binary_list = [int(byte) for byte in raw_contents]
+    bayer_image = np.array(binary_list, dtype=np.uint8).reshape(width, height)
+
+    # 2. demosaic raw image to RGB
+    rgb_image = cv2.cvtColor(bayer_image, cv2.COLOR_BAYER_BG2RGB)
+    rgb_r, rgb_g, rgb_b = cv2.split(rgb_image)
+
+    # 3. convert RGB to YUV
+    yuv_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2YUV)
+    yuv_y, yuv_u, yuv_v = cv2.split(yuv_image)
+
+    for quality in quality_list:
+        # 4. encode the 3 planes
+        success, rgb_r_encoded = cv2.imencode(
+            ".jpg", rgb_r, [cv2.IMWRITE_JPEG_QUALITY, quality]
+        )
+        success, rgb_g_encoded = cv2.imencode(
+            ".jpg", rgb_g, [cv2.IMWRITE_JPEG_QUALITY, quality]
+        )
+        success, rgb_b_encoded = cv2.imencode(
+            ".jpg", rgb_b, [cv2.IMWRITE_JPEG_QUALITY, quality]
+        )
+
+        # 5. decode the jpeg images
+        rgb_r_prime = cv2.imdecode(rgb_r_encoded, cv2.IMREAD_GRAYSCALE)
+        rgb_g_prime = cv2.imdecode(rgb_g_encoded, cv2.IMREAD_GRAYSCALE)
+        rgb_b_prime = cv2.imdecode(rgb_b_encoded, cv2.IMREAD_GRAYSCALE)
+        rgb_image_prime = cv2.merge([rgb_r_prime, rgb_g_prime, rgb_b_prime])
+
+        # 6. convert RGB to YUV
+        yuv_image_prime = cv2.cvtColor(rgb_image_prime, cv2.COLOR_RGB2YUV)
+        yuv_y_prime, yuv_u_prime, yuv_v_prime = cv2.split(yuv_image_prime)
+
+        # 7. remosaic RGB image back to raw
+        bayer_image_prime = remosaic_rgb_image(rgb_image_prime)
+
+        # 8. calculate results
+        # sizes
+        encoded_size_rgb_r = len(rgb_r_encoded)
+        encoded_size_rgb_g = len(rgb_g_encoded)
+        encoded_size_rgb_b = len(rgb_b_encoded)
+        encoded_size_list = [encoded_size_rgb_r, encoded_size_rgb_g, encoded_size_rgb_b]
+        encoded_size = sum(encoded_size_list)
+        encoder_bpp = (encoded_size * 8.0) / (width * height)
+        # psnr values: YUV
+        psnr_yuv_y = calculate_psnr(yuv_y, yuv_y_prime)
+        psnr_yuv_u = calculate_psnr(yuv_u, yuv_u_prime)
+        psnr_yuv_v = calculate_psnr(yuv_v, yuv_v_prime)
+        psnr_yuv = np.mean([psnr_yuv_y, psnr_yuv_u, psnr_yuv_v])
+        # psnr values: RGB
+        psnr_rgb_r = calculate_psnr(rgb_r, rgb_r_prime)
+        psnr_rgb_g = calculate_psnr(rgb_g, rgb_g_prime)
+        psnr_rgb_b = calculate_psnr(rgb_b, rgb_b_prime)
+        psnr_rgb = np.mean([psnr_rgb_r, psnr_rgb_g, psnr_rgb_b])
+        # psnr values: Bayer
+        psnr_bayer = calculate_psnr(bayer_image, bayer_image_prime)
+        # add new element
+        df.loc[df.size] = (
+            infile,
+            width,
+            height,
+            "rgb",
+            quality,
+            encoded_size,
+            ":".join(str(size) for size in encoded_size_list),
+            encoder_bpp,
+            psnr_bayer,
+            psnr_rgb,
+            psnr_rgb_r,
+            psnr_rgb_g,
+            psnr_rgb_b,
+            psnr_yuv,
+            psnr_yuv_y,
+            psnr_yuv_u,
+            psnr_yuv_v,
+        )
+
+    return df
+
+
 def get_average_results(df):
     # import the results
     new_df = pd.DataFrame(columns=list(df.columns.values))
@@ -484,6 +583,11 @@ def process_data(
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
         # 2.2. run the traditional-encoding pipeline
         tmp_df = process_file_yuv(
+            infile, width, height, quality_list, workdir, cleanup, debug
+        )
+        df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
+        # 2.3. run the RGB-encoding pipeline
+        tmp_df = process_file_rgb(
             infile, width, height, quality_list, workdir, cleanup, debug
         )
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
