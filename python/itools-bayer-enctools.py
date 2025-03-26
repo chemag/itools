@@ -451,6 +451,120 @@ def process_file_yuv_array(
     return df
 
 
+def process_file_yuv420(
+    infile,
+    width,
+    height,
+    quality_list,
+    debug,
+):
+    bayer_image = read_bayer_image(infile, width, height)
+    return process_file_yuv420_array(
+        bayer_image,
+        infile,
+        quality_list,
+        debug,
+    )
+
+
+def process_file_yuv420_array(
+    bayer_image,
+    infile,
+    quality_list,
+    debug,
+):
+    df = pd.DataFrame(columns=COLUMN_LIST)
+    width, height = bayer_image.shape
+
+    # 1. demosaic raw image to RGB
+    rgb_image = cv2.cvtColor(bayer_image, cv2.COLOR_BAYER_BG2RGB)
+    rgb_r, rgb_g, rgb_b = cv2.split(rgb_image)
+
+    # 2. convert RGB to YUV
+    yuv_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2YUV)
+    yuv_y, yuv_u, yuv_v = cv2.split(yuv_image)
+
+    for quality in quality_list:
+        # 3. encode the 3 planes
+        # subsample the chromas
+        yuv_u_subsampled = yuv_u[::2, ::2]
+        yuv_v_subsampled = yuv_v[::2, ::2]
+        # encode the 3 planes
+        success, yuv_y_encoded = cv2.imencode(
+            ".jpg", yuv_y, [cv2.IMWRITE_JPEG_QUALITY, quality]
+        )
+        success, yuv_u_subsampled_encoded = cv2.imencode(
+            ".jpg", yuv_u_subsampled, [cv2.IMWRITE_JPEG_QUALITY, quality]
+        )
+        success, yuv_v_subsampled_encoded = cv2.imencode(
+            ".jpg", yuv_v_subsampled, [cv2.IMWRITE_JPEG_QUALITY, quality]
+        )
+
+        # 4. decode the jpeg images
+        # decode the 3 planes
+        yuv_y_prime = cv2.imdecode(yuv_y_encoded, cv2.IMREAD_GRAYSCALE)
+        yuv_u_subsampled_prime = cv2.imdecode(
+            yuv_u_subsampled_encoded, cv2.IMREAD_GRAYSCALE
+        )
+        yuv_v_subsampled_prime = cv2.imdecode(
+            yuv_v_subsampled_encoded, cv2.IMREAD_GRAYSCALE
+        )
+        # upsample the chromas
+        yuv_u_prime = np.repeat(np.repeat(yuv_u_subsampled_prime, 2, axis=0), 2, axis=1)
+        yuv_v_prime = np.repeat(np.repeat(yuv_v_subsampled_prime, 2, axis=0), 2, axis=1)
+        yuv_image_prime = cv2.merge([yuv_y_prime, yuv_u_prime, yuv_v_prime])
+
+        # 5. convert YUV image back to RGB
+        rgb_image_prime = cv2.cvtColor(yuv_image_prime, cv2.COLOR_YUV2RGB)
+        rgb_b_prime, rgb_g_prime, rgb_r_prime = cv2.split(rgb_image_prime)
+
+        # 6. remosaic RGB image back to raw
+        bayer_image_prime = remosaic_rgb_image(rgb_image_prime)
+
+        # 7. calculate results
+        # sizes
+        encoded_size_yuv_y = len(yuv_y_encoded)
+        encoded_size_yuv_u = len(yuv_u_subsampled_encoded)
+        encoded_size_yuv_v = len(yuv_v_subsampled_encoded)
+        encoded_size_list = [encoded_size_yuv_y, encoded_size_yuv_u, encoded_size_yuv_v]
+        encoded_size = sum(encoded_size_list)
+        encoder_bpp = (encoded_size * 8.0) / (width * height)
+        # psnr values: YUV
+        psnr_yuv_y = calculate_psnr(yuv_y, yuv_y_prime)
+        psnr_yuv_u = calculate_psnr(yuv_u, yuv_u_prime)
+        psnr_yuv_v = calculate_psnr(yuv_v, yuv_v_prime)
+        psnr_yuv = np.mean([psnr_yuv_y, psnr_yuv_u, psnr_yuv_v])
+        # psnr values: RGB
+        psnr_rgb_r = calculate_psnr(rgb_r, rgb_r_prime)
+        psnr_rgb_g = calculate_psnr(rgb_g, rgb_g_prime)
+        psnr_rgb_b = calculate_psnr(rgb_b, rgb_b_prime)
+        psnr_rgb = np.mean([psnr_rgb_r, psnr_rgb_g, psnr_rgb_b])
+        # psnr values: Bayer
+        psnr_bayer = calculate_psnr(bayer_image, bayer_image_prime)
+        # add new element
+        df.loc[df.size] = (
+            infile,
+            width,
+            height,
+            "yuv420",
+            quality,
+            encoded_size,
+            ":".join(str(size) for size in encoded_size_list),
+            encoder_bpp,
+            psnr_bayer,
+            psnr_rgb,
+            psnr_rgb_r,
+            psnr_rgb_g,
+            psnr_rgb_b,
+            psnr_yuv,
+            psnr_yuv_y,
+            psnr_yuv_u,
+            psnr_yuv_v,
+        )
+
+    return df
+
+
 # RGB camera stack
 def process_file_rgb(
     infile,
@@ -614,11 +728,14 @@ def process_data(
         # 2.1. run the Bayer-encoding pipeline
         tmp_df = process_file_bayer(infile, width, height, quality_list, debug)
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
-        # 2.2. run the traditional-encoding pipeline
+        # 2.2. run the YUV-encoding pipeline
         tmp_df = process_file_yuv(infile, width, height, quality_list, debug)
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
         # 2.3. run the RGB-encoding pipeline
         tmp_df = process_file_rgb(infile, width, height, quality_list, debug)
+        df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
+        # 2.4. run the traditional YUV-encoding pipeline (4:2:0)
+        tmp_df = process_file_yuv420(infile, width, height, quality_list, debug)
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
 
     # 3. reindex per-file dataframe
