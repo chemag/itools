@@ -228,8 +228,6 @@ def process_file_bayer(
     width,
     height,
     quality_list,
-    workdir,
-    cleanup,
     debug,
 ):
     bayer_image = read_bayer_image(infile, width, height)
@@ -237,8 +235,6 @@ def process_file_bayer(
         bayer_image,
         infile,
         quality_list,
-        workdir,
-        cleanup,
         debug,
     )
 
@@ -247,8 +243,6 @@ def process_file_bayer_array(
     bayer_image,
     infile,
     quality_list,
-    workdir,
-    cleanup,
     debug,
 ):
     df = pd.DataFrame(columns=COLUMN_LIST)
@@ -360,8 +354,6 @@ def process_file_yuv(
     width,
     height,
     quality_list,
-    workdir,
-    cleanup,
     debug,
 ):
     bayer_image = read_bayer_image(infile, width, height)
@@ -369,8 +361,6 @@ def process_file_yuv(
         bayer_image,
         infile,
         quality_list,
-        workdir,
-        cleanup,
         debug,
     )
 
@@ -379,8 +369,6 @@ def process_file_yuv_array(
     bayer_image,
     infile,
     quality_list,
-    workdir,
-    cleanup,
     debug,
 ):
     df = pd.DataFrame(columns=COLUMN_LIST)
@@ -469,8 +457,6 @@ def process_file_rgb(
     width,
     height,
     quality_list,
-    workdir,
-    cleanup,
     debug,
 ):
     bayer_image = read_bayer_image(infile, width, height)
@@ -478,8 +464,6 @@ def process_file_rgb(
         bayer_image,
         infile,
         quality_list,
-        workdir,
-        cleanup,
         debug,
     )
 
@@ -488,8 +472,6 @@ def process_file_rgb_array(
     bayer_image,
     infile,
     quality_list,
-    workdir,
-    cleanup,
     debug,
 ):
     df = pd.DataFrame(columns=COLUMN_LIST)
@@ -630,19 +612,13 @@ def process_data(
     # 2. run the camera pipelines
     for infile in infile_list:
         # 2.1. run the Bayer-encoding pipeline
-        tmp_df = process_file_bayer(
-            infile, width, height, quality_list, workdir, cleanup, debug
-        )
+        tmp_df = process_file_bayer(infile, width, height, quality_list, debug)
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
         # 2.2. run the traditional-encoding pipeline
-        tmp_df = process_file_yuv(
-            infile, width, height, quality_list, workdir, cleanup, debug
-        )
+        tmp_df = process_file_yuv(infile, width, height, quality_list, debug)
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
         # 2.3. run the RGB-encoding pipeline
-        tmp_df = process_file_rgb(
-            infile, width, height, quality_list, workdir, cleanup, debug
-        )
+        tmp_df = process_file_rgb(infile, width, height, quality_list, debug)
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
 
     # 3. reindex per-file dataframe
