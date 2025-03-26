@@ -352,6 +352,143 @@ def process_file_bayer_array(
     return df
 
 
+# Bayer processing stack
+def process_file_bayer420(
+    infile,
+    width,
+    height,
+    quality_list,
+    debug,
+):
+    bayer_image = read_bayer_image(infile, width, height)
+    return process_file_bayer420_array(
+        bayer_image,
+        infile,
+        quality_list,
+        debug,
+    )
+
+
+def process_file_bayer420_array(
+    bayer_image,
+    infile,
+    quality_list,
+    debug,
+):
+    df = pd.DataFrame(columns=COLUMN_LIST)
+    width, height = bayer_image.shape
+
+    # 1. demosaic raw image to RGB
+    rgb_image = cv2.cvtColor(bayer_image, cv2.COLOR_BAYER_BG2RGB)
+    rgb_r, rgb_g, rgb_b = cv2.split(rgb_image)
+
+    # 2. convert RGB to YUV
+    yuv_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2YUV)
+    yuv_y, yuv_u, yuv_v = cv2.split(yuv_image)
+
+    # 3. demosaic Bayer image to YDgCoCg
+    bayer_y, bayer_dg, bayer_co, bayer_cg = convert_rg1g2b_to_ydgcocg(bayer_image)
+
+    for quality in quality_list:
+        # 4. encode the 4 planes
+        # subsample the chromas
+        bayer_co_subsampled = bayer_co[::2, ::2]
+        bayer_cg_subsampled = bayer_cg[::2, ::2]
+        # encode the 4 planes
+        success, bayer_y_encoded = cv2.imencode(
+            ".jpg", bayer_y, [cv2.IMWRITE_JPEG_QUALITY, quality]
+        )
+        success, bayer_dg_encoded = cv2.imencode(
+            ".jpg", bayer_dg, [cv2.IMWRITE_JPEG_QUALITY, quality]
+        )
+        success, bayer_co_subsampled_encoded = cv2.imencode(
+            ".jpg", bayer_co_subsampled, [cv2.IMWRITE_JPEG_QUALITY, quality]
+        )
+        success, bayer_cg_subsampled_encoded = cv2.imencode(
+            ".jpg", bayer_cg_subsampled, [cv2.IMWRITE_JPEG_QUALITY, quality]
+        )
+
+        # 5. decode the jpeg images
+        bayer_y_prime = cv2.imdecode(bayer_y_encoded, cv2.IMREAD_GRAYSCALE)
+        bayer_dg_prime = cv2.imdecode(bayer_dg_encoded, cv2.IMREAD_GRAYSCALE)
+        bayer_co_subsampled_prime = cv2.imdecode(
+            bayer_co_subsampled_encoded, cv2.IMREAD_GRAYSCALE
+        )
+        bayer_cg_subsampled_prime = cv2.imdecode(
+            bayer_cg_subsampled_encoded, cv2.IMREAD_GRAYSCALE
+        )
+        # upsample the chromas
+        bayer_co_prime = upsample_matrix(bayer_co_subsampled_prime)
+        bayer_cg_prime = upsample_matrix(bayer_cg_subsampled_prime)
+
+        # 6. convert YDgCoCg image back to Bayer
+        bayer_image_prime = convert_ydgcocg_to_rg1g2b(
+            bayer_y_prime, bayer_dg_prime, bayer_co_prime, bayer_cg_prime
+        )
+
+        # 7. demosaic raw image to RGB
+        rgb_image_prime = cv2.cvtColor(bayer_image_prime, cv2.COLOR_BAYER_BG2RGB)
+        rgb_r_prime, rgb_g_prime, rgb_b_prime = cv2.split(rgb_image_prime)
+
+        # 8. convert RGB to YUV
+        yuv_image_prime = cv2.cvtColor(rgb_image_prime, cv2.COLOR_RGB2YUV)
+        yuv_y_prime, yuv_u_prime, yuv_v_prime = cv2.split(yuv_image_prime)
+
+        # 9. calculate results
+        # sizes
+        encoded_size_bayer_y = len(bayer_y_encoded)
+        encoded_size_bayer_dg = len(bayer_dg_encoded)
+        encoded_size_bayer_co_subsampled = len(bayer_co_subsampled_encoded)
+        encoded_size_bayer_cg_subsampled = len(bayer_cg_subsampled_encoded)
+        encoded_size_list = [
+            encoded_size_bayer_y,
+            encoded_size_bayer_dg,
+            encoded_size_bayer_co_subsampled,
+            encoded_size_bayer_cg_subsampled,
+        ]
+        encoded_size = sum(encoded_size_list)
+        encoder_bpp = (encoded_size * 8.0) / (width * height)
+        # psnr values
+        # psnr values: YUV
+        psnr_yuv_y = calculate_psnr(yuv_y, yuv_y_prime)
+        psnr_yuv_u = calculate_psnr(yuv_u, yuv_u_prime)
+        psnr_yuv_v = calculate_psnr(yuv_v, yuv_v_prime)
+        psnr_yuv = np.mean([psnr_yuv_y, psnr_yuv_u, psnr_yuv_v])
+        # psnr values: RGB
+        psnr_rgb_r = calculate_psnr(rgb_r, rgb_r_prime)
+        psnr_rgb_g = calculate_psnr(rgb_g, rgb_g_prime)
+        psnr_rgb_b = calculate_psnr(rgb_b, rgb_b_prime)
+        psnr_rgb = np.mean([psnr_rgb_r, psnr_rgb_g, psnr_rgb_b])
+        # psnr values: Bayer
+        psnr_bayer = calculate_psnr(bayer_image, bayer_image_prime)
+        # psnr_bayer_y = calculate_psnr(bayer_y, bayer_y_prime)
+        # psnr_bayer_dg = calculate_psnr(bayer_dg, bayer_dg_prime)
+        # psnr_bayer_co = calculate_psnr(bayer_co, bayer_co_prime)
+        # psnr_bayer_cg = calculate_psnr(bayer_cg, bayer_cg_prime)
+        # add new element
+        df.loc[df.size] = (
+            infile,
+            width,
+            height,
+            "bayer420",
+            quality,
+            encoded_size,
+            ":".join(str(size) for size in encoded_size_list),
+            encoder_bpp,
+            psnr_bayer,
+            psnr_rgb,
+            psnr_rgb_r,
+            psnr_rgb_g,
+            psnr_rgb_b,
+            psnr_yuv,
+            psnr_yuv_y,
+            psnr_yuv_u,
+            psnr_yuv_v,
+        )
+
+    return df
+
+
 # Bayer processing stack (single encoding)
 def process_file_bayer_single(
     infile,
@@ -839,6 +976,9 @@ def process_data(
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
         # 2.5. run the Bayer-single-encoding pipeline
         tmp_df = process_file_bayer_single(infile, width, height, quality_list, debug)
+        df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
+        # 2.6. run the Bayer-subsampled-encoding pipeline
+        tmp_df = process_file_bayer420(infile, width, height, quality_list, debug)
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
 
     # 3. reindex per-file dataframe
