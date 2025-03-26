@@ -97,7 +97,7 @@ def clip_0_to_255(arr, check=True):
     if check and np.any((arr < 0) | (arr > 255)):
         raise ValueError("Array contains values outside the uint8 range")
     # round values to the closest integer and convert to uint8
-    return np.round(arr).astype(np.uint8)
+    return np.clip(np.round(arr), 0, 255).astype(np.uint8)
 
 
 def round_to_uint8(arr):
