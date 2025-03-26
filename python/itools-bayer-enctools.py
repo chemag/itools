@@ -91,6 +91,10 @@ def remosaic_rgb_image(rgb_image):
     return bayer_image
 
 
+def upsample_matrix(arr):
+    return np.repeat(np.repeat(arr, 2, axis=0), 2, axis=1)
+
+
 # matrix clippers
 def clip_0_to_255(arr, check=True):
     # check for values outside the uint8 range
@@ -606,8 +610,8 @@ def process_file_yuv420_array(
             yuv_v_subsampled_encoded, cv2.IMREAD_GRAYSCALE
         )
         # upsample the chromas
-        yuv_u_prime = np.repeat(np.repeat(yuv_u_subsampled_prime, 2, axis=0), 2, axis=1)
-        yuv_v_prime = np.repeat(np.repeat(yuv_v_subsampled_prime, 2, axis=0), 2, axis=1)
+        yuv_u_prime = upsample_matrix(yuv_u_subsampled_prime)
+        yuv_v_prime = upsample_matrix(yuv_u_subsampled_prime)
         yuv_image_prime = cv2.merge([yuv_y_prime, yuv_u_prime, yuv_v_prime])
 
         # 5. convert YUV image back to RGB
