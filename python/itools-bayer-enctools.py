@@ -91,8 +91,11 @@ def remosaic_rgb_image(rgb_image):
     return bayer_image
 
 
-def upsample_matrix(arr):
-    return np.repeat(np.repeat(arr, 2, axis=0), 2, axis=1)
+def upsample_matrix(arr, shape):
+    upsampled_array = np.repeat(np.repeat(arr, 2, axis=0), 2, axis=1)
+    rows, cols = shape
+    height, width = shape
+    return upsampled_array[:height, :width]
 
 
 # matrix clippers
@@ -418,8 +421,8 @@ def process_file_bayer420_array(
             bayer_cg_subsampled_encoded, cv2.IMREAD_GRAYSCALE
         )
         # upsample the chromas
-        bayer_co_prime = upsample_matrix(bayer_co_subsampled_prime)
-        bayer_cg_prime = upsample_matrix(bayer_cg_subsampled_prime)
+        bayer_co_prime = upsample_matrix(bayer_co_subsampled_prime, bayer_co.shape)
+        bayer_cg_prime = upsample_matrix(bayer_cg_subsampled_prime, bayer_cg.shape)
 
         # 6. convert YDgCoCg image back to Bayer
         bayer_image_prime = convert_ydgcocg_to_rg1g2b(
@@ -747,8 +750,8 @@ def process_file_yuv420_array(
             yuv_v_subsampled_encoded, cv2.IMREAD_GRAYSCALE
         )
         # upsample the chromas
-        yuv_u_prime = upsample_matrix(yuv_u_subsampled_prime)
-        yuv_v_prime = upsample_matrix(yuv_u_subsampled_prime)
+        yuv_u_prime = upsample_matrix(yuv_u_subsampled_prime, yuv_u.shape)
+        yuv_v_prime = upsample_matrix(yuv_u_subsampled_prime, yuv_v.shape)
         yuv_image_prime = cv2.merge([yuv_y_prime, yuv_u_prime, yuv_v_prime])
 
         # 5. convert YUV image back to RGB
