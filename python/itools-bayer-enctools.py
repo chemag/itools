@@ -588,6 +588,135 @@ def process_file_bayer_single_array(
     return df
 
 
+# Bayer processing stack (single encoding)
+def process_file_bayer_rggb(
+    infile,
+    width,
+    height,
+    quality_list,
+    debug,
+):
+    bayer_image = read_bayer_image(infile, width, height)
+    return process_file_bayer_rggb_array(
+        bayer_image,
+        infile,
+        quality_list,
+        debug,
+    )
+
+
+def process_file_bayer_rggb_array(
+    bayer_image,
+    infile,
+    quality_list,
+    debug,
+):
+    df = pd.DataFrame(columns=COLUMN_LIST)
+    width, height = bayer_image.shape
+
+    # 1. demosaic raw image to RGB
+    rgb_image = cv2.cvtColor(bayer_image, cv2.COLOR_BAYER_BG2RGB)
+    rgb_r, rgb_g, rgb_b = cv2.split(rgb_image)
+
+    # 2. convert RGB to YUV
+    yuv_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2YUV)
+    yuv_y, yuv_u, yuv_v = cv2.split(yuv_image)
+
+    # 3. separate RGGB components
+    bayer_r = bayer_image[::2, ::2]
+    bayer_g1 = bayer_image[::2, 1::2]
+    bayer_g2 = bayer_image[1::2, ::2]
+    bayer_b = bayer_image[1::2, 1::2]
+
+    for quality in quality_list:
+        # 3. encode the single plane planes
+        success, bayer_r_encoded = cv2.imencode(
+            ".jpg", bayer_r, [cv2.IMWRITE_JPEG_QUALITY, quality]
+        )
+        success, bayer_g1_encoded = cv2.imencode(
+            ".jpg", bayer_g1, [cv2.IMWRITE_JPEG_QUALITY, quality]
+        )
+        success, bayer_g2_encoded = cv2.imencode(
+            ".jpg", bayer_g2, [cv2.IMWRITE_JPEG_QUALITY, quality]
+        )
+        success, bayer_b_encoded = cv2.imencode(
+            ".jpg", bayer_b, [cv2.IMWRITE_JPEG_QUALITY, quality]
+        )
+
+        # 4. decode the jpeg image(s)
+        bayer_r_prime = cv2.imdecode(bayer_r_encoded, cv2.IMREAD_GRAYSCALE)
+        bayer_g1_prime = cv2.imdecode(bayer_g1_encoded, cv2.IMREAD_GRAYSCALE)
+        bayer_g2_prime = cv2.imdecode(bayer_g2_encoded, cv2.IMREAD_GRAYSCALE)
+        bayer_b_prime = cv2.imdecode(bayer_b_encoded, cv2.IMREAD_GRAYSCALE)
+
+        # merge RGGB components
+        bayer_image_prime = np.zeros(
+            list(2 * dim for dim in bayer_r.shape), dtype=bayer_r.dtype
+        )
+        bayer_image_prime[::2, ::2] = bayer_r_prime
+        bayer_image_prime[::2, 1::2] = bayer_g1_prime
+        bayer_image_prime[1::2, ::2] = bayer_g2_prime
+        bayer_image_prime[1::2, 1::2] = bayer_b_prime
+
+        # 5. demosaic raw image to RGB
+        rgb_image_prime = cv2.cvtColor(bayer_image_prime, cv2.COLOR_BAYER_BG2RGB)
+        rgb_r_prime, rgb_g_prime, rgb_b_prime = cv2.split(rgb_image_prime)
+
+        # 6. convert RGB to YUV
+        yuv_image_prime = cv2.cvtColor(rgb_image_prime, cv2.COLOR_RGB2YUV)
+        yuv_y_prime, yuv_u_prime, yuv_v_prime = cv2.split(yuv_image_prime)
+
+        # 7. calculate results
+        # sizes
+        encoded_size_bayer_r_encoded = len(bayer_r_encoded)
+        encoded_size_bayer_g1_encoded = len(bayer_g1_encoded)
+        encoded_size_bayer_g2_encoded = len(bayer_g2_encoded)
+        encoded_size_bayer_b_encoded = len(bayer_b_encoded)
+        encoded_size_list = [
+            encoded_size_bayer_r_encoded,
+            encoded_size_bayer_g1_encoded,
+            encoded_size_bayer_g2_encoded,
+            encoded_size_bayer_b_encoded,
+        ]
+        encoded_size = sum(encoded_size_list)
+        encoder_bpp = (encoded_size * 8.0) / (width * height)
+        # psnr values
+        # psnr values: YUV
+        psnr_yuv_y = calculate_psnr(yuv_y, yuv_y_prime)
+        psnr_yuv_u = calculate_psnr(yuv_u, yuv_u_prime)
+        psnr_yuv_v = calculate_psnr(yuv_v, yuv_v_prime)
+        psnr_yuv = np.mean([psnr_yuv_y, psnr_yuv_u, psnr_yuv_v])
+        # psnr values: RGB
+        psnr_rgb_r = calculate_psnr(rgb_r, rgb_r_prime)
+        psnr_rgb_g = calculate_psnr(rgb_g, rgb_g_prime)
+        psnr_rgb_b = calculate_psnr(rgb_b, rgb_b_prime)
+        psnr_rgb = np.mean([psnr_rgb_r, psnr_rgb_g, psnr_rgb_b])
+        # psnr values: Bayer
+        psnr_bayer = calculate_psnr(bayer_image, bayer_image_prime)
+        # add new element
+        df.loc[df.size] = (
+            infile,
+            width,
+            height,
+            "bayer-rggb",
+            quality,
+            encoded_size,
+            ":".join(str(size) for size in encoded_size_list),
+            encoder_bpp,
+            psnr_bayer,
+            psnr_rgb,
+            psnr_rgb_r,
+            psnr_rgb_g,
+            psnr_rgb_b,
+            psnr_yuv,
+            psnr_yuv_y,
+            psnr_yuv_u,
+            psnr_yuv_v,
+        )
+
+    return df
+
+
 # traditional camera stack
 def process_file_yuv444(
     infile,
@@ -984,6 +1113,9 @@ def process_data(
         tmp_df = process_file_bayer_ydgcocg_420(
             infile, width, height, quality_list, debug
         )
+        df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
+        # 2.7. run the Bayer-rggb-encoding pipeline
+        tmp_df = process_file_bayer_rggb(infile, width, height, quality_list, debug)
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
 
     # 3. reindex per-file dataframe
