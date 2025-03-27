@@ -230,7 +230,7 @@ def read_bayer_image(infile, width, height):
 
 
 # Bayer processing stack
-def process_file_bayer(
+def process_file_bayer_ydgcocg(
     infile,
     width,
     height,
@@ -238,7 +238,7 @@ def process_file_bayer(
     debug,
 ):
     bayer_image = read_bayer_image(infile, width, height)
-    return process_file_bayer_array(
+    return process_file_bayer_ydgcocg_array(
         bayer_image,
         infile,
         quality_list,
@@ -246,7 +246,7 @@ def process_file_bayer(
     )
 
 
-def process_file_bayer_array(
+def process_file_bayer_ydgcocg_array(
     bayer_image,
     infile,
     quality_list,
@@ -356,7 +356,7 @@ def process_file_bayer_array(
 
 
 # Bayer processing stack
-def process_file_bayer420(
+def process_file_bayer_ydgcocg_420(
     infile,
     width,
     height,
@@ -364,7 +364,7 @@ def process_file_bayer420(
     debug,
 ):
     bayer_image = read_bayer_image(infile, width, height)
-    return process_file_bayer420_array(
+    return process_file_bayer_ydgcocg_420_array(
         bayer_image,
         infile,
         quality_list,
@@ -372,7 +372,7 @@ def process_file_bayer420(
     )
 
 
-def process_file_bayer420_array(
+def process_file_bayer_ydgcocg_420_array(
     bayer_image,
     infile,
     quality_list,
@@ -589,7 +589,7 @@ def process_file_bayer_single_array(
 
 
 # traditional camera stack
-def process_file_yuv(
+def process_file_yuv444(
     infile,
     width,
     height,
@@ -597,7 +597,7 @@ def process_file_yuv(
     debug,
 ):
     bayer_image = read_bayer_image(infile, width, height)
-    return process_file_yuv_array(
+    return process_file_yuv444_array(
         bayer_image,
         infile,
         quality_list,
@@ -605,7 +605,7 @@ def process_file_yuv(
     )
 
 
-def process_file_yuv_array(
+def process_file_yuv444_array(
     bayer_image,
     infile,
     quality_list,
@@ -965,11 +965,11 @@ def process_data(
 
     # 2. run the camera pipelines
     for infile in infile_list:
-        # 2.1. run the Bayer-encoding pipeline
-        tmp_df = process_file_bayer(infile, width, height, quality_list, debug)
+        # 2.1. run the Bayer-ydgcocg encoding pipeline
+        tmp_df = process_file_bayer_ydgcocg(infile, width, height, quality_list, debug)
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
-        # 2.2. run the YUV-encoding pipeline
-        tmp_df = process_file_yuv(infile, width, height, quality_list, debug)
+        # 2.2. run the YUV444 encoding pipeline
+        tmp_df = process_file_yuv444(infile, width, height, quality_list, debug)
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
         # 2.3. run the RGB-encoding pipeline
         tmp_df = process_file_rgb(infile, width, height, quality_list, debug)
@@ -981,7 +981,9 @@ def process_data(
         tmp_df = process_file_bayer_single(infile, width, height, quality_list, debug)
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
         # 2.6. run the Bayer-subsampled-encoding pipeline
-        tmp_df = process_file_bayer420(infile, width, height, quality_list, debug)
+        tmp_df = process_file_bayer_ydgcocg_420(
+            infile, width, height, quality_list, debug
+        )
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
 
     # 3. reindex per-file dataframe
