@@ -865,7 +865,7 @@ def check_input_pix_fmt(i_pix_fmt):
     elif i_pix_fmt in INPUT_ALIAS_LIST:
         # find the canonical name
         for canonical, v in INPUT_FORMATS.items():
-            if i_pix_fmt in v["alias"]:
+            if i_pix_fmt in v.get("alias", []):
                 return canonical
     else:
         raise AssertionError(f"error: unknown input pix_fmt: {i_pix_fmt}")
@@ -878,7 +878,7 @@ def check_output_pix_fmt(o_pix_fmt):
     elif o_pix_fmt in OUTPUT_ALIAS_LIST:
         # find the canonical name
         for canonical, v in OUTPUT_FORMATS.items():
-            if o_pix_fmt in v["alias"]:
+            if o_pix_fmt in v.get("alias", []):
                 o_pix_fmt = canonical
                 break
         return o_pix_fmt
