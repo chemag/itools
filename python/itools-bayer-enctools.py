@@ -36,6 +36,7 @@ default_values = {
     "workdir": tempfile.gettempdir(),
     "width": -1,
     "height": -1,
+    "depth": 8,
     "infile_list": None,
     "outfile": None,
 }
@@ -45,6 +46,7 @@ COLUMN_LIST = [
     "infile",
     "width",
     "height",
+    "depth",
     "approach",
     "quality",
     "encoded_size",
@@ -216,16 +218,19 @@ def convert_ydgcocg_to_rg1g2b_components(bayer_y, bayer_dg, bayer_co, bayer_cg):
     return bayer_r, bayer_g1, bayer_g2, bayer_b
 
 
-def read_bayer_image(infile, width, height):
+def read_bayer_image(infile, width, height, depth):
     # read the input file
     with open(infile, "rb") as fin:
         raw_contents = fin.read()
-    assert width * height == len(
+    # check input
+    bytes_per_pixel = 1 if depth == 8 else 2
+    assert width * height * bytes_per_pixel == len(
         raw_contents
-    ), f"Image {infile} has size {len(raw_contents)} != {width * height} ({width=} * {height=})"
+    ), f"Image {infile} has size {len(raw_contents)} != {width * height * bytes_per_pixel} ({width=} * {height=} * {bytes_per_pixel=})"
     # reshape the array as an MxN binary array
     binary_list = [int(byte) for byte in raw_contents]
-    bayer_image = np.array(binary_list, dtype=np.uint8).reshape(width, height)
+    dtype = np.uint8 if depth == 8 else np.uint16
+    bayer_image = np.array(binary_list, dtype=dtype).reshape(width, height)
     return bayer_image
 
 
@@ -234,12 +239,14 @@ def process_file_bayer_ydgcocg(
     infile,
     width,
     height,
+    depth,
     quality_list,
     debug,
 ):
-    bayer_image = read_bayer_image(infile, width, height)
+    bayer_image = read_bayer_image(infile, width, height, depth)
     return process_file_bayer_ydgcocg_array(
         bayer_image,
+        depth,
         infile,
         quality_list,
         debug,
@@ -248,6 +255,7 @@ def process_file_bayer_ydgcocg(
 
 def process_file_bayer_ydgcocg_array(
     bayer_image,
+    depth,
     infile,
     quality_list,
     debug,
@@ -336,6 +344,7 @@ def process_file_bayer_ydgcocg_array(
             infile,
             width,
             height,
+            depth,
             "bayer-ydgcocg",
             quality,
             encoded_size,
@@ -360,12 +369,14 @@ def process_file_bayer_ydgcocg_420(
     infile,
     width,
     height,
+    depth,
     quality_list,
     debug,
 ):
-    bayer_image = read_bayer_image(infile, width, height)
+    bayer_image = read_bayer_image(infile, width, height, depth)
     return process_file_bayer_ydgcocg_420_array(
         bayer_image,
+        depth,
         infile,
         quality_list,
         debug,
@@ -374,6 +385,7 @@ def process_file_bayer_ydgcocg_420(
 
 def process_file_bayer_ydgcocg_420_array(
     bayer_image,
+    depth,
     infile,
     quality_list,
     debug,
@@ -473,6 +485,7 @@ def process_file_bayer_ydgcocg_420_array(
             infile,
             width,
             height,
+            depth,
             "bayer-ydgcocg-420",
             quality,
             encoded_size,
@@ -497,12 +510,14 @@ def process_file_bayer_single(
     infile,
     width,
     height,
+    depth,
     quality_list,
     debug,
 ):
-    bayer_image = read_bayer_image(infile, width, height)
+    bayer_image = read_bayer_image(infile, width, height, depth)
     return process_file_bayer_single_array(
         bayer_image,
+        depth,
         infile,
         quality_list,
         debug,
@@ -511,6 +526,7 @@ def process_file_bayer_single(
 
 def process_file_bayer_single_array(
     bayer_image,
+    depth,
     infile,
     quality_list,
     debug,
@@ -569,6 +585,7 @@ def process_file_bayer_single_array(
             infile,
             width,
             height,
+            depth,
             "bayer-single",
             quality,
             encoded_size,
@@ -593,12 +610,14 @@ def process_file_bayer_rggb(
     infile,
     width,
     height,
+    depth,
     quality_list,
     debug,
 ):
-    bayer_image = read_bayer_image(infile, width, height)
+    bayer_image = read_bayer_image(infile, width, height, depth)
     return process_file_bayer_rggb_array(
         bayer_image,
+        depth,
         infile,
         quality_list,
         debug,
@@ -607,6 +626,7 @@ def process_file_bayer_rggb(
 
 def process_file_bayer_rggb_array(
     bayer_image,
+    depth,
     infile,
     quality_list,
     debug,
@@ -698,6 +718,7 @@ def process_file_bayer_rggb_array(
             infile,
             width,
             height,
+            depth,
             "bayer-rggb",
             quality,
             encoded_size,
@@ -722,12 +743,14 @@ def process_file_yuv444(
     infile,
     width,
     height,
+    depth,
     quality_list,
     debug,
 ):
-    bayer_image = read_bayer_image(infile, width, height)
+    bayer_image = read_bayer_image(infile, width, height, depth)
     return process_file_yuv444_array(
         bayer_image,
+        depth,
         infile,
         quality_list,
         debug,
@@ -736,6 +759,7 @@ def process_file_yuv444(
 
 def process_file_yuv444_array(
     bayer_image,
+    depth,
     infile,
     quality_list,
     debug,
@@ -801,6 +825,7 @@ def process_file_yuv444_array(
             infile,
             width,
             height,
+            depth,
             "yuv444",
             quality,
             encoded_size,
@@ -824,12 +849,14 @@ def process_file_yuv420(
     infile,
     width,
     height,
+    depth,
     quality_list,
     debug,
 ):
-    bayer_image = read_bayer_image(infile, width, height)
+    bayer_image = read_bayer_image(infile, width, height, depth)
     return process_file_yuv420_array(
         bayer_image,
+        depth,
         infile,
         quality_list,
         debug,
@@ -838,6 +865,7 @@ def process_file_yuv420(
 
 def process_file_yuv420_array(
     bayer_image,
+    depth,
     infile,
     quality_list,
     debug,
@@ -915,6 +943,7 @@ def process_file_yuv420_array(
             infile,
             width,
             height,
+            depth,
             "yuv420",
             quality,
             encoded_size,
@@ -939,12 +968,14 @@ def process_file_rgb(
     infile,
     width,
     height,
+    depth,
     quality_list,
     debug,
 ):
-    bayer_image = read_bayer_image(infile, width, height)
+    bayer_image = read_bayer_image(infile, width, height, depth)
     return process_file_rgb_array(
         bayer_image,
+        depth,
         infile,
         quality_list,
         debug,
@@ -953,6 +984,7 @@ def process_file_rgb(
 
 def process_file_rgb_array(
     bayer_image,
+    depth,
     infile,
     quality_list,
     debug,
@@ -1018,6 +1050,7 @@ def process_file_rgb_array(
             infile,
             width,
             height,
+            depth,
             "rgb",
             quality,
             encoded_size,
@@ -1060,6 +1093,7 @@ def get_average_results(df):
         COLUMNS_MEAN = (
             "width",
             "height",
+            "depth",
             "encoded_size",
             "encoded_bpp",
             "psnr_bayer",
@@ -1083,6 +1117,7 @@ def process_data(
     quality_list,
     width,
     height,
+    depth,
     workdir,
     outfile,
     cleanup,
@@ -1095,27 +1130,33 @@ def process_data(
     # 2. run the camera pipelines
     for infile in infile_list:
         # 2.1. run the Bayer-ydgcocg encoding pipeline
-        tmp_df = process_file_bayer_ydgcocg(infile, width, height, quality_list, debug)
+        tmp_df = process_file_bayer_ydgcocg(
+            infile, width, height, depth, quality_list, debug
+        )
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
         # 2.2. run the YUV444 encoding pipeline
-        tmp_df = process_file_yuv444(infile, width, height, quality_list, debug)
+        tmp_df = process_file_yuv444(infile, width, height, depth, quality_list, debug)
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
         # 2.3. run the RGB-encoding pipeline
-        tmp_df = process_file_rgb(infile, width, height, quality_list, debug)
+        tmp_df = process_file_rgb(infile, width, height, depth, quality_list, debug)
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
         # 2.4. run the traditional YUV-encoding pipeline (4:2:0)
-        tmp_df = process_file_yuv420(infile, width, height, quality_list, debug)
+        tmp_df = process_file_yuv420(infile, width, height, depth, quality_list, debug)
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
         # 2.5. run the Bayer-single-encoding pipeline
-        tmp_df = process_file_bayer_single(infile, width, height, quality_list, debug)
+        tmp_df = process_file_bayer_single(
+            infile, width, height, depth, quality_list, debug
+        )
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
         # 2.6. run the Bayer-subsampled-encoding pipeline
         tmp_df = process_file_bayer_ydgcocg_420(
-            infile, width, height, quality_list, debug
+            infile, width, height, depth, quality_list, debug
         )
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
         # 2.7. run the Bayer-rggb-encoding pipeline
-        tmp_df = process_file_bayer_rggb(infile, width, height, quality_list, debug)
+        tmp_df = process_file_bayer_rggb(
+            infile, width, height, depth, quality_list, debug
+        )
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
 
     # 3. reindex per-file dataframe
@@ -1248,6 +1289,16 @@ def get_options(argv):
     )
 
     parser.add_argument(
+        "--depth",
+        action="store",
+        type=int,
+        dest="depth",
+        default=default_values["depth"],
+        metavar="DEPTH",
+        help=(f"use DEPTH depth (default: {default_values['depth']})"),
+    )
+
+    parser.add_argument(
         dest="infile_list",
         type=str,
         nargs="+",
@@ -1289,6 +1340,7 @@ def main(argv):
         options.quality_list,
         options.width,
         options.height,
+        options.depth,
         options.workdir,
         options.outfile,
         options.cleanup,
