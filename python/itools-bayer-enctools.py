@@ -27,6 +27,8 @@ itools_version = importlib.import_module("itools-version")
 DEFAULT_QUALITIES = [25, 75, 85, 95, 96, 97, 98, 99]
 DEFAULT_QUALITY_LIST = sorted(set(list(range(0, 101, 10)) + DEFAULT_QUALITIES))
 
+CODEC_LIST = ("jpeg/cv2",)
+
 # dtype operation
 # We use 2x dtype values
 # * (1) st_dtype (storage dtype): This is uint8 for 8-bit Bayer, uint16 for
@@ -41,6 +43,7 @@ default_values = {
     "debug": 0,
     "dry_run": False,
     "cleanup": 1,
+    "codec": "jpeg/cv2",
     "quality_list": ",".join(str(v) for v in DEFAULT_QUALITY_LIST),
     "workdir": tempfile.gettempdir(),
     "width": -1,
@@ -57,6 +60,7 @@ COLUMN_LIST = [
     "height",
     "depth",
     "approach",
+    "codec",
     "quality",
     "encoded_size",
     "encoded_size_breakdown",
@@ -259,7 +263,12 @@ def read_bayer_image(infile, width, height, depth):
 
 
 # encoding processing
-def jpeg_process(quality, arrays_list):
+def codec_process(codec, quality, depth, arrays_list):
+    if codec == "jpeg/cv2" and depth == 8:
+        return jpeg_cv2_process(quality, arrays_list)
+
+
+def jpeg_cv2_process(quality, arrays_list):
     arrays_prime_list = []
     encoded_size_list = []
     for array in arrays_list:
@@ -281,6 +290,7 @@ def process_file_bayer_ydgcocg(
     width,
     height,
     depth,
+    codec,
     quality_list,
     debug,
 ):
@@ -289,6 +299,7 @@ def process_file_bayer_ydgcocg(
         bayer_image,
         depth,
         infile,
+        codec,
         quality_list,
         debug,
     )
@@ -298,6 +309,7 @@ def process_file_bayer_ydgcocg_array(
     bayer_image,
     depth,
     infile,
+    codec,
     quality_list,
     debug,
 ):
@@ -324,8 +336,8 @@ def process_file_bayer_ydgcocg_array(
             bayer_dg_prime,
             bayer_co_prime,
             bayer_cg_prime,
-        ), encoded_size_list = jpeg_process(
-            quality, (bayer_y, bayer_dg, bayer_co, bayer_cg)
+        ), encoded_size_list = codec_process(
+            codec, quality, depth, (bayer_y, bayer_dg, bayer_co, bayer_cg)
         )
 
         # 5. convert YDgCoCg image back to Bayer
@@ -369,6 +381,7 @@ def process_file_bayer_ydgcocg_array(
             height,
             depth,
             "bayer-ydgcocg",
+            codec,
             quality,
             encoded_size,
             ":".join(str(size) for size in encoded_size_list),
@@ -393,6 +406,7 @@ def process_file_bayer_ydgcocg_420(
     width,
     height,
     depth,
+    codec,
     quality_list,
     debug,
 ):
@@ -401,6 +415,7 @@ def process_file_bayer_ydgcocg_420(
         bayer_image,
         depth,
         infile,
+        codec,
         quality_list,
         debug,
     )
@@ -410,6 +425,7 @@ def process_file_bayer_ydgcocg_420_array(
     bayer_image,
     depth,
     infile,
+    codec,
     quality_list,
     debug,
 ):
@@ -440,8 +456,11 @@ def process_file_bayer_ydgcocg_420_array(
             bayer_dg_prime,
             bayer_co_subsampled_prime,
             bayer_cg_subsampled_prime,
-        ), encoded_size_list = jpeg_process(
-            quality, (bayer_y, bayer_dg, bayer_co_subsampled, bayer_cg_subsampled)
+        ), encoded_size_list = codec_process(
+            codec,
+            quality,
+            depth,
+            (bayer_y, bayer_dg, bayer_co_subsampled, bayer_cg_subsampled),
         )
         # upsample the chromas
         bayer_co_prime = upsample_matrix(bayer_co_subsampled_prime, bayer_co.shape)
@@ -488,6 +507,7 @@ def process_file_bayer_ydgcocg_420_array(
             height,
             depth,
             "bayer-ydgcocg-420",
+            codec,
             quality,
             encoded_size,
             ":".join(str(size) for size in encoded_size_list),
@@ -512,6 +532,7 @@ def process_file_bayer_single(
     width,
     height,
     depth,
+    codec,
     quality_list,
     debug,
 ):
@@ -520,6 +541,7 @@ def process_file_bayer_single(
         bayer_image,
         depth,
         infile,
+        codec,
         quality_list,
         debug,
     )
@@ -529,6 +551,7 @@ def process_file_bayer_single_array(
     bayer_image,
     depth,
     infile,
+    codec,
     quality_list,
     debug,
 ):
@@ -545,7 +568,9 @@ def process_file_bayer_single_array(
 
     for quality in quality_list:
         # 3. encode and decode the single planes
-        (bayer_image_prime,), encoded_size_list = jpeg_process(quality, (bayer_image,))
+        (bayer_image_prime,), encoded_size_list = codec_process(
+            codec, quality, depth, (bayer_image,)
+        )
 
         # 5. demosaic raw image to RGB
         rgb_image_prime = cv2.cvtColor(bayer_image_prime, cv2.COLOR_BAYER_BG2RGB)
@@ -579,6 +604,7 @@ def process_file_bayer_single_array(
             height,
             depth,
             "bayer-single",
+            codec,
             quality,
             encoded_size,
             ":".join(str(size) for size in encoded_size_list),
@@ -603,6 +629,7 @@ def process_file_bayer_rggb(
     width,
     height,
     depth,
+    codec,
     quality_list,
     debug,
 ):
@@ -611,6 +638,7 @@ def process_file_bayer_rggb(
         bayer_image,
         depth,
         infile,
+        codec,
         quality_list,
         debug,
     )
@@ -620,6 +648,7 @@ def process_file_bayer_rggb_array(
     bayer_image,
     depth,
     infile,
+    codec,
     quality_list,
     debug,
 ):
@@ -647,8 +676,8 @@ def process_file_bayer_rggb_array(
             bayer_g1_prime,
             bayer_g2_prime,
             bayer_b_prime,
-        ), encoded_size_list = jpeg_process(
-            quality, (bayer_r, bayer_g1, bayer_g2, bayer_b)
+        ), encoded_size_list = codec_process(
+            codec, quality, depth, (bayer_r, bayer_g1, bayer_g2, bayer_b)
         )
 
         # merge RGGB components
@@ -692,6 +721,7 @@ def process_file_bayer_rggb_array(
             height,
             depth,
             "bayer-rggb",
+            codec,
             quality,
             encoded_size,
             ":".join(str(size) for size in encoded_size_list),
@@ -716,6 +746,7 @@ def process_file_yuv444(
     width,
     height,
     depth,
+    codec,
     quality_list,
     debug,
 ):
@@ -724,6 +755,7 @@ def process_file_yuv444(
         bayer_image,
         depth,
         infile,
+        codec,
         quality_list,
         debug,
     )
@@ -733,6 +765,7 @@ def process_file_yuv444_array(
     bayer_image,
     depth,
     infile,
+    codec,
     quality_list,
     debug,
 ):
@@ -753,7 +786,9 @@ def process_file_yuv444_array(
             yuv_y_prime,
             yuv_u_prime,
             yuv_v_prime,
-        ), encoded_size_list = jpeg_process(quality, (yuv_y, yuv_u, yuv_v))
+        ), encoded_size_list = codec_process(
+            codec, quality, depth, (yuv_y, yuv_u, yuv_v)
+        )
         yuv_image_prime = cv2.merge([yuv_y_prime, yuv_u_prime, yuv_v_prime])
 
         # 4. convert YUV image back to RGB
@@ -786,6 +821,7 @@ def process_file_yuv444_array(
             height,
             depth,
             "yuv444",
+            codec,
             quality,
             encoded_size,
             ":".join(str(size) for size in encoded_size_list),
@@ -809,6 +845,7 @@ def process_file_yuv420(
     width,
     height,
     depth,
+    codec,
     quality_list,
     debug,
 ):
@@ -817,6 +854,7 @@ def process_file_yuv420(
         bayer_image,
         depth,
         infile,
+        codec,
         quality_list,
         debug,
     )
@@ -826,6 +864,7 @@ def process_file_yuv420_array(
     bayer_image,
     depth,
     infile,
+    codec,
     quality_list,
     debug,
 ):
@@ -850,8 +889,8 @@ def process_file_yuv420_array(
             yuv_y_prime,
             yuv_u_subsampled_prime,
             yuv_v_subsampled_prime,
-        ), encoded_size_list = jpeg_process(
-            quality, (yuv_y, yuv_u_subsampled, yuv_v_subsampled)
+        ), encoded_size_list = codec_process(
+            codec, quality, depth, (yuv_y, yuv_u_subsampled, yuv_v_subsampled)
         )
         # upsample the chromas
         yuv_u_prime = upsample_matrix(yuv_u_subsampled_prime, yuv_u.shape)
@@ -888,6 +927,7 @@ def process_file_yuv420_array(
             height,
             depth,
             "yuv420",
+            codec,
             quality,
             encoded_size,
             ":".join(str(size) for size in encoded_size_list),
@@ -912,6 +952,7 @@ def process_file_rgb(
     width,
     height,
     depth,
+    codec,
     quality_list,
     debug,
 ):
@@ -920,6 +961,7 @@ def process_file_rgb(
         bayer_image,
         depth,
         infile,
+        codec,
         quality_list,
         debug,
     )
@@ -929,6 +971,7 @@ def process_file_rgb_array(
     bayer_image,
     depth,
     infile,
+    codec,
     quality_list,
     debug,
 ):
@@ -949,7 +992,9 @@ def process_file_rgb_array(
             rgb_r_prime,
             rgb_g_prime,
             rgb_b_prime,
-        ), encoded_size_list = jpeg_process(quality, (rgb_r, rgb_g, rgb_b))
+        ), encoded_size_list = codec_process(
+            codec, quality, depth, (rgb_r, rgb_g, rgb_b)
+        )
         rgb_image_prime = cv2.merge([rgb_r_prime, rgb_g_prime, rgb_b_prime])
 
         # 4. convert RGB to YUV
@@ -982,6 +1027,7 @@ def process_file_rgb_array(
             height,
             depth,
             "rgb",
+            codec,
             quality,
             encoded_size,
             ":".join(str(size) for size in encoded_size_list),
@@ -1044,6 +1090,7 @@ def get_average_results(df):
 
 def process_data(
     infile_list,
+    codec,
     quality_list,
     width,
     height,
@@ -1061,31 +1108,37 @@ def process_data(
     for infile in infile_list:
         # 2.1. run the Bayer-ydgcocg encoding pipeline
         tmp_df = process_file_bayer_ydgcocg(
-            infile, width, height, depth, quality_list, debug
+            infile, width, height, depth, codec, quality_list, debug
         )
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
         # 2.2. run the YUV444 encoding pipeline
-        tmp_df = process_file_yuv444(infile, width, height, depth, quality_list, debug)
+        tmp_df = process_file_yuv444(
+            infile, width, height, depth, codec, quality_list, debug
+        )
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
         # 2.3. run the RGB-encoding pipeline
-        tmp_df = process_file_rgb(infile, width, height, depth, quality_list, debug)
+        tmp_df = process_file_rgb(
+            infile, width, height, depth, codec, quality_list, debug
+        )
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
         # 2.4. run the traditional YUV-encoding pipeline (4:2:0)
-        tmp_df = process_file_yuv420(infile, width, height, depth, quality_list, debug)
+        tmp_df = process_file_yuv420(
+            infile, width, height, depth, codec, quality_list, debug
+        )
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
         # 2.5. run the Bayer-single-encoding pipeline
         tmp_df = process_file_bayer_single(
-            infile, width, height, depth, quality_list, debug
+            infile, width, height, depth, codec, quality_list, debug
         )
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
         # 2.6. run the Bayer-subsampled-encoding pipeline
         tmp_df = process_file_bayer_ydgcocg_420(
-            infile, width, height, depth, quality_list, debug
+            infile, width, height, depth, codec, quality_list, debug
         )
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
         # 2.7. run the Bayer-rggb-encoding pipeline
         tmp_df = process_file_bayer_rggb(
-            infile, width, height, depth, quality_list, debug
+            infile, width, height, depth, codec, quality_list, debug
         )
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
 
@@ -1168,6 +1221,21 @@ def get_options(argv):
         const=0,
         help="Do Not Cleanup Files%s"
         % (" [default]" if not default_values["cleanup"] == 0 else ""),
+    )
+    parser.add_argument(
+        "--codec",
+        action="store",
+        type=str,
+        dest="codec",
+        default=default_values["codec"],
+        choices=CODEC_LIST,
+        metavar="[%s]"
+        % (
+            " | ".join(
+                CODEC_LIST,
+            )
+        ),
+        help="codec",
     )
     parser.add_argument(
         "--quality-list",
@@ -1267,6 +1335,7 @@ def main(argv):
     # process infile
     process_data(
         options.infile_list,
+        options.codec,
         options.quality_list,
         options.width,
         options.height,
