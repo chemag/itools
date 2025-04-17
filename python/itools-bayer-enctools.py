@@ -258,6 +258,23 @@ def read_bayer_image(infile, width, height, depth):
     return bayer_image
 
 
+# encoding processing
+def jpeg_process(quality, arrays_list):
+    arrays_prime_list = []
+    encoded_size_list = []
+    for array in arrays_list:
+        # encode file
+        success, array_encoded = cv2.imencode(
+            ".jpg", array, [cv2.IMWRITE_JPEG_QUALITY, quality]
+        )
+        encoded_size = len(array_encoded)
+        encoded_size_list.append(encoded_size)
+        # decode file
+        array_prime = cv2.imdecode(array_encoded, cv2.IMREAD_GRAYSCALE)
+        arrays_prime_list.append(array_prime)
+    return arrays_prime_list, encoded_size_list
+
+
 # Bayer processing stack
 def process_file_bayer_ydgcocg(
     infile,
@@ -301,51 +318,31 @@ def process_file_bayer_ydgcocg_array(
     )
 
     for quality in quality_list:
-        # 4. encode the 4 planes
-        success, bayer_y_encoded = cv2.imencode(
-            ".jpg", bayer_y, [cv2.IMWRITE_JPEG_QUALITY, quality]
-        )
-        success, bayer_dg_encoded = cv2.imencode(
-            ".jpg", bayer_dg, [cv2.IMWRITE_JPEG_QUALITY, quality]
-        )
-        success, bayer_co_encoded = cv2.imencode(
-            ".jpg", bayer_co, [cv2.IMWRITE_JPEG_QUALITY, quality]
-        )
-        success, bayer_cg_encoded = cv2.imencode(
-            ".jpg", bayer_cg, [cv2.IMWRITE_JPEG_QUALITY, quality]
+        # 4. encode and decode the 4 planes
+        (
+            bayer_y_prime,
+            bayer_dg_prime,
+            bayer_co_prime,
+            bayer_cg_prime,
+        ), encoded_size_list = jpeg_process(
+            quality, (bayer_y, bayer_dg, bayer_co, bayer_cg)
         )
 
-        # 5. decode the jpeg images
-        bayer_y_prime = cv2.imdecode(bayer_y_encoded, cv2.IMREAD_GRAYSCALE)
-        bayer_dg_prime = cv2.imdecode(bayer_dg_encoded, cv2.IMREAD_GRAYSCALE)
-        bayer_co_prime = cv2.imdecode(bayer_co_encoded, cv2.IMREAD_GRAYSCALE)
-        bayer_cg_prime = cv2.imdecode(bayer_cg_encoded, cv2.IMREAD_GRAYSCALE)
-
-        # 6. convert YDgCoCg image back to Bayer
+        # 5. convert YDgCoCg image back to Bayer
         bayer_image_prime = convert_ydgcocg_to_rg1g2b(
             bayer_y_prime, bayer_dg_prime, bayer_co_prime, bayer_cg_prime, depth
         )
 
-        # 7. demosaic raw image to RGB
+        # 6. demosaic raw image to RGB
         rgb_image_prime = cv2.cvtColor(bayer_image_prime, cv2.COLOR_BAYER_BG2RGB)
         rgb_r_prime, rgb_g_prime, rgb_b_prime = cv2.split(rgb_image_prime)
 
-        # 8. convert RGB to YUV
+        # 7. convert RGB to YUV
         yuv_image_prime = cv2.cvtColor(rgb_image_prime, cv2.COLOR_RGB2YUV)
         yuv_y_prime, yuv_u_prime, yuv_v_prime = cv2.split(yuv_image_prime)
 
-        # 9. calculate results
+        # 8. calculate results
         # sizes
-        encoded_size_bayer_y = len(bayer_y_encoded)
-        encoded_size_bayer_dg = len(bayer_dg_encoded)
-        encoded_size_bayer_co = len(bayer_co_encoded)
-        encoded_size_bayer_cg = len(bayer_cg_encoded)
-        encoded_size_list = [
-            encoded_size_bayer_y,
-            encoded_size_bayer_dg,
-            encoded_size_bayer_co,
-            encoded_size_bayer_cg,
-        ]
         encoded_size = sum(encoded_size_list)
         encoder_bpp = (encoded_size * 8.0) / (width * height)
         # psnr values
@@ -433,62 +430,38 @@ def process_file_bayer_ydgcocg_420_array(
     )
 
     for quality in quality_list:
-        # 4. encode the 4 planes
+        # 4. encode and decode the 4 planes
         # subsample the chromas
         bayer_co_subsampled = bayer_co[::2, ::2]
         bayer_cg_subsampled = bayer_cg[::2, ::2]
-        # encode the 4 planes
-        success, bayer_y_encoded = cv2.imencode(
-            ".jpg", bayer_y, [cv2.IMWRITE_JPEG_QUALITY, quality]
-        )
-        success, bayer_dg_encoded = cv2.imencode(
-            ".jpg", bayer_dg, [cv2.IMWRITE_JPEG_QUALITY, quality]
-        )
-        success, bayer_co_subsampled_encoded = cv2.imencode(
-            ".jpg", bayer_co_subsampled, [cv2.IMWRITE_JPEG_QUALITY, quality]
-        )
-        success, bayer_cg_subsampled_encoded = cv2.imencode(
-            ".jpg", bayer_cg_subsampled, [cv2.IMWRITE_JPEG_QUALITY, quality]
-        )
-
-        # 5. decode the jpeg images
-        bayer_y_prime = cv2.imdecode(bayer_y_encoded, cv2.IMREAD_GRAYSCALE)
-        bayer_dg_prime = cv2.imdecode(bayer_dg_encoded, cv2.IMREAD_GRAYSCALE)
-        bayer_co_subsampled_prime = cv2.imdecode(
-            bayer_co_subsampled_encoded, cv2.IMREAD_GRAYSCALE
-        )
-        bayer_cg_subsampled_prime = cv2.imdecode(
-            bayer_cg_subsampled_encoded, cv2.IMREAD_GRAYSCALE
+        # encode and decode the 4 planes
+        (
+            bayer_y_prime,
+            bayer_dg_prime,
+            bayer_co_subsampled_prime,
+            bayer_cg_subsampled_prime,
+        ), encoded_size_list = jpeg_process(
+            quality, (bayer_y, bayer_dg, bayer_co_subsampled, bayer_cg_subsampled)
         )
         # upsample the chromas
         bayer_co_prime = upsample_matrix(bayer_co_subsampled_prime, bayer_co.shape)
         bayer_cg_prime = upsample_matrix(bayer_cg_subsampled_prime, bayer_cg.shape)
 
-        # 6. convert YDgCoCg image back to Bayer
+        # 5. convert YDgCoCg image back to Bayer
         bayer_image_prime = convert_ydgcocg_to_rg1g2b(
             bayer_y_prime, bayer_dg_prime, bayer_co_prime, bayer_cg_prime, depth
         )
 
-        # 7. demosaic raw image to RGB
+        # 6. demosaic raw image to RGB
         rgb_image_prime = cv2.cvtColor(bayer_image_prime, cv2.COLOR_BAYER_BG2RGB)
         rgb_r_prime, rgb_g_prime, rgb_b_prime = cv2.split(rgb_image_prime)
 
-        # 8. convert RGB to YUV
+        # 7. convert RGB to YUV
         yuv_image_prime = cv2.cvtColor(rgb_image_prime, cv2.COLOR_RGB2YUV)
         yuv_y_prime, yuv_u_prime, yuv_v_prime = cv2.split(yuv_image_prime)
 
-        # 9. calculate results
+        # 8. calculate results
         # sizes
-        encoded_size_bayer_y = len(bayer_y_encoded)
-        encoded_size_bayer_dg = len(bayer_dg_encoded)
-        encoded_size_bayer_co_subsampled = len(bayer_co_subsampled_encoded)
-        encoded_size_bayer_cg_subsampled = len(bayer_cg_subsampled_encoded)
-        encoded_size_list = [
-            encoded_size_bayer_y,
-            encoded_size_bayer_dg,
-            encoded_size_bayer_co_subsampled,
-            encoded_size_bayer_cg_subsampled,
-        ]
         encoded_size = sum(encoded_size_list)
         encoder_bpp = (encoded_size * 8.0) / (width * height)
         # psnr values
@@ -571,13 +544,8 @@ def process_file_bayer_single_array(
     yuv_y, yuv_u, yuv_v = cv2.split(yuv_image)
 
     for quality in quality_list:
-        # 3. encode the single plane planes
-        success, bayer_image_encoded = cv2.imencode(
-            ".jpg", bayer_image, [cv2.IMWRITE_JPEG_QUALITY, quality]
-        )
-
-        # 4. decode the jpeg image
-        bayer_image_prime = cv2.imdecode(bayer_image_encoded, cv2.IMREAD_GRAYSCALE)
+        # 3. encode and decode the single planes
+        (bayer_image_prime,), encoded_size_list = jpeg_process(quality, (bayer_image,))
 
         # 5. demosaic raw image to RGB
         rgb_image_prime = cv2.cvtColor(bayer_image_prime, cv2.COLOR_BAYER_BG2RGB)
@@ -589,10 +557,6 @@ def process_file_bayer_single_array(
 
         # 7. calculate results
         # sizes
-        encoded_size_bayer_image = len(bayer_image_encoded)
-        encoded_size_list = [
-            encoded_size_bayer_image,
-        ]
         encoded_size = sum(encoded_size_list)
         encoder_bpp = (encoded_size * 8.0) / (width * height)
         # psnr values
@@ -677,25 +641,15 @@ def process_file_bayer_rggb_array(
     bayer_b = bayer_image[1::2, 1::2]
 
     for quality in quality_list:
-        # 3. encode the single plane planes
-        success, bayer_r_encoded = cv2.imencode(
-            ".jpg", bayer_r, [cv2.IMWRITE_JPEG_QUALITY, quality]
+        # 4. encode and decode the 4 planes
+        (
+            bayer_r_prime,
+            bayer_g1_prime,
+            bayer_g2_prime,
+            bayer_b_prime,
+        ), encoded_size_list = jpeg_process(
+            quality, (bayer_r, bayer_g1, bayer_g2, bayer_b)
         )
-        success, bayer_g1_encoded = cv2.imencode(
-            ".jpg", bayer_g1, [cv2.IMWRITE_JPEG_QUALITY, quality]
-        )
-        success, bayer_g2_encoded = cv2.imencode(
-            ".jpg", bayer_g2, [cv2.IMWRITE_JPEG_QUALITY, quality]
-        )
-        success, bayer_b_encoded = cv2.imencode(
-            ".jpg", bayer_b, [cv2.IMWRITE_JPEG_QUALITY, quality]
-        )
-
-        # 4. decode the jpeg image(s)
-        bayer_r_prime = cv2.imdecode(bayer_r_encoded, cv2.IMREAD_GRAYSCALE)
-        bayer_g1_prime = cv2.imdecode(bayer_g1_encoded, cv2.IMREAD_GRAYSCALE)
-        bayer_g2_prime = cv2.imdecode(bayer_g2_encoded, cv2.IMREAD_GRAYSCALE)
-        bayer_b_prime = cv2.imdecode(bayer_b_encoded, cv2.IMREAD_GRAYSCALE)
 
         # merge RGGB components
         bayer_image_prime = np.zeros(
@@ -716,16 +670,6 @@ def process_file_bayer_rggb_array(
 
         # 7. calculate results
         # sizes
-        encoded_size_bayer_r_encoded = len(bayer_r_encoded)
-        encoded_size_bayer_g1_encoded = len(bayer_g1_encoded)
-        encoded_size_bayer_g2_encoded = len(bayer_g2_encoded)
-        encoded_size_bayer_b_encoded = len(bayer_b_encoded)
-        encoded_size_list = [
-            encoded_size_bayer_r_encoded,
-            encoded_size_bayer_g1_encoded,
-            encoded_size_bayer_g2_encoded,
-            encoded_size_bayer_b_encoded,
-        ]
         encoded_size = sum(encoded_size_list)
         encoder_bpp = (encoded_size * 8.0) / (width * height)
         # psnr values
@@ -804,36 +748,23 @@ def process_file_yuv444_array(
     yuv_y, yuv_u, yuv_v = cv2.split(yuv_image)
 
     for quality in quality_list:
-        # 3. encode the 3 planes
-        success, yuv_y_encoded = cv2.imencode(
-            ".jpg", yuv_y, [cv2.IMWRITE_JPEG_QUALITY, quality]
-        )
-        success, yuv_u_encoded = cv2.imencode(
-            ".jpg", yuv_u, [cv2.IMWRITE_JPEG_QUALITY, quality]
-        )
-        success, yuv_v_encoded = cv2.imencode(
-            ".jpg", yuv_v, [cv2.IMWRITE_JPEG_QUALITY, quality]
-        )
-
-        # 4. decode the jpeg images
-        yuv_y_prime = cv2.imdecode(yuv_y_encoded, cv2.IMREAD_GRAYSCALE)
-        yuv_u_prime = cv2.imdecode(yuv_u_encoded, cv2.IMREAD_GRAYSCALE)
-        yuv_v_prime = cv2.imdecode(yuv_v_encoded, cv2.IMREAD_GRAYSCALE)
+        # 3. encode and decode the 3 planes
+        (
+            yuv_y_prime,
+            yuv_u_prime,
+            yuv_v_prime,
+        ), encoded_size_list = jpeg_process(quality, (yuv_y, yuv_u, yuv_v))
         yuv_image_prime = cv2.merge([yuv_y_prime, yuv_u_prime, yuv_v_prime])
 
-        # 5. convert YUV image back to RGB
+        # 4. convert YUV image back to RGB
         rgb_image_prime = cv2.cvtColor(yuv_image_prime, cv2.COLOR_YUV2RGB)
         rgb_b_prime, rgb_g_prime, rgb_r_prime = cv2.split(rgb_image_prime)
 
-        # 6. remosaic RGB image back to raw
+        # 5. remosaic RGB image back to raw
         bayer_image_prime = remosaic_rgb_image(rgb_image_prime, depth)
 
-        # 7. calculate results
+        # 6. calculate results
         # sizes
-        encoded_size_yuv_y = len(yuv_y_encoded)
-        encoded_size_yuv_u = len(yuv_u_encoded)
-        encoded_size_yuv_v = len(yuv_v_encoded)
-        encoded_size_list = [encoded_size_yuv_y, encoded_size_yuv_u, encoded_size_yuv_v]
         encoded_size = sum(encoded_size_list)
         encoder_bpp = (encoded_size * 8.0) / (width * height)
         # psnr values: YUV
@@ -914,25 +845,13 @@ def process_file_yuv420_array(
         # subsample the chromas
         yuv_u_subsampled = yuv_u[::2, ::2]
         yuv_v_subsampled = yuv_v[::2, ::2]
-        # encode the 3 planes
-        success, yuv_y_encoded = cv2.imencode(
-            ".jpg", yuv_y, [cv2.IMWRITE_JPEG_QUALITY, quality]
-        )
-        success, yuv_u_subsampled_encoded = cv2.imencode(
-            ".jpg", yuv_u_subsampled, [cv2.IMWRITE_JPEG_QUALITY, quality]
-        )
-        success, yuv_v_subsampled_encoded = cv2.imencode(
-            ".jpg", yuv_v_subsampled, [cv2.IMWRITE_JPEG_QUALITY, quality]
-        )
-
-        # 4. decode the jpeg images
-        # decode the 3 planes
-        yuv_y_prime = cv2.imdecode(yuv_y_encoded, cv2.IMREAD_GRAYSCALE)
-        yuv_u_subsampled_prime = cv2.imdecode(
-            yuv_u_subsampled_encoded, cv2.IMREAD_GRAYSCALE
-        )
-        yuv_v_subsampled_prime = cv2.imdecode(
-            yuv_v_subsampled_encoded, cv2.IMREAD_GRAYSCALE
+        # encode and decode the 3 planes
+        (
+            yuv_y_prime,
+            yuv_u_subsampled_prime,
+            yuv_v_subsampled_prime,
+        ), encoded_size_list = jpeg_process(
+            quality, (yuv_y, yuv_u_subsampled, yuv_v_subsampled)
         )
         # upsample the chromas
         yuv_u_prime = upsample_matrix(yuv_u_subsampled_prime, yuv_u.shape)
@@ -948,10 +867,6 @@ def process_file_yuv420_array(
 
         # 7. calculate results
         # sizes
-        encoded_size_yuv_y = len(yuv_y_encoded)
-        encoded_size_yuv_u = len(yuv_u_subsampled_encoded)
-        encoded_size_yuv_v = len(yuv_v_subsampled_encoded)
-        encoded_size_list = [encoded_size_yuv_y, encoded_size_yuv_u, encoded_size_yuv_v]
         encoded_size = sum(encoded_size_list)
         encoder_bpp = (encoded_size * 8.0) / (width * height)
         # psnr values: YUV
@@ -1029,36 +944,23 @@ def process_file_rgb_array(
     yuv_y, yuv_u, yuv_v = cv2.split(yuv_image)
 
     for quality in quality_list:
-        # 3. encode the 3 planes
-        success, rgb_r_encoded = cv2.imencode(
-            ".jpg", rgb_r, [cv2.IMWRITE_JPEG_QUALITY, quality]
-        )
-        success, rgb_g_encoded = cv2.imencode(
-            ".jpg", rgb_g, [cv2.IMWRITE_JPEG_QUALITY, quality]
-        )
-        success, rgb_b_encoded = cv2.imencode(
-            ".jpg", rgb_b, [cv2.IMWRITE_JPEG_QUALITY, quality]
-        )
-
-        # 4. decode the jpeg images
-        rgb_r_prime = cv2.imdecode(rgb_r_encoded, cv2.IMREAD_GRAYSCALE)
-        rgb_g_prime = cv2.imdecode(rgb_g_encoded, cv2.IMREAD_GRAYSCALE)
-        rgb_b_prime = cv2.imdecode(rgb_b_encoded, cv2.IMREAD_GRAYSCALE)
+        # 3. encode and decode the 3 planes
+        (
+            rgb_r_prime,
+            rgb_g_prime,
+            rgb_b_prime,
+        ), encoded_size_list = jpeg_process(quality, (rgb_r, rgb_g, rgb_b))
         rgb_image_prime = cv2.merge([rgb_r_prime, rgb_g_prime, rgb_b_prime])
 
-        # 5. convert RGB to YUV
+        # 4. convert RGB to YUV
         yuv_image_prime = cv2.cvtColor(rgb_image_prime, cv2.COLOR_RGB2YUV)
         yuv_y_prime, yuv_u_prime, yuv_v_prime = cv2.split(yuv_image_prime)
 
-        # 6. remosaic RGB image back to raw
+        # 5. remosaic RGB image back to raw
         bayer_image_prime = remosaic_rgb_image(rgb_image_prime, depth)
 
-        # 7. calculate results
+        # 6. calculate results
         # sizes
-        encoded_size_rgb_r = len(rgb_r_encoded)
-        encoded_size_rgb_g = len(rgb_g_encoded)
-        encoded_size_rgb_b = len(rgb_b_encoded)
-        encoded_size_list = [encoded_size_rgb_r, encoded_size_rgb_g, encoded_size_rgb_b]
         encoded_size = sum(encoded_size_list)
         encoder_bpp = (encoded_size * 8.0) / (width * height)
         # psnr values: YUV
