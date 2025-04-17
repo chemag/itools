@@ -155,17 +155,10 @@ def convert_rg1g2b_to_ydgcocg_components(bayer_r, bayer_g1, bayer_g2, bayer_b):
     # [ Dg ] = [ -1    1    0    0  ] [ G4 ]
     # [ Co ]   [  0    0    1   -1  ] [ R2 ]
     # [ Cg ]   [ 1/2  1/2 -1/2 -1/2 ] [ B3 ]
-    bayer_y = (
-        (1 / 4) * bayer_g1 + (1 / 4) * bayer_g2 + (1 / 4) * bayer_r + (1 / 4) * bayer_b
-    )
+    bayer_y = (bayer_g1 >> 2) + (bayer_g2 >> 2) + (bayer_r >> 2) + (bayer_b >> 2)
     bayer_dg = (-1) * bayer_g1 + (1) * bayer_g2
     bayer_co = (1) * bayer_r + (-1) * bayer_b
-    bayer_cg = (
-        (1 / 2) * bayer_g1
-        + (1 / 2) * bayer_g2
-        + (-1 / 2) * bayer_r
-        + (-1 / 2) * bayer_b
-    )
+    bayer_cg = (bayer_g1 >> 1) + (bayer_g2 >> 1) - (bayer_r >> 1) - (bayer_b >> 1)
     # 2. clip matrices to uint8
     bayer_y = clip_0_to_255(bayer_y)
     bayer_dg = clip_minus_255_to_255(bayer_dg)
@@ -206,10 +199,10 @@ def convert_ydgcocg_to_rg1g2b_components(bayer_y, bayer_dg, bayer_co, bayer_cg):
     # [ G4 ] = [  1   1/2   0   1/2 ] [ Dg ]
     # [ R2 ]   [  1    0   1/2 -1/2 ] [ Co ]
     # [ B3 ]   [  1    0  -1/2 -1/2 ] [ Cg ]
-    bayer_g1 = (1) * bayer_y + (-1 / 2) * bayer_dg + (1 / 2) * bayer_cg
-    bayer_g2 = (1) * bayer_y + (1 / 2) * bayer_dg + (1 / 2) * bayer_cg
-    bayer_r = (1) * bayer_y + (1 / 2) * bayer_co + (-1 / 2) * bayer_cg
-    bayer_b = (1) * bayer_y + (-1 / 2) * bayer_co + (-1 / 2) * bayer_cg
+    bayer_g1 = bayer_y - (bayer_dg >> 1) + (bayer_cg >> 1)
+    bayer_g2 = bayer_y + (bayer_dg >> 1) + (bayer_cg >> 1)
+    bayer_r = bayer_y + (bayer_co >> 1) - (bayer_cg >> 1)
+    bayer_b = bayer_y - (bayer_co >> 1) - (bayer_cg >> 1)
     # 3. round to uint8
     bayer_r = round_to_uint8(bayer_r)
     bayer_g1 = round_to_uint8(bayer_g1)
