@@ -27,6 +27,15 @@ itools_version = importlib.import_module("itools-version")
 DEFAULT_QUALITIES = [25, 75, 85, 95, 96, 97, 98, 99]
 DEFAULT_QUALITY_LIST = sorted(set(list(range(0, 101, 10)) + DEFAULT_QUALITIES))
 
+# dtype operation
+# We use 2x dtype values
+# * (1) st_dtype (storage dtype): This is uint8 for 8-bit Bayer, uint16 for
+#   higher bit depths.
+# * (2) op_dtype (operation dtype): This is int32 in all cases.
+ST_DTYPE_8BIT = np.uint8
+ST_DTYPE_16BIT = np.uint16
+OP_DTYPE = np.int32
+
 
 default_values = {
     "debug": 0,
@@ -77,10 +86,17 @@ def calculate_psnr(plane1, plane2):
     return float(psnr)
 
 
-def remosaic_rgb_image(rgb_image):
+def get_opt_depth(depth):
+    op_depth = 8 * (1 + (depth - 1) // 8)
+    return op_depth
+
+
+def remosaic_rgb_image(rgb_image, depth):
+    op_depth = get_opt_depth(depth)
+    st_dtype = np.uint8 if op_depth == 8 else np.uint16
     bgr_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2BGR)
     height, width, _ = bgr_image.shape
-    bayer_image = np.zeros((height, width), dtype=np.uint8)
+    bayer_image = np.zeros((height, width), dtype=st_dtype)
     for i in range(height):
         for j in range(width):
             if (i + j) % 2 == 0:
@@ -101,38 +117,44 @@ def upsample_matrix(arr, shape):
 
 
 # matrix clippers
-def clip_0_to_255(arr, check=True):
-    # check for values outside the uint8 range
-    if check and np.any((arr < 0) | (arr > 255)):
-        raise ValueError("Array contains values outside the uint8 range")
-    # round values to the closest integer and convert to uint8
-    return np.clip(np.round(arr), 0, 255).astype(np.uint8)
+def clip_positive(arr, depth, check=True):
+    op_depth = get_opt_depth(depth)
+    max_value = 2**op_depth - 1
+    st_dtype = np.uint8 if op_depth == 8 else np.uint16
+    # check for values outside the valid range
+    if check and np.any((arr < 0) | (arr > max_value)):
+        raise ValueError("Array contains values outside the valid range")
+    # round values to the closest integer and convert to storage dtype
+    return np.clip(np.round(arr), 0, max_value).astype(st_dtype)
 
 
-def round_to_uint8(arr):
-    return clip_0_to_255(arr, False)
+def clip_integer_and_scale(arr, depth, check=True):
+    op_depth = get_opt_depth(depth)
+    max_value = 2**op_depth - 1
+    min_value = -max_value
+    shift = 2 ** (op_depth - 1)
+    st_dtype = np.uint8 if op_depth == 8 else np.uint16
+    # check for values outside the valid range
+    if check and np.any((arr < min_value) | (arr > max_value)):
+        raise ValueError("Array contains values outside the valid range")
+    # scale and round values to the storage dtype
+    return np.round((arr >> 1) + shift).astype(st_dtype)
 
 
-def unclip_0_to_255(arr):
-    return arr
+def unclip_positive(arr, depth):
+    return arr.astype(OP_DTYPE)
 
 
-def clip_minus_255_to_255(arr, check=False):
-    # check for values outside the int16 range
-    if check and np.any((arr < -255) | (arr > 255)):
-        raise ValueError("Array contains values outside the int16 range")
-    # round values to the closest integer and scale to uint8
-    return np.round((arr / 2) + 128).astype(np.uint8)
-
-
-def unclip_minus_255_to_255(arr):
-    # unscale from uint8
-    return (arr.astype(np.int16) - 128) * 2
+def unclip_integer_and_unscale(arr, depth):
+    op_depth = get_opt_depth(depth)
+    shift = 2 ** (op_depth - 1)
+    # unscale and convert
+    return (arr.astype(OP_DTYPE) - shift) << 1
 
 
 # Malvar Sullivan, "Progressive to Lossless Compression of Color Filter
 # Array Images Using Macropixel Spectral Spatial Transformation", 2012
-def convert_rg1g2b_to_ydgcocg(bayer_image):
+def convert_rg1g2b_to_ydgcocg(bayer_image, depth):
     # 1. separate RGGB components
     bayer_r = bayer_image[::2, ::2]
     bayer_g1 = bayer_image[::2, 1::2]
@@ -140,17 +162,17 @@ def convert_rg1g2b_to_ydgcocg(bayer_image):
     bayer_b = bayer_image[1::2, 1::2]
     # 2. do the color conversion
     bayer_y, bayer_dg, bayer_co, bayer_cg = convert_rg1g2b_to_ydgcocg_components(
-        bayer_r, bayer_g1, bayer_g2, bayer_b
+        bayer_r, bayer_g1, bayer_g2, bayer_b, depth
     )
     return bayer_y, bayer_dg, bayer_co, bayer_cg
 
 
-def convert_rg1g2b_to_ydgcocg_components(bayer_r, bayer_g1, bayer_g2, bayer_b):
+def convert_rg1g2b_to_ydgcocg_components(bayer_r, bayer_g1, bayer_g2, bayer_b, depth):
     # 1. convert values
-    bayer_r = bayer_r.astype(np.int16)
-    bayer_g1 = bayer_g1.astype(np.int16)
-    bayer_g2 = bayer_g2.astype(np.int16)
-    bayer_b = bayer_b.astype(np.int16)
+    bayer_r = bayer_r.astype(OP_DTYPE)
+    bayer_g1 = bayer_g1.astype(OP_DTYPE)
+    bayer_g2 = bayer_g2.astype(OP_DTYPE)
+    bayer_b = bayer_b.astype(OP_DTYPE)
     # [ Y  ]   [ 1/4  1/4  1/4  1/4 ] [ G1 ]
     # [ Dg ] = [ -1    1    0    0  ] [ G4 ]
     # [ Co ]   [  0    0    1   -1  ] [ R2 ]
@@ -159,18 +181,18 @@ def convert_rg1g2b_to_ydgcocg_components(bayer_r, bayer_g1, bayer_g2, bayer_b):
     bayer_dg = (-1) * bayer_g1 + (1) * bayer_g2
     bayer_co = (1) * bayer_r + (-1) * bayer_b
     bayer_cg = (bayer_g1 >> 1) + (bayer_g2 >> 1) - (bayer_r >> 1) - (bayer_b >> 1)
-    # 2. clip matrices to uint8
-    bayer_y = clip_0_to_255(bayer_y)
-    bayer_dg = clip_minus_255_to_255(bayer_dg)
-    bayer_co = clip_minus_255_to_255(bayer_co)
-    bayer_cg = clip_minus_255_to_255(bayer_cg)
+    # 2. clip matrices to storage type
+    bayer_y = clip_positive(bayer_y, depth)
+    bayer_dg = clip_integer_and_scale(bayer_dg, depth)
+    bayer_co = clip_integer_and_scale(bayer_co, depth)
+    bayer_cg = clip_integer_and_scale(bayer_cg, depth)
     return bayer_y, bayer_dg, bayer_co, bayer_cg
 
 
-def convert_ydgcocg_to_rg1g2b(bayer_y, bayer_dg, bayer_co, bayer_cg):
+def convert_ydgcocg_to_rg1g2b(bayer_y, bayer_dg, bayer_co, bayer_cg, depth):
     # 1. do the color conversion
     bayer_r, bayer_g1, bayer_g2, bayer_b = convert_ydgcocg_to_rg1g2b_components(
-        bayer_y, bayer_dg, bayer_co, bayer_cg
+        bayer_y, bayer_dg, bayer_co, bayer_cg, depth
     )
     # 2. merge RGGB components
     bayer_image = np.zeros(list(2 * dim for dim in bayer_r.shape), dtype=bayer_r.dtype)
@@ -181,12 +203,12 @@ def convert_ydgcocg_to_rg1g2b(bayer_y, bayer_dg, bayer_co, bayer_cg):
     return bayer_image
 
 
-def convert_ydgcocg_to_rg1g2b_components(bayer_y, bayer_dg, bayer_co, bayer_cg):
-    # 1. unclip matrices from uint8
-    bayer_y = unclip_0_to_255(bayer_y)
-    bayer_dg = unclip_minus_255_to_255(bayer_dg)
-    bayer_co = unclip_minus_255_to_255(bayer_co)
-    bayer_cg = unclip_minus_255_to_255(bayer_cg)
+def convert_ydgcocg_to_rg1g2b_components(bayer_y, bayer_dg, bayer_co, bayer_cg, depth):
+    # 1. unclip matrices from storage dtype
+    bayer_y = unclip_positive(bayer_y, depth)
+    bayer_dg = unclip_integer_and_unscale(bayer_dg, depth)
+    bayer_co = unclip_integer_and_unscale(bayer_co, depth)
+    bayer_cg = unclip_integer_and_unscale(bayer_cg, depth)
     # 2. convert values
     # l = (1/4, 1/4, 1/4, 1/4, -1, 1, 0, 0, 0, 0, 1, -1, 1/2, 1/2, -1/2, -1/2)
     # matrix = np.array(l).reshape(4, 4)
@@ -203,27 +225,36 @@ def convert_ydgcocg_to_rg1g2b_components(bayer_y, bayer_dg, bayer_co, bayer_cg):
     bayer_g2 = bayer_y + (bayer_dg >> 1) + (bayer_cg >> 1)
     bayer_r = bayer_y + (bayer_co >> 1) - (bayer_cg >> 1)
     bayer_b = bayer_y - (bayer_co >> 1) - (bayer_cg >> 1)
-    # 3. round to uint8
-    bayer_r = round_to_uint8(bayer_r)
-    bayer_g1 = round_to_uint8(bayer_g1)
-    bayer_g2 = round_to_uint8(bayer_g2)
-    bayer_b = round_to_uint8(bayer_b)
+    # 3. round to storage dtype
+    bayer_r = clip_positive(bayer_r, depth, check=False)
+    bayer_g1 = clip_positive(bayer_g1, depth, check=False)
+    bayer_g2 = clip_positive(bayer_g2, depth, check=False)
+    bayer_b = clip_positive(bayer_b, depth, check=False)
     return bayer_r, bayer_g1, bayer_g2, bayer_b
 
 
 def read_bayer_image(infile, width, height, depth):
-    # read the input file
-    with open(infile, "rb") as fin:
-        raw_contents = fin.read()
-    # check input
-    bytes_per_pixel = 1 if depth == 8 else 2
-    assert width * height * bytes_per_pixel == len(
-        raw_contents
-    ), f"Image {infile} has size {len(raw_contents)} != {width * height * bytes_per_pixel} ({width=} * {height=} * {bytes_per_pixel=})"
-    # reshape the array as an MxN binary array
-    binary_list = [int(byte) for byte in raw_contents]
-    dtype = np.uint8 if depth == 8 else np.uint16
-    bayer_image = np.array(binary_list, dtype=dtype).reshape(width, height)
+    if depth == 8:
+        bayer_image = np.fromfile(infile, dtype=np.uint8)
+    elif depth == 16:
+        bayer_image = np.fromfile(infile, dtype=np.uint16)  # little-endian
+        # bayer_image = np.fromfile(infile, dtype=">u2")  # big-endian
+    elif depth in (10, 12, 14):
+        # cv2 assumes color to be 16-bit depth if dtype is uint16
+        # For 10/12/14-bit color, let's expand to 16-bit before
+        # further processing. This also helps unify all further
+        # processing as 16-bit.
+        # support expanded and/or packed bayer formats
+        # if expanded:
+        # a. read as little-endian
+        bayer_image = np.fromfile(infile, dtype=np.uint16)
+        # b. expand to 16 bits
+        bayer_image <<= 16 - depth
+        # elif packed:
+    else:
+        raise ValueError(f"Unsupported depth value: {depth}")
+    # reshape image
+    bayer_image = bayer_image.reshape(width, height)
     return bayer_image
 
 
@@ -265,7 +296,9 @@ def process_file_bayer_ydgcocg_array(
     yuv_y, yuv_u, yuv_v = cv2.split(yuv_image)
 
     # 3. demosaic Bayer image to YDgCoCg
-    bayer_y, bayer_dg, bayer_co, bayer_cg = convert_rg1g2b_to_ydgcocg(bayer_image)
+    bayer_y, bayer_dg, bayer_co, bayer_cg = convert_rg1g2b_to_ydgcocg(
+        bayer_image, depth
+    )
 
     for quality in quality_list:
         # 4. encode the 4 planes
@@ -290,7 +323,7 @@ def process_file_bayer_ydgcocg_array(
 
         # 6. convert YDgCoCg image back to Bayer
         bayer_image_prime = convert_ydgcocg_to_rg1g2b(
-            bayer_y_prime, bayer_dg_prime, bayer_co_prime, bayer_cg_prime
+            bayer_y_prime, bayer_dg_prime, bayer_co_prime, bayer_cg_prime, depth
         )
 
         # 7. demosaic raw image to RGB
@@ -395,7 +428,9 @@ def process_file_bayer_ydgcocg_420_array(
     yuv_y, yuv_u, yuv_v = cv2.split(yuv_image)
 
     # 3. demosaic Bayer image to YDgCoCg
-    bayer_y, bayer_dg, bayer_co, bayer_cg = convert_rg1g2b_to_ydgcocg(bayer_image)
+    bayer_y, bayer_dg, bayer_co, bayer_cg = convert_rg1g2b_to_ydgcocg(
+        bayer_image, depth
+    )
 
     for quality in quality_list:
         # 4. encode the 4 planes
@@ -431,7 +466,7 @@ def process_file_bayer_ydgcocg_420_array(
 
         # 6. convert YDgCoCg image back to Bayer
         bayer_image_prime = convert_ydgcocg_to_rg1g2b(
-            bayer_y_prime, bayer_dg_prime, bayer_co_prime, bayer_cg_prime
+            bayer_y_prime, bayer_dg_prime, bayer_co_prime, bayer_cg_prime, depth
         )
 
         # 7. demosaic raw image to RGB
@@ -791,7 +826,7 @@ def process_file_yuv444_array(
         rgb_b_prime, rgb_g_prime, rgb_r_prime = cv2.split(rgb_image_prime)
 
         # 6. remosaic RGB image back to raw
-        bayer_image_prime = remosaic_rgb_image(rgb_image_prime)
+        bayer_image_prime = remosaic_rgb_image(rgb_image_prime, depth)
 
         # 7. calculate results
         # sizes
@@ -909,7 +944,7 @@ def process_file_yuv420_array(
         rgb_b_prime, rgb_g_prime, rgb_r_prime = cv2.split(rgb_image_prime)
 
         # 6. remosaic RGB image back to raw
-        bayer_image_prime = remosaic_rgb_image(rgb_image_prime)
+        bayer_image_prime = remosaic_rgb_image(rgb_image_prime, depth)
 
         # 7. calculate results
         # sizes
@@ -1016,7 +1051,7 @@ def process_file_rgb_array(
         yuv_y_prime, yuv_u_prime, yuv_v_prime = cv2.split(yuv_image_prime)
 
         # 6. remosaic RGB image back to raw
-        bayer_image_prime = remosaic_rgb_image(rgb_image_prime)
+        bayer_image_prime = remosaic_rgb_image(rgb_image_prime, depth)
 
         # 7. calculate results
         # sizes
