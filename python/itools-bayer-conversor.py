@@ -1158,38 +1158,6 @@ def get_options(argv):
     return options
 
 
-def main(argv):
-    # parse options
-    options = get_options(argv)
-    if options.version:
-        print("version: %s" % __version__)
-        sys.exit(0)
-    # get logfile descriptor
-    if options.logfile is None:
-        logfd = sys.stdout
-    else:
-        logfd = open(options.logfile, "w")
-    # get infile/outfile
-    if options.infile == "-" or options.infile is None:
-        options.infile = "/dev/fd/0"
-    if options.outfile == "-" or options.outfile is None:
-        options.outfile = "/dev/fd/1"
-    # print results
-    if options.debug > 0:
-        print(f"debug: {options}")
-
-    process_image(
-        options.infile,
-        options.i_pix_fmt,
-        options.width,
-        options.height,
-        options.outfile,
-        options.o_pix_fmt,
-        logfd,
-        options.debug,
-    )
-
-
 def process_image(infile, i_pix_fmt, width, height, outfile, o_pix_fmt, logfd, debug):
     # get common depth
     # check the input pixel format
@@ -1232,6 +1200,38 @@ def process_image(infile, i_pix_fmt, width, height, outfile, o_pix_fmt, logfd, d
             f"info: {itools_common.FFMPEG_SILENT} -f rawvideo -pixel_format {o_pix_fmt} "
             f"-s {width}x{height} -i {outfile} {outfile}.png"
         )
+
+
+def main(argv):
+    # parse options
+    options = get_options(argv)
+    if options.version:
+        print("version: %s" % __version__)
+        sys.exit(0)
+    # get logfile descriptor
+    if options.logfile is None:
+        logfd = sys.stdout
+    else:
+        logfd = open(options.logfile, "w")
+    # get infile/outfile
+    if options.infile == "-" or options.infile is None:
+        options.infile = "/dev/fd/0"
+    if options.outfile == "-" or options.outfile is None:
+        options.outfile = "/dev/fd/1"
+    # print results
+    if options.debug > 0:
+        print(f"debug: {options}")
+
+    process_image(
+        options.infile,
+        options.i_pix_fmt,
+        options.width,
+        options.height,
+        options.outfile,
+        options.o_pix_fmt,
+        logfd,
+        options.debug,
+    )
 
 
 if __name__ == "__main__":
