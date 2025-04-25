@@ -299,7 +299,7 @@ class MainTest(unittest.TestCase):
             height = test_case["height"]
             o_pix_fmt = test_case["o_pix_fmt"]
             debug = test_case["debug"]
-            # run function
+            # 1. run forward conversion
             bayer_planar = itools_bayer_conversor.process_image(
                 infile, i_pix_fmt, width, height, outfile, o_pix_fmt, logfd, debug
             )
@@ -315,7 +315,20 @@ class MainTest(unittest.TestCase):
             self.assertEqual(
                 expected_output,
                 output,
-                f"error on test {test_case['name']}",
+                f"error on forward test {test_case['name']}",
+            )
+            # 2. run loop conversion
+            bayer_planar = itools_bayer_conversor.process_image(
+                infile, i_pix_fmt, width, height, outfile, i_pix_fmt, logfd, debug
+            )
+            # read output file
+            with open(outfile, "rb") as f:
+                output = f.read()
+            # check the values
+            self.assertEqual(
+                test_case["input"],
+                output,
+                f"error on loop test {test_case['name']}",
             )
             logfd.close()
 
