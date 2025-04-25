@@ -15,8 +15,8 @@ import sys
 itools_common = importlib.import_module("itools-common")
 
 # https://stackoverflow.com/a/7506029
-sys.path.append(os.path.join(os.path.dirname(__file__), "icctool"))
-icctool = importlib.import_module("icctool.icctool")
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "lib", "icctool"))
+icctool = importlib.import_module("icctool")
 
 
 EXIFTOOL_KEYS = {

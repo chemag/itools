@@ -23,8 +23,8 @@ itools_exiftool = importlib.import_module("itools-exiftool")
 itools_y4m = importlib.import_module("itools-y4m")
 
 # https://stackoverflow.com/a/7506029
-sys.path.append(os.path.join(os.path.dirname(__file__), "icctool"))
-icctool = importlib.import_module("icctool.icctool")
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "lib", "icctool"))
+icctool = importlib.import_module("icctool")
 
 HEIF_ENC = os.environ.get("HEIF_ENC", "heif-enc")
 HEIF_DEC = os.environ.get("HEIF_DEC", "heif-convert")
