@@ -1200,6 +1200,7 @@ def process_image(infile, i_pix_fmt, width, height, outfile, o_pix_fmt, logfd, d
             f"info: {itools_common.FFMPEG_SILENT} -f rawvideo -pixel_format {o_pix_fmt} "
             f"-s {width}x{height} -i {outfile} {outfile}.png"
         )
+    return planar_image
 
 
 def main(argv):
