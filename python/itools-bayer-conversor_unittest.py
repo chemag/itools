@@ -202,10 +202,10 @@ processImageTestCases = [
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
         "bayer_planar": np.array(
             [
-                [[512, 1024], [2560, 3072]],
-                [[1536, 2048], [3584, 4096]],
-                [[256, 768], [2304, 2816]],
-                [[1280, 1792], [3328, 3840]],
+                [[0x200, 0x400], [0xA00, 0xC00]],
+                [[0x600, 0x800], [0xE00, 0x1000]],
+                [[0x100, 0x300], [0x900, 0xB00]],
+                [[0x500, 0x700], [0xD00, 0xF00]],
             ],
             dtype=np.uint16,
         ),
@@ -221,14 +221,54 @@ processImageTestCases = [
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
         "bayer_planar": np.array(
             [
-                [[512, 1024], [2560, 3072]],
-                [[1536, 2048], [3584, 4096]],
-                [[256, 768], [2304, 2816]],
-                [[1280, 1792], [3328, 3840]],
+                [[0x200, 0x400], [0xA00, 0xC00]],
+                [[0x600, 0x800], [0xE00, 0x1000]],
+                [[0x100, 0x300], [0x900, 0xB00]],
+                [[0x500, 0x700], [0xD00, 0xF00]],
             ],
             dtype=np.uint16,
         ),
         "output": b"\x05\x00\x02\x00\x07\x00\x04\x00\x06\x00\x01\x00\x08\x00\x03\x00\x0d\x00\x0a\x00\x0f\x00\x0c\x00\x0e\x00\x09\x00\x10\x00\x0b\x00",
+    },
+    # bayer10->bayer16 (extended)
+    {
+        "name": "basic-extended10x16.le",
+        "width": 4,
+        "height": 4,
+        "i_pix_fmt": "RG10",  # SRGGB10
+        "o_pix_fmt": "bayer_rggb16le",
+        "debug": 0,
+        "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x20",
+        "bayer_planar": np.array(
+            [
+                [[0xC0, 0x1C0], [0x4C0, 0x5C0]],
+                [[0x8240, 0x8340], [0x8640, 0x8740]],
+                [[0x8040, 0x8140], [0x8440, 0x8540]],
+                [[0x2C0, 0x3C0], [0x6C0, 0x7C0]],
+            ],
+            dtype=np.uint16,
+        ),
+        "output": b"\x40\x80\xc0\x00\x40\x81\xc0\x01\x40\x82\xc0\x02\x40\x83\xc0\x03\x40\x84\xc0\x04\x40\x85\xc0\x05\x40\x86\xc0\x06\x40\x87\xc0\x07",
+    },
+    # bayer10->bayer16 (packed)
+    {
+        "name": "basic-packed10x16.le",
+        "width": 4,
+        "height": 4,
+        "i_pix_fmt": "pRAA",
+        "o_pix_fmt": "bayer_bggr16le",
+        "debug": 0,
+        "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14",
+        "bayer_planar": np.array(
+            [
+                [[0x240, 0x400], [0xCC0, 0xE00]],
+                [[0x680, 0x800], [0x1000, 0x1240]],
+                [[0x140, 0x300], [0xBC0, 0xD00]],
+                [[0x780, 0x900], [0x1140, 0x1300]],
+            ],
+            dtype=np.uint16,
+        ),
+        "output": b"\x80\x07\x40\x02\x00\x09\x00\x04\x80\x06\x40\x01\x00\x08\x00\x03\x40\x11\xc0\x0c\x00\x13\x00\x0e\x00\x10\xc0\x0b\x40\x12\x00\x0d",
     },
 ]
 
@@ -268,7 +308,6 @@ class MainTest(unittest.TestCase):
             np.testing.assert_allclose(
                 test_case["bayer_planar"], bayer_planar, atol=absolute_tolerance
             )
-
             # read output file
             with open(outfile, "rb") as f:
                 output = f.read()

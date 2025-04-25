@@ -42,11 +42,15 @@ def wfun_8(c0, c1, logfd, debug):
 # 4 bytes -> 2 components
 def rfun_10_expanded_to_16(data, logfd, debug):
     # check the high 6 bits of both components are 0x0
+    # 10-expanded-to-16 packs using
+    # +---+---+---+---+---+---+---+---+ +---+---+---+---+---+---+---+---+
+    # |b7 |b6 |b5 |b4 |b3 |b2 |b1 |b0 | | 0 | 0 | 0 | 0 | 0 | 0 |b9 |b8 |
+    # +---+---+---+---+---+---+---+---+ +---+---+---+---+---+---+---+---+
     if (data[1] & 0xFC) != 0 or (data[3] & 0xFC) != 0:
         print("warn: upper 6 bits are not zero", file=logfd)
     return (
-        (data[0] << 6) | ((data[1] & 0x03) << 14),
-        (data[2] << 6) | ((data[3] & 0x03) << 14),
+        ((data[0]) | ((data[1] & 0x03) << 8)) << 6,
+        ((data[2]) | ((data[3] & 0x03) << 8)) << 6,
     )
 
 
