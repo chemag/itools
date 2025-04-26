@@ -30,17 +30,17 @@ DEFAULT_PLANE_ORDER = list("GgRB")
 
 
 # 2 bytes -> 2 components
-def rfun_8(data, logfd, debug):
+def rfun_8(data, debug):
     return data[0], data[1]
 
 
 # 2 bytes -> 2 components
-def wfun_8(c0, c1, logfd, debug):
+def wfun_8(c0, c1, debug):
     return int(c0).to_bytes(1, "big") + int(c1).to_bytes(1, "big")
 
 
 # 4 bytes -> 2 components
-def rfun_10_expanded_to_16(data, logfd, debug):
+def rfun_10_expanded_to_16(data, debug):
     # check the high 6 bits of both components are 0x0
     # 10-expanded-to-16 packs using
     # +---+---+---+---+---+---+---+---+ +---+---+---+---+---+---+---+---+
@@ -54,14 +54,14 @@ def rfun_10_expanded_to_16(data, logfd, debug):
 
 
 # 2 bytes -> 2 components
-def wfun_10_expanded_to_16(c0, c1, logfd, debug):
+def wfun_10_expanded_to_16(c0, c1, debug):
     c0 >>= 6
     c1 >>= 6
     return int(c0).to_bytes(2, "little") + int(c1).to_bytes(2, "little")
 
 
 # 5 bytes -> 4 components
-def rfun_10_packed_expanded_to_16(data, logfd, debug):
+def rfun_10_packed_expanded_to_16(data, debug):
     low = data[4]
     return (
         (data[0] << 8) | ((low & 0x03) << 6),
@@ -71,7 +71,7 @@ def rfun_10_packed_expanded_to_16(data, logfd, debug):
     )
 
 
-def wfun_10_packed_expanded_to_16(c0, c1, c2, c3, logfd, debug):
+def wfun_10_packed_expanded_to_16(c0, c1, c2, c3, debug):
     main = ((c0 >> 8) << 24) | ((c1 >> 8) << 16) | ((c2 >> 8) << 8) | ((c3 >> 8) << 0)
     remaining = (
         (((c3 >> 6) & 0x03) << 6)
@@ -83,34 +83,34 @@ def wfun_10_packed_expanded_to_16(c0, c1, c2, c3, logfd, debug):
 
 
 # 2 bytes -> 2 components
-def rfun_10_alaw_expanded_to_16(data, logfd, debug):
+def rfun_10_alaw_expanded_to_16(data, debug):
     raise AssertionError("rfun_10_alaw_expanded_to_16: unimplemented")
 
 
-def wfun_10_alaw_expanded_to_16(c0, c1, logfd, debug):
+def wfun_10_alaw_expanded_to_16(c0, c1, debug):
     raise AssertionError("wfun_10_alaw_expanded_to_16: unimplemented")
 
 
 # 2 bytes -> 2 components
-def rfun_10_dpcm_expanded_to_16(data, logfd, debug):
+def rfun_10_dpcm_expanded_to_16(data, debug):
     raise AssertionError("rfun_10_dpcm_expanded_to_16: unimplemented")
 
 
-def wfun_10_dpcm_expanded_to_16(c0, c1, logfd, debug):
+def wfun_10_dpcm_expanded_to_16(c0, c1, debug):
     raise AssertionError("wfun_10_dpcm_expanded_to_16: unimplemented")
 
 
 # 32 bytes -> 25 components
-def rfun_10_ipu3_expanded_to_16(data, logfd, debug):
+def rfun_10_ipu3_expanded_to_16(data, debug):
     raise AssertionError("rfun_10_ipu3_expanded_to_16: unimplemented")
 
 
-def wfun_10_ipu3_expanded_to_16(carray, logfd, debug):
+def wfun_10_ipu3_expanded_to_16(carray, debug):
     raise AssertionError("wfun_10_ipu3_expanded_to_16: unimplemented")
 
 
 # 4 bytes -> 2 components
-def rfun_12_expanded_to_16(data, logfd, debug):
+def rfun_12_expanded_to_16(data, debug):
     # check the high 4 bits of both components are 0x0
     if (data[1] & 0xF0) != 0 or (data[3] & 0xF0) != 0:
         print("warn: upper 4 bits are not zero")
@@ -120,12 +120,12 @@ def rfun_12_expanded_to_16(data, logfd, debug):
     )
 
 
-def wfun_12_expanded_to_16(c0, c1, logfd, debug):
+def wfun_12_expanded_to_16(c0, c1, debug):
     raise AssertionError("wfun_12_expanded_to_16: unimplemented")
 
 
 # 3 bytes -> 2 components
-def rfun_12_packed_expanded_to_16(data, logfd, debug):
+def rfun_12_packed_expanded_to_16(data, debug):
     low = data[2]
     return (
         (data[0] << 8) | ((low & 0x0F) << 4),
@@ -133,12 +133,12 @@ def rfun_12_packed_expanded_to_16(data, logfd, debug):
     )
 
 
-def wfun_12_packed_expanded_to_16(c0, c1, logfd, debug):
+def wfun_12_packed_expanded_to_16(c0, c1, debug):
     raise AssertionError("wfun_12_packed_expanded_to_16: unimplemented")
 
 
 # 4 bytes -> 2 components
-def rfun_14_expanded_to_16(data, logfd, debug):
+def rfun_14_expanded_to_16(data, debug):
     # check the high 2 bits of both components are 0x0
     if (data[1] & 0xC0) != 0 or (data[3] & 0xC0) != 0:
         print("warn: upper 2 bits are not zero")
@@ -148,12 +148,12 @@ def rfun_14_expanded_to_16(data, logfd, debug):
     )
 
 
-def wfun_14_expanded_to_16(c0, c1, logfd, debug):
+def wfun_14_expanded_to_16(c0, c1, debug):
     raise AssertionError("wfun_14_expanded_to_16: unimplemented")
 
 
 # 7 bytes -> 4 components
-def rfun_14_packed_expanded_to_16(data, logfd, debug):
+def rfun_14_packed_expanded_to_16(data, debug):
     low0, low1, low2 = data[4:6]
     return (
         (data[0] << 8) | ((low0 & 0x3F) << 2),
@@ -163,19 +163,19 @@ def rfun_14_packed_expanded_to_16(data, logfd, debug):
     )
 
 
-def wfun_14_packed_expanded_to_16(c0, c1, c2, c3, logfd, debug):
+def wfun_14_packed_expanded_to_16(c0, c1, c2, c3, debug):
     raise AssertionError("wfun_14_packed_expanded_to_16: unimplemented")
 
 
 # 4 bytes -> 2 components
-def rfun_16le(data, logfd, debug):
+def rfun_16le(data, debug):
     return (
         (data[0] << 0) | (data[1] << 8),
         (data[2] << 0) | (data[3] << 8),
     )
 
 
-def rfun_16be(data, logfd, debug):
+def rfun_16be(data, debug):
     return (
         (data[1] << 0) | (data[0] << 8),
         (data[3] << 0) | (data[2] << 8),
@@ -183,11 +183,11 @@ def rfun_16be(data, logfd, debug):
 
 
 # 4 bytes -> 2 components
-def wfun_16be(c0, c1, logfd, debug):
+def wfun_16be(c0, c1, debug):
     return int(c0).to_bytes(2, "big") + int(c1).to_bytes(2, "big")
 
 
-def wfun_16le(c0, c1, logfd, debug):
+def wfun_16le(c0, c1, debug):
     return int(c0).to_bytes(2, "little") + int(c1).to_bytes(2, "little")
 
 
@@ -861,7 +861,6 @@ default_values = {
     "height": 0,
     "infile": None,
     "outfile": None,
-    "logfile": None,
 }
 
 
@@ -898,189 +897,198 @@ def get_depth(pix_fmt):
     return BAYER_FORMATS[i_pix_fmt]["cdepth"]
 
 
-def get_planes(order, row, plane_order):
-    assert set(order) == COLOR_COMPONENTS, f"error: invalid Bayer components {order}"
-    plane_names = order[0:2] if row % 2 == 0 else order[2:4]
-    plane_ids = list(plane_order.index(plane_name) for plane_name in list(plane_names))
-    return plane_ids
+class BayerImage:
 
+    def __init__(self, infile, buffer, packed, planar, width, height, pix_fmt, debug=0):
+        self.infile = infile
+        self.buffer = buffer
+        self.packed = packed
+        self.planar = planar
+        self.width = width
+        self.height = height
+        self.pix_fmt = pix_fmt
+        self.debug = debug
 
-# read bayer packed format into bayer packed image
-def read_bayer_image_packed_mode(infile, width, height, pix_fmt):
-    # read the file into a buffer
-    with open(infile, "rb") as fin:
-        buffer = fin.read(expected_size)
+    # accessors
+    def GetBuffer(self):
+        assert self.buffer is not None, "error: invalid buffer"
+        return self.buffer
 
-    # convert buffer into a bayer packed image
-    depth = get_depth(pix_fmt)
+    def GetPacked(self):
+        if self.packed is None:
+            # convert buffer to packed
+            assert self.buffer is not None, "error: invalid buffer"
+            # convert buffer into a bayer packed image
+            depth = get_depth(self.pix_fmt)
+            # TODO(chema): make this a function of pix_fmt
+            if depth == 8:
+                self.packed = np.frombuffer(self.buffer, dtype=np.uint8)
+            elif depth == 16:
+                self.packed = np.frombuffer(
+                    self.buffer, dtype=np.uint16
+                )  # TODO(chema): this assumes little-endian
+                # self.packed = np.frombuffer(self.buffer, dtype=">u2")  # big-endian
+            elif depth in (10, 12, 14):
+                # cv2 assumes color to be 16-bit depth if dtype is uint16
+                # For 10/12/14-bit color, let's expand to 16-bit before
+                # further processing. This also helps unify all further
+                # processing as 16-bit.
+                # support expanded and/or packed bayer formats
+                # if expanded:
+                # a. read as little-endian
+                self.packed = np.frombuffer(self.buffer, dtype=np.uint16)
+                # b. expand to 16 bits
+                self.packed <<= 16 - depth
+                # elif packed:
+            else:
+                raise ValueError(f"Unsupported depth value: {depth}")
+            # reshape image
+            self.packed = self.packed.reshape(self.width, self.height)
+        return self.packed
 
-    if depth == 8:
-        bayer_packed_image = np.frombuffer(buffer, dtype=np.uint8)
-    elif depth == 16:
-        bayer_packed_image = np.frombuffer(buffer, dtype=np.uint16)  # little-endian
-        # bayer_packed_image = np.frombuffer(buffer, dtype=">u2")  # big-endian
-    elif depth in (10, 12, 14):
-        # cv2 assumes color to be 16-bit depth if dtype is uint16
-        # For 10/12/14-bit color, let's expand to 16-bit before
-        # further processing. This also helps unify all further
-        # processing as 16-bit.
-        # support expanded and/or packed bayer formats
-        # if expanded:
-        # a. read as little-endian
-        bayer_packed_image = np.frombuffer(buffer, dtype=np.uint16)
-        # b. expand to 16 bits
-        bayer_packed_image <<= 16 - depth
-        # elif packed:
-    else:
-        raise ValueError(f"Unsupported depth value: {depth}")
-    # reshape image
-    bayer_packed_image = bayer_packed_image.reshape(width, height)
-    return bayer_packed_image
-
-
-# read bayer packed format into bayer planar image
-def read_bayer_image_planar_mode(
-    infile,
-    i_pix_fmt,
-    width,
-    height,
-    process_using_8bits,
-    logfd,
-    debug,
-    plane_order=DEFAULT_PLANE_ORDER,
-):
-    # check input image resolution
-    assert width % 2 == 0, f"error: only accept images with even width {width=}"
-    assert height % 2 == 0, f"error: only accept images with even height {height=}"
-
-    # get format info
-    irdepth = INPUT_FORMATS[i_pix_fmt]["rdepth"]
-    iclen = INPUT_FORMATS[i_pix_fmt]["clen"]
-    iblen = INPUT_FORMATS[i_pix_fmt]["blen"]
-    iorder = INPUT_FORMATS[i_pix_fmt]["order"]
-
-    # make sure the width is OK
-    # for Bayer pixel formats, only the width is important
-    assert (
-        width % iclen == 0
-    ), f"error: invalid width ({width}) as clen: {iclen} for {i_pix_fmt}"
-
-    # make sure the dimensions are OK
-    file_size = os.stat(infile).st_size
-    expected_size = int((height * width * iblen) / iclen)
-    assert (
-        expected_size == file_size
-    ), f"error: invalid dimensions: {height}x{width}, {i_pix_fmt=}, {expected_size=}, {file_size=}"
-
-    # read the file into a buffer
-    with open(infile, "rb") as fin:
-        buffer = fin.read(expected_size)
-
-    # convert buffer into a bayer planar image
-
-    # create bayer planar image
-    dtype = np.uint8 if process_using_8bits else np.uint16
-    bayer_planar_image = np.zeros((4, height // 2, width // 2), dtype=dtype)
-
-    # open infile
-    row = 0
-    col = 0
-    i = 0
-    while True:
-        if debug > 0:
-            print(f"debug: {row=} {col=}", file=logfd)
-        # 1. get affected plane IDs
-        plane_ids = get_planes(iorder, row, plane_order)
-        # 2. read components from the input
-        components = ()
-        while len(components) < iclen:
-            length = INPUT_FORMATS[i_pix_fmt]["blen"]
-            idata = buffer[i : i + length]
-            i += length
-            if not idata:
-                break
-            components += INPUT_FORMATS[i_pix_fmt]["rfun"](idata, logfd, debug)
-        if len(components) < iclen:
-            # end of input
-            break
-        # 3. convert component depth to 16-bit
-        if not process_using_8bits and irdepth < 16:
-            components = list(c << (16 - irdepth) for c in components)
-        if debug > 1:
-            print(f"debug:  {components=}", file=logfd)
-        # 4. convert component order
-        for component in components:
-            plane_id = plane_ids[col % len(plane_ids)]
-            # get planar row and col
-            prow = row // 2
-            pcol = col // 2
-            bayer_planar_image[plane_id][prow][pcol] = component
-            if debug > 1:
-                print(f"debug: {plane_id=} {prow=} {pcol=}", file=logfd)
-            col += 1
-        # 5. update input row numbers
-        if col == width:
+    def GetPlanar(self):
+        # TODO(chema): fix this
+        plane_order = DEFAULT_PLANE_ORDER
+        if self.planar is None:
+            # convert buffer to planar
+            assert self.buffer is not None, "error: invalid buffer"
+            # get format info
+            pix_fmt = self.pix_fmt
+            rdepth = INPUT_FORMATS[pix_fmt]["rdepth"]
+            clen = INPUT_FORMATS[pix_fmt]["clen"]
+            order = INPUT_FORMATS[pix_fmt]["order"]
+            # create bayer planar image
+            dtype = np.uint8 if rdepth > 8 else np.uint16
+            self.planar = np.zeros((4, self.height // 2, self.width // 2), dtype=dtype)
+            # fill it up
+            row = 0
             col = 0
-            row += 1
-    return bayer_planar_image
+            i = 0
+            while True:
+                if self.debug > 0:
+                    print(f"debug: {row=} {col=}")
+                # 1. get affected plane IDs
+                plane_ids = get_planes(order, row, plane_order)
+                # 2. read components from the input
+                components = ()
+                while len(components) < clen:
+                    length = INPUT_FORMATS[pix_fmt]["blen"]
+                    idata = self.buffer[i : i + length]
+                    i += length
+                    if not idata:
+                        break
+                    components += INPUT_FORMATS[pix_fmt]["rfun"](idata, self.debug)
+                if len(components) < clen:
+                    # end of input
+                    break
+                # 3. convert component depth to 16-bit
+                if rdepth > 8 and rdepth < 16:
+                    components = list(c << (16 - rdepth) for c in components)
+                if self.debug > 1:
+                    print(f"debug:  {components=}")
+                # 4. convert component order
+                for component in components:
+                    plane_id = plane_ids[col % len(plane_ids)]
+                    # get planar row and col
+                    prow = row // 2
+                    pcol = col // 2
+                    self.planar[plane_id][prow][pcol] = component
+                    if self.debug > 1:
+                        print(f"debug: {plane_id=} {prow=} {pcol=}")
+                    col += 1
+                # 5. update input row numbers
+                if col == self.width:
+                    col = 0
+                    row += 1
+        return self.planar
 
+    # factory methods
+    @classmethod
+    def FromFile(cls, infile, pix_fmt, width, height, debug=0):
+        # check image resolution
+        assert width % 2 == 0, f"error: only accept images with even width {width=}"
+        assert height % 2 == 0, f"error: only accept images with even height {height=}"
+        # check image pix_fmt
+        pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
+        # get format info
+        clen = INPUT_FORMATS[pix_fmt]["clen"]
+        blen = INPUT_FORMATS[pix_fmt]["blen"]
+        order = INPUT_FORMATS[pix_fmt]["order"]
 
-# write bayer planar format into bayer packed image
-def write_bayer_image_planar_mode(
-    bayer_planar_image,
-    outfile,
-    o_pix_fmt,
-    width,
-    height,
-    process_using_8bits,
-    logfd,
-    debug,
-    plane_order=DEFAULT_PLANE_ORDER,
-):
-    # get format info
-    ordepth = OUTPUT_FORMATS[o_pix_fmt]["rdepth"]
-    oclen = OUTPUT_FORMATS[o_pix_fmt]["clen"]
-    oblen = OUTPUT_FORMATS[o_pix_fmt]["blen"]
-    oorder = OUTPUT_FORMATS[o_pix_fmt]["order"]
+        # make sure the width is OK
+        # for Bayer pixel formats, only the width is important
+        assert (
+            width % clen == 0
+        ), f"error: invalid width ({width}) as clen: {clen} for {pix_fmt}"
 
-    # make sure the width is OK
-    # for Bayer pixel formats, only the width is important
-    assert (
-        width % oclen == 0
-    ), f"error: invalid width ({width}) as clen: {oclen} for {o_pix_fmt}"
+        # make sure the dimensions are OK
+        file_size = os.stat(infile).st_size
+        expected_size = int((height * width * blen) / clen)
+        assert (
+            expected_size == file_size
+        ), f"error: invalid dimensions: {height}x{width}, {pix_fmt=}, {expected_size=}, {file_size=}"
 
-    row = 0
-    col = 0
-    with open(outfile, "wb") as fout:
+        # read the file into a buffer
+        with open(infile, "rb") as fin:
+            buffer = fin.read(expected_size)
+
+        return BayerImage(infile, buffer, None, None, width, height, pix_fmt, debug)
+
+    @classmethod
+    def FromPlanar(cls, planar, pix_fmt, width, height, debug=0):
+        # TODO(chema): fix this
+        plane_order = DEFAULT_PLANE_ORDER
+        # get format info
+        rdepth = OUTPUT_FORMATS[pix_fmt]["rdepth"]
+        clen = OUTPUT_FORMATS[pix_fmt]["clen"]
+        order = OUTPUT_FORMATS[pix_fmt]["order"]
+
+        # make sure the width is OK
+        # for Bayer pixel formats, only the width is important
+        assert (
+            width % clen == 0
+        ), f"error: invalid width ({width}) as clen: {clen} for {pix_fmt}"
+
+        row = 0
+        col = 0
+        buffer = b""
         while row < height:
             # 1. get affected plane IDs
-            plane_ids = get_planes(oorder, row, plane_order)
+            plane_ids = get_planes(order, row, plane_order)
             # 2. get components in order
             components = []
-            for component_id in range(oclen):
+            for component_id in range(clen):
                 plane_id = plane_ids[col % len(plane_ids)]
                 # get planar row and col
                 prow = row // 2
                 pcol = col // 2
                 if debug > 0:
-                    print(f"debug: {plane_id=} {prow=} {pcol=}", file=logfd)
-                component = bayer_planar_image[plane_id][prow][pcol]
+                    print(f"debug: {plane_id=} {prow=} {pcol=}")
+                # TODO(chema): is planar a list or a dict?
+                component = planar[plane_id][prow][pcol]
                 components.append(component)
                 col += 1
             # 3. convert component depth from 16-bit
-            if not process_using_8bits and ordepth < 16:
-                components = list(c >> (16 - ordepth) for c in components)
+            if rdepth > 8 and rdepth < 16:
+                components = list(c >> (16 - rdepth) for c in components)
             if debug > 1:
-                print(f"debug:  {components=}", file=logfd)
+                print(f"debug:  {components=}")
             # 4. write components to the output
-            odata = OUTPUT_FORMATS[o_pix_fmt]["wfun"](
-                *components[0:oclen], logfd, debug
-            )
-            fout.write(odata)
+            odata = OUTPUT_FORMATS[pix_fmt]["wfun"](*components[0:clen], debug)
+            buffer += odata
             # 5. update row numbers
             if col == width:
                 col = 0
                 row += 1
+        return BayerImage("", buffer, None, planar, width, height, pix_fmt, debug)
+
+
+# TODO(chema): fix plane order
+def get_planes(order, row, plane_order):
+    assert set(order) == COLOR_COMPONENTS, f"error: invalid Bayer components {order}"
+    plane_names = order[0:2] if row % 2 == 0 else order[2:4]
+    plane_ids = list(plane_order.index(plane_name) for plane_name in list(plane_names))
+    return plane_ids
 
 
 def get_options(argv):
@@ -1192,15 +1200,6 @@ def get_options(argv):
         metavar="output-file",
         help="output file",
     )
-    parser.add_argument(
-        "--logfile",
-        action="store",
-        dest="logfile",
-        type=str,
-        default=default_values["logfile"],
-        metavar="log-file",
-        help="log file",
-    )
 
     # do the parsing
     options = parser.parse_args(argv[1:])
@@ -1210,7 +1209,7 @@ def get_options(argv):
 
 
 def convert_image_planar_mode(
-    infile, i_pix_fmt, width, height, outfile, o_pix_fmt, logfd, debug
+    infile, i_pix_fmt, width, height, outfile, o_pix_fmt, debug
 ):
     # get common depth
     # check the input pixel format
@@ -1226,34 +1225,22 @@ def convert_image_planar_mode(
         process_using_8bits = True
 
     # read input image file (packed) into planar
-    bayer_planar_image = read_bayer_image_planar_mode(
-        infile,
-        i_pix_fmt,
-        width,
-        height,
-        process_using_8bits,
-        logfd,
-        debug,
-    )
+    bayer_image = BayerImage.FromFile(infile, i_pix_fmt, width, height)
 
     # write planar into output image file (packed)
-    write_bayer_image_planar_mode(
-        bayer_planar_image,
-        outfile,
-        o_pix_fmt,
-        width,
-        height,
-        process_using_8bits,
-        logfd,
-        debug,
+    bayer_image_copy = BayerImage.FromPlanar(
+        bayer_image.GetPlanar(), o_pix_fmt, width, height, debug
     )
+    with open(outfile, "wb") as fout:
+        fout.write(bayer_image_copy.GetBuffer())
+
     ffmpeg_support = OUTPUT_FORMATS[o_pix_fmt]["ffmpeg"]
     if ffmpeg_support:
         print(
             f"info: {itools_common.FFMPEG_SILENT} -f rawvideo -pixel_format {o_pix_fmt} "
             f"-s {width}x{height} -i {outfile} {outfile}.png"
         )
-    return bayer_planar_image
+    return bayer_image.GetPlanar()
 
 
 def main(argv):
@@ -1262,11 +1249,6 @@ def main(argv):
     if options.version:
         print("version: %s" % __version__)
         sys.exit(0)
-    # get logfile descriptor
-    if options.logfile is None:
-        logfd = sys.stdout
-    else:
-        logfd = open(options.logfile, "w")
     # get infile/outfile
     if options.infile == "-" or options.infile is None:
         options.infile = "/dev/fd/0"
@@ -1283,7 +1265,6 @@ def main(argv):
         options.height,
         options.outfile,
         options.o_pix_fmt,
-        logfd,
         options.debug,
     )
 

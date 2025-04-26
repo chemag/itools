@@ -16,7 +16,7 @@ import importlib
 
 itools_common = importlib.import_module("itools-common")
 itools_generate = importlib.import_module("itools-generate")
-itools_bayer_conversor = importlib.import_module("itools-bayer-conversor")
+itools_bayer = importlib.import_module("itools-bayer")
 
 
 RANGE_CONVERSION_LIST = ("fr2fr", "fr2lr", "lr2fr", "lr2lr")
@@ -429,14 +429,13 @@ def main(argv):
         )
         o_pix_fmt = "pgAA"
         cdepth = 16
-        itools_bayer_conversor.wfun_image_file(
+        itools_bayer.wfun_image_file(
             planar_image,
             options.outfile,
             o_pix_fmt,
             options.width,
             options.height,
             cdepth,
-            logfd,
             options.debug,
         )
 

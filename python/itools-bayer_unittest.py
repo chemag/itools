@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-"""itools-bayer-conversor_unittest.py: itools bayer unittest.
+"""itools-bayer_unittest.py: itools bayer unittest.
 
 # runme
-# $ ./itools-bayer-conversor_unittest.py
+# $ ./itools-bayer_unittest.py
 """
 
 import importlib
@@ -15,7 +15,7 @@ import string
 import tempfile
 import unittest
 
-itools_bayer_conversor = importlib.import_module("itools-bayer-conversor")
+itools_bayer = importlib.import_module("itools-bayer")
 
 
 processImageTestCases = [
@@ -280,19 +280,18 @@ class MainTest(unittest.TestCase):
             print("...running %s" % test_case["name"])
             # prepare input file
             infile = tempfile.NamedTemporaryFile(
-                prefix="itools-bayer-conversor_unittest.", suffix=".bin"
+                prefix="itools-bayer_unittest.", suffix=".bin"
             ).name
             with open(infile, "wb") as f:
                 f.write(test_case["input"])
             # prepare output file(s)
             outfile = tempfile.NamedTemporaryFile(
-                prefix="itools-bayer-conversor_unittest.", suffix=".bin"
+                prefix="itools-bayer_unittest.", suffix=".bin"
             ).name
             expected_output = test_case["output"]
             logfile = tempfile.NamedTemporaryFile(
-                prefix="itools-bayer-conversor_unittest.", suffix=".log"
+                prefix="itools-bayer_unittest.", suffix=".log"
             ).name
-            logfd = open(logfile, "w")
             # prepare parameters
             i_pix_fmt = test_case["i_pix_fmt"]
             width = test_case["width"]
@@ -300,8 +299,8 @@ class MainTest(unittest.TestCase):
             o_pix_fmt = test_case["o_pix_fmt"]
             debug = test_case["debug"]
             # 1. run forward conversion
-            bayer_planar_image = itools_bayer_conversor.convert_image_planar_mode(
-                infile, i_pix_fmt, width, height, outfile, o_pix_fmt, logfd, debug
+            bayer_planar_image = itools_bayer.convert_image_planar_mode(
+                infile, i_pix_fmt, width, height, outfile, o_pix_fmt, debug
             )
             # check the planar representation is correct
             absolute_tolerance = 1
@@ -320,8 +319,8 @@ class MainTest(unittest.TestCase):
                 f"error on forward test {test_case['name']}",
             )
             # 2. run loop conversion
-            _ = itools_bayer_conversor.convert_image_planar_mode(
-                infile, i_pix_fmt, width, height, outfile, i_pix_fmt, logfd, debug
+            _ = itools_bayer.convert_image_planar_mode(
+                infile, i_pix_fmt, width, height, outfile, i_pix_fmt, debug
             )
             # read output file
             with open(outfile, "rb") as f:
@@ -332,7 +331,6 @@ class MainTest(unittest.TestCase):
                 output,
                 f"error on loop test {test_case['name']}",
             )
-            logfd.close()
 
 
 if __name__ == "__main__":

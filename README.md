@@ -4,7 +4,7 @@ itools is a repo containing a set of tools for image processing.
 It contains a submodule so when cloning do not forget:
 " --recurse-submodules"
 
-# 1. itools-bayer-conversion.py
+# 1. itools-bayer.py
 
 This tool converts between different Bayer formats.
 
