@@ -239,11 +239,16 @@ def convert_ydgcocg_to_rg1g2b_components(bayer_y, bayer_dg, bayer_co, bayer_cg, 
 
 # reads a bayer image as packed
 def read_bayer_image_packed_mode(infile, width, height, depth):
+    # read the file into a buffer
+    with open(infile, "rb") as fin:
+        buffer = fin.read(expected_size)
+
+    # convert buffer into a bayer packed image
     if depth == 8:
-        bayer_image = np.fromfile(infile, dtype=np.uint8)
+        bayer_image = np.frombuffer(buffer, dtype=np.uint8)
     elif depth == 16:
-        bayer_image = np.fromfile(infile, dtype=np.uint16)  # little-endian
-        # bayer_image = np.fromfile(infile, dtype=">u2")  # big-endian
+        bayer_image = np.frombuffer(buffer, dtype=np.uint16)  # little-endian
+        # bayer_image = np.frombuffer(buffer, dtype=">u2")  # big-endian
     elif depth in (10, 12, 14):
         # cv2 assumes color to be 16-bit depth if dtype is uint16
         # For 10/12/14-bit color, let's expand to 16-bit before
@@ -252,7 +257,7 @@ def read_bayer_image_packed_mode(infile, width, height, depth):
         # support expanded and/or packed bayer formats
         # if expanded:
         # a. read as little-endian
-        bayer_image = np.fromfile(infile, dtype=np.uint16)
+        bayer_image = np.frombuffer(buffer, dtype=np.uint16)
         # b. expand to 16 bits
         bayer_image <<= 16 - depth
         # elif packed:
