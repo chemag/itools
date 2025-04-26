@@ -300,7 +300,7 @@ class MainTest(unittest.TestCase):
             o_pix_fmt = test_case["o_pix_fmt"]
             debug = test_case["debug"]
             # 1. run forward conversion
-            bayer_planar_image = itools_bayer_conversor.process_image(
+            bayer_planar_image = itools_bayer_conversor.convert_image_planar_mode(
                 infile, i_pix_fmt, width, height, outfile, o_pix_fmt, logfd, debug
             )
             # check the planar representation is correct
@@ -320,7 +320,7 @@ class MainTest(unittest.TestCase):
                 f"error on forward test {test_case['name']}",
             )
             # 2. run loop conversion
-            _ = itools_bayer_conversor.process_image(
+            _ = itools_bayer_conversor.convert_image_planar_mode(
                 infile, i_pix_fmt, width, height, outfile, i_pix_fmt, logfd, debug
             )
             # read output file

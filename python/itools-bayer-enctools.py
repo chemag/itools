@@ -237,7 +237,8 @@ def convert_ydgcocg_to_rg1g2b_components(bayer_y, bayer_dg, bayer_co, bayer_cg, 
     return bayer_r, bayer_g1, bayer_g2, bayer_b
 
 
-def read_bayer_image(infile, width, height, depth):
+# reads a bayer image as packed
+def read_bayer_image_packed_mode(infile, width, height, depth):
     if depth == 8:
         bayer_image = np.fromfile(infile, dtype=np.uint8)
     elif depth == 16:
@@ -294,7 +295,7 @@ def process_file_bayer_ydgcocg(
     quality_list,
     debug,
 ):
-    bayer_image = read_bayer_image(infile, width, height, depth)
+    bayer_image = read_bayer_image_packed_mode(infile, width, height, depth)
     return process_file_bayer_ydgcocg_array(
         bayer_image,
         depth,
@@ -410,7 +411,7 @@ def process_file_bayer_ydgcocg_420(
     quality_list,
     debug,
 ):
-    bayer_image = read_bayer_image(infile, width, height, depth)
+    bayer_image = read_bayer_image_packed_mode(infile, width, height, depth)
     return process_file_bayer_ydgcocg_420_array(
         bayer_image,
         depth,
@@ -536,7 +537,7 @@ def process_file_bayer_single(
     quality_list,
     debug,
 ):
-    bayer_image = read_bayer_image(infile, width, height, depth)
+    bayer_image = read_bayer_image_packed_mode(infile, width, height, depth)
     return process_file_bayer_single_array(
         bayer_image,
         depth,
@@ -633,7 +634,7 @@ def process_file_bayer_rggb(
     quality_list,
     debug,
 ):
-    bayer_image = read_bayer_image(infile, width, height, depth)
+    bayer_image = read_bayer_image_packed_mode(infile, width, height, depth)
     return process_file_bayer_rggb_array(
         bayer_image,
         depth,
@@ -750,7 +751,7 @@ def process_file_yuv444(
     quality_list,
     debug,
 ):
-    bayer_image = read_bayer_image(infile, width, height, depth)
+    bayer_image = read_bayer_image_packed_mode(infile, width, height, depth)
     return process_file_yuv444_array(
         bayer_image,
         depth,
@@ -849,7 +850,7 @@ def process_file_yuv420(
     quality_list,
     debug,
 ):
-    bayer_image = read_bayer_image(infile, width, height, depth)
+    bayer_image = read_bayer_image_packed_mode(infile, width, height, depth)
     return process_file_yuv420_array(
         bayer_image,
         depth,
@@ -956,7 +957,7 @@ def process_file_rgb(
     quality_list,
     debug,
 ):
-    bayer_image = read_bayer_image(infile, width, height, depth)
+    bayer_image = read_bayer_image_packed_mode(infile, width, height, depth)
     return process_file_rgb_array(
         bayer_image,
         depth,

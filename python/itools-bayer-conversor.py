@@ -26,7 +26,7 @@ COLOR_COMPONENTS = set("RGgB")
 DEFAULT_PLANE_ORDER = list("GgRB")
 
 
-# read/write functions
+# planar read/write functions
 
 
 # 2 bytes -> 2 components
@@ -208,9 +208,9 @@ BAYER_FORMATS = {
         "cdepth": 8,
         # component read depth (in bits)
         "rdepth": 8,
-        # read function
+        # read function (planar)
         "rfun": rfun_8,
-        # write function
+        # write function (planar)
         "wfun": wfun_8,
         # ffmpeg support
         "ffmpeg": True,
@@ -897,7 +897,7 @@ def get_planes(order, row, plane_order):
 
 
 # read bayer packed format into bayer planar image
-def rfun_image_file(
+def read_bayer_image_planar_mode(
     infile,
     i_pix_fmt,
     width,
@@ -976,7 +976,7 @@ def rfun_image_file(
 
 
 # write bayer planar format into bayer packed image
-def wfun_image_file(
+def write_bayer_image_planar_mode(
     bayer_planar_image,
     outfile,
     o_pix_fmt,
@@ -1161,7 +1161,9 @@ def get_options(argv):
     return options
 
 
-def process_image(infile, i_pix_fmt, width, height, outfile, o_pix_fmt, logfd, debug):
+def convert_image_planar_mode(
+    infile, i_pix_fmt, width, height, outfile, o_pix_fmt, logfd, debug
+):
     # get common depth
     # check the input pixel format
     i_pix_fmt = check_input_pix_fmt(i_pix_fmt)
@@ -1176,7 +1178,7 @@ def process_image(infile, i_pix_fmt, width, height, outfile, o_pix_fmt, logfd, d
         process_using_8bits = True
 
     # read input image file (packed) into planar
-    bayer_planar_image = rfun_image_file(
+    bayer_planar_image = read_bayer_image_planar_mode(
         infile,
         i_pix_fmt,
         width,
@@ -1187,7 +1189,7 @@ def process_image(infile, i_pix_fmt, width, height, outfile, o_pix_fmt, logfd, d
     )
 
     # write planar into output image file (packed)
-    wfun_image_file(
+    write_bayer_image_planar_mode(
         bayer_planar_image,
         outfile,
         o_pix_fmt,
@@ -1226,7 +1228,7 @@ def main(argv):
     if options.debug > 0:
         print(f"debug: {options}")
 
-    process_image(
+    convert_image_planar_mode(
         options.infile,
         options.i_pix_fmt,
         options.width,

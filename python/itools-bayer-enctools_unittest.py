@@ -66,7 +66,8 @@ class MainTest(unittest.TestCase):
             # 1. run RG1G2B to YDgCoCg function
             bayer_y, bayer_dg, bayer_co, bayer_cg = (
                 itools_bayer_enctool.convert_rg1g2b_to_ydgcocg(
-                    test_case["bayer_image"], depth,
+                    test_case["bayer_image"],
+                    depth,
                 )
             )
             # check the values
@@ -79,7 +80,9 @@ class MainTest(unittest.TestCase):
                 bayer_y, bayer_dg, bayer_co, bayer_cg, depth
             )
             absolute_tolerance = 1
-            np.testing.assert_allclose(test_case["bayer_image"], bayer_image, atol=absolute_tolerance)
+            np.testing.assert_allclose(
+                test_case["bayer_image"], bayer_image, atol=absolute_tolerance
+            )
 
 
 if __name__ == "__main__":
