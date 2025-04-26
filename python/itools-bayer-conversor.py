@@ -847,6 +847,9 @@ OUTPUT_ALIAS_LIST = list(
     alias for v in OUTPUT_FORMATS.values() if "alias" in v for alias in v["alias"]
 )
 
+# full list of Bayer pixel formats
+I_PIX_FMT_LIST = INPUT_CANONICAL_LIST + INPUT_ALIAS_LIST
+O_PIX_FMT_LIST = OUTPUT_CANONICAL_LIST + OUTPUT_ALIAS_LIST
 
 default_values = {
     "debug": 0,
@@ -1079,7 +1082,6 @@ def get_options(argv):
         const=-1,
         help="Zero verbosity",
     )
-    I_PIX_FMT_LIST = INPUT_CANONICAL_LIST + INPUT_ALIAS_LIST
     input_choices_str = " | ".join(I_PIX_FMT_LIST)
     parser.add_argument(
         "--i_pix_fmt",
@@ -1091,7 +1093,6 @@ def get_options(argv):
         metavar=f"[{input_choices_str}]",
         help="input pixel format",
     )
-    O_PIX_FMT_LIST = OUTPUT_CANONICAL_LIST + OUTPUT_ALIAS_LIST
     output_choices_str = " | ".join(O_PIX_FMT_LIST)
     parser.add_argument(
         "--o_pix_fmt",
