@@ -84,6 +84,7 @@ class MainTest(unittest.TestCase):
                 test_case["bayer_packed_image"],
                 bayer_packed_image,
                 atol=absolute_tolerance,
+                err_msg=f"error on forward case {test_case['name']}",
             )
 
 

@@ -308,6 +308,7 @@ class MainTest(unittest.TestCase):
                 test_case["bayer_planar_image"],
                 bayer_planar_image,
                 atol=absolute_tolerance,
+                err_msg=f"error on forward case {test_case['name']}"
             )
             # read output file
             with open(outfile, "rb") as f:
