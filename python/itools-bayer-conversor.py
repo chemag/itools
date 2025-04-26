@@ -932,7 +932,7 @@ def rfun_image_file(
 
     # create bayer planar image
     dtype = np.uint8 if process_using_8bits else np.uint16
-    planar_image = np.zeros((4, height // 2, width // 2), dtype=dtype)
+    bayer_planar_image = np.zeros((4, height // 2, width // 2), dtype=dtype)
 
     # open infile
     row = 0
@@ -964,7 +964,7 @@ def rfun_image_file(
                 # get planar row and col
                 prow = row // 2
                 pcol = col // 2
-                planar_image[plane_id][prow][pcol] = component
+                bayer_planar_image[plane_id][prow][pcol] = component
                 if debug > 1:
                     print(f"debug: {plane_id=} {prow=} {pcol=}", file=logfd)
                 col += 1
@@ -972,12 +972,12 @@ def rfun_image_file(
             if col == width:
                 col = 0
                 row += 1
-    return planar_image
+    return bayer_planar_image
 
 
 # write bayer planar format into bayer packed image
 def wfun_image_file(
-    planar_image,
+    bayer_planar_image,
     outfile,
     o_pix_fmt,
     width,
@@ -1014,7 +1014,7 @@ def wfun_image_file(
                 pcol = col // 2
                 if debug > 0:
                     print(f"debug: {plane_id=} {prow=} {pcol=}", file=logfd)
-                component = planar_image[plane_id][prow][pcol]
+                component = bayer_planar_image[plane_id][prow][pcol]
                 components.append(component)
                 col += 1
             # 3. convert component depth from 16-bit
@@ -1176,7 +1176,7 @@ def process_image(infile, i_pix_fmt, width, height, outfile, o_pix_fmt, logfd, d
         process_using_8bits = True
 
     # read input image file (packed) into planar
-    planar_image = rfun_image_file(
+    bayer_planar_image = rfun_image_file(
         infile,
         i_pix_fmt,
         width,
@@ -1188,7 +1188,7 @@ def process_image(infile, i_pix_fmt, width, height, outfile, o_pix_fmt, logfd, d
 
     # write planar into output image file (packed)
     wfun_image_file(
-        planar_image,
+        bayer_planar_image,
         outfile,
         o_pix_fmt,
         width,
@@ -1203,7 +1203,7 @@ def process_image(infile, i_pix_fmt, width, height, outfile, o_pix_fmt, logfd, d
             f"info: {itools_common.FFMPEG_SILENT} -f rawvideo -pixel_format {o_pix_fmt} "
             f"-s {width}x{height} -i {outfile} {outfile}.png"
         )
-    return planar_image
+    return bayer_planar_image
 
 
 def main(argv):

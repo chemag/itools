@@ -27,7 +27,7 @@ processImageTestCases = [
         "o_pix_fmt": "bayer_bggr8",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
-        "bayer_planar": np.array(
+        "bayer_planar_image": np.array(
             [
                 [[2, 4], [10, 12]],
                 [[6, 8], [14, 16]],
@@ -47,7 +47,7 @@ processImageTestCases = [
         "o_pix_fmt": "bayer_bggr8",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
-        "bayer_planar": np.array(
+        "bayer_planar_image": np.array(
             [
                 [[2, 4], [10, 12]],
                 [[5, 7], [13, 15]],
@@ -66,7 +66,7 @@ processImageTestCases = [
         "o_pix_fmt": "bayer_gbrg8",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
-        "bayer_planar": np.array(
+        "bayer_planar_image": np.array(
             [
                 [[2, 4], [10, 12]],
                 [[5, 7], [13, 15]],
@@ -85,7 +85,7 @@ processImageTestCases = [
         "o_pix_fmt": "bayer_gbrg8",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
-        "bayer_planar": np.array(
+        "bayer_planar_image": np.array(
             [
                 [[2, 4], [10, 12]],
                 [[5, 7], [13, 15]],
@@ -104,7 +104,7 @@ processImageTestCases = [
         "o_pix_fmt": "bayer_grbg8",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
-        "bayer_planar": np.array(
+        "bayer_planar_image": np.array(
             [
                 [[2, 4], [10, 12]],
                 [[5, 7], [13, 15]],
@@ -123,7 +123,7 @@ processImageTestCases = [
         "o_pix_fmt": "bayer_ggbr8",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
-        "bayer_planar": np.array(
+        "bayer_planar_image": np.array(
             [
                 [[2, 4], [10, 12]],
                 [[5, 7], [13, 15]],
@@ -142,7 +142,7 @@ processImageTestCases = [
         "o_pix_fmt": "bayer_ggrb8",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
-        "bayer_planar": np.array(
+        "bayer_planar_image": np.array(
             [
                 [[2, 4], [10, 12]],
                 [[5, 7], [13, 15]],
@@ -161,7 +161,7 @@ processImageTestCases = [
         "o_pix_fmt": "bayer_rgbg8",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
-        "bayer_planar": np.array(
+        "bayer_planar_image": np.array(
             [
                 [[2, 4], [10, 12]],
                 [[5, 7], [13, 15]],
@@ -180,7 +180,7 @@ processImageTestCases = [
         "o_pix_fmt": "bayer_bgrg8",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
-        "bayer_planar": np.array(
+        "bayer_planar_image": np.array(
             [
                 [[2, 4], [10, 12]],
                 [[5, 7], [13, 15]],
@@ -200,7 +200,7 @@ processImageTestCases = [
         "o_pix_fmt": "bayer_bggr16le",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
-        "bayer_planar": np.array(
+        "bayer_planar_image": np.array(
             [
                 [[0x200, 0x400], [0xA00, 0xC00]],
                 [[0x600, 0x800], [0xE00, 0x1000]],
@@ -219,7 +219,7 @@ processImageTestCases = [
         "o_pix_fmt": "bayer_bggr16be",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
-        "bayer_planar": np.array(
+        "bayer_planar_image": np.array(
             [
                 [[0x200, 0x400], [0xA00, 0xC00]],
                 [[0x600, 0x800], [0xE00, 0x1000]],
@@ -239,7 +239,7 @@ processImageTestCases = [
         "o_pix_fmt": "bayer_rggb16le",
         "debug": 0,
         "input": b"\x01\x00\x03\x01\x05\x02\x07\x03\x09\x00\x0b\x01\x0d\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
-        "bayer_planar": np.array(
+        "bayer_planar_image": np.array(
             [
                 [[0x40C0, 0xC1C0], [0x44C0, 0xC5C0]],
                 [[0x240, 0x8340], [0x640, 0x8740]],
@@ -259,7 +259,7 @@ processImageTestCases = [
         "o_pix_fmt": "bayer_bggr16le",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14",
-        "bayer_planar": np.array(
+        "bayer_planar_image": np.array(
             [
                 [[0x240, 0x400], [0xCC0, 0xE00]],
                 [[0x680, 0x800], [0x1000, 0x1240]],
@@ -300,13 +300,15 @@ class MainTest(unittest.TestCase):
             o_pix_fmt = test_case["o_pix_fmt"]
             debug = test_case["debug"]
             # 1. run forward conversion
-            bayer_planar = itools_bayer_conversor.process_image(
+            bayer_planar_image = itools_bayer_conversor.process_image(
                 infile, i_pix_fmt, width, height, outfile, o_pix_fmt, logfd, debug
             )
             # check the planar representation is correct
             absolute_tolerance = 1
             np.testing.assert_allclose(
-                test_case["bayer_planar"], bayer_planar, atol=absolute_tolerance
+                test_case["bayer_planar_image"],
+                bayer_planar_image,
+                atol=absolute_tolerance,
             )
             # read output file
             with open(outfile, "rb") as f:
