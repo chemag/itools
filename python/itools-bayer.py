@@ -1225,14 +1225,6 @@ def convert_image_planar_mode(
     # check the output pixel format
     o_pix_fmt = get_canonical_output_pix_fmt(o_pix_fmt)
 
-    # get common depth
-    irdepth = INPUT_FORMATS[i_pix_fmt]["rdepth"]
-    ordepth = OUTPUT_FORMATS[o_pix_fmt]["rdepth"]
-    process_using_8bits = False
-    if irdepth == 8 and ordepth == 8:
-        # process the planes in 8-bit planes
-        process_using_8bits = True
-
     # read input image file (packed) into planar
     bayer_image = BayerImage.FromFile(infile, i_pix_fmt, width, height)
 
