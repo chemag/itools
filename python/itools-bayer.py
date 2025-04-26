@@ -1008,14 +1008,18 @@ class BayerImage:
 
     @classmethod
     def GetPlanarOrder(cls, planar_order):
-        assert set(planar_order) == COLOR_COMPONENTS, f"error: invalid Bayer components {planar_order}"
+        assert (
+            set(planar_order) == COLOR_COMPONENTS
+        ), f"error: invalid Bayer components {planar_order}"
         return planar_order
 
     @classmethod
     def GetPlaneIds(cls, order, row, planar_order):
         order = cls.GetPlanarOrder(order)
         plane_names = order[0:2] if row % 2 == 0 else order[2:4]
-        plane_ids = list(planar_order.index(plane_name) for plane_name in list(plane_names))
+        plane_ids = list(
+            planar_order.index(plane_name) for plane_name in list(plane_names)
+        )
         return plane_ids
 
     # factory methods
@@ -1095,6 +1099,11 @@ class BayerImage:
                 col = 0
                 row += 1
         return BayerImage("", buffer, None, planar, width, height, pix_fmt, debug)
+
+    @classmethod
+    def FromPacked(cls, packed, pix_fmt, width, height, debug=0):
+        # TODO(chema): implement this
+        raise AssertionError("BayerImage::FromPacked(): unimplemented")
 
 
 def get_options(argv):
@@ -1230,7 +1239,12 @@ def convert_image_planar_mode(
 
     # write planar into output image file (packed)
     bayer_image_copy = BayerImage.FromPlanar(
-        bayer_image.GetPlanar(planar_order), o_pix_fmt, width, height, planar_order, debug
+        bayer_image.GetPlanar(planar_order),
+        o_pix_fmt,
+        width,
+        height,
+        planar_order,
+        debug,
     )
     with open(outfile, "wb") as fout:
         fout.write(bayer_image_copy.GetBuffer())

@@ -355,6 +355,7 @@ class MainTest(unittest.TestCase):
             o_pix_fmt = test_case["o_pix_fmt"]
             planar_order = test_case["planar_order"]
             debug = test_case["debug"]
+
             # 1. run forward conversion
             bayer_planar_image = itools_bayer.convert_image_planar_mode(
                 infile,
@@ -374,7 +375,6 @@ class MainTest(unittest.TestCase):
                 atol=absolute_tolerance,
                 err_msg=f"error on forward case {test_case['name']}",
             )
-
             # read output file
             with open(outfile, "rb") as f:
                 output = f.read()
