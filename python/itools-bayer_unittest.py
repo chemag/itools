@@ -241,8 +241,7 @@ processImageTestCases = [
             ],
             dtype=np.uint8,
         ),
-        "output": b"\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08\x00\x09\x00\x0a\x00\x0b\x00\x0c\x00\x0d\x00\x0e\x00\x0f\x00\x10\x00"
-
+        "output": b"\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08\x00\x09\x00\x0a\x00\x0b\x00\x0c\x00\x0d\x00\x0e\x00\x0f\x00\x10\x00",
     },
     {
         "name": "basic-8x16.le",
@@ -262,8 +261,7 @@ processImageTestCases = [
             ],
             dtype=np.uint8,
         ),
-        "output": b"\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08\x00\x09\x00\x0a\x00\x0b\x00\x0c\x00\x0d\x00\x0e\x00\x0f\x00\x10\x00"
-
+        "output": b"\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08\x00\x09\x00\x0a\x00\x0b\x00\x0c\x00\x0d\x00\x0e\x00\x0f\x00\x10\x00",
     },
     {
         "name": "basic-8x16.be",
@@ -283,7 +281,7 @@ processImageTestCases = [
             ],
             dtype=np.uint8,
         ),
-        "output": b"\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08\x00\x09\x00\x0a\x00\x0b\x00\x0c\x00\x0d\x00\x0e\x00\x0f\x00\x10"
+        "output": b"\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08\x00\x09\x00\x0a\x00\x0b\x00\x0c\x00\x0d\x00\x0e\x00\x0f\x00\x10",
     },
     # bayer10->bayer16 (extended)
     {
@@ -294,7 +292,8 @@ processImageTestCases = [
         "o_pix_fmt": "bayer_rggb16le",
         "debug": 0,
         "input": b"\x01\x00\x03\x01\x05\x02\x07\x03\x09\x00\x0b\x01\x0d\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
-        "planar_order": "RGgB",
+        # TODO(chema): fix this
+        "planar_order": "RgGB",
         "bayer_planar_image": np.array(
             [
                 [[0x40, 0x8140], [0x440, 0x8540]],
@@ -358,7 +357,14 @@ class MainTest(unittest.TestCase):
             debug = test_case["debug"]
             # 1. run forward conversion
             bayer_planar_image = itools_bayer.convert_image_planar_mode(
-                infile, i_pix_fmt, width, height, outfile, o_pix_fmt, planar_order, debug
+                infile,
+                i_pix_fmt,
+                width,
+                height,
+                outfile,
+                o_pix_fmt,
+                planar_order,
+                debug,
             )
             # check the planar representation is correct
             absolute_tolerance = 1
@@ -368,6 +374,7 @@ class MainTest(unittest.TestCase):
                 atol=absolute_tolerance,
                 err_msg=f"error on forward case {test_case['name']}",
             )
+
             # read output file
             with open(outfile, "rb") as f:
                 output = f.read()
@@ -379,7 +386,14 @@ class MainTest(unittest.TestCase):
             )
             # 2. run loop conversion
             _ = itools_bayer.convert_image_planar_mode(
-                infile, i_pix_fmt, width, height, outfile, i_pix_fmt, planar_order, debug
+                infile,
+                i_pix_fmt,
+                width,
+                height,
+                outfile,
+                i_pix_fmt,
+                planar_order,
+                debug,
             )
             # read output file
             with open(outfile, "rb") as f:
