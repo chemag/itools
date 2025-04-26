@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
 
-"""Module to convert (raw) Bayer (CFA) images to ffmpeg bayer formats.
+"""Module to convert (raw) Bayer (CFA) image pixel formats.
 
-ffmpeg only supports 8 Bayer formats (12 when considering that the 16-bit
-formats exist in both BE and LE flavors). We want to allow converting
-other Bayer formats to any of the ffmpeg ones. Main goal is to allow
-ffmpeg access to generic Bayer formats.
+Supported formats:
+* all ffmpeg formats
+* all Linux V4L2 formats
+* some MIPI-RAW formats.
+
+Notes:
+* ffmpeg only supports 8 Bayer formats (12 when considering that the 16-bit
+  formats exist in both BE and LE flavors). We want to allow converting
+  other Bayer formats to any of the ffmpeg ones. Main goal is to allow
+  ffmpeg access to generic Bayer formats.
 """
 
 
