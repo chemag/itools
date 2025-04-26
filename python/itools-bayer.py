@@ -1091,18 +1091,18 @@ class BayerImage:
             plane_ids = cls.GetPlaneIds(order, row, planar_order)
             # 2. get components in order
             components = []
-            for component_id in range(clen):
+            for _ in range(clen):
                 plane_id = plane_ids[col % len(plane_ids)]
                 # get planar row and col
                 prow = row // 2
                 pcol = col // 2
                 if debug > 0:
                     print(f"debug: {plane_id=} {prow=} {pcol=}")
-                # TODO(chema): is planar a list or a dict?
+                # planar a dict of planes
                 component = planar[plane_id][prow][pcol]
                 components.append(component)
                 col += 1
-            # 3. convert component depth from 16-bit
+            # 3. convert component depth (if needed)
             if rdepth > 8 and rdepth < 16:
                 components = list(c >> (16 - rdepth) for c in components)
             if debug > 1:
@@ -1118,8 +1118,42 @@ class BayerImage:
 
     @classmethod
     def FromPacked(cls, packed, pix_fmt, width, height, debug=0):
-        # TODO(chema): implement this
-        raise AssertionError("BayerImage::FromPacked(): unimplemented")
+        # get format info
+        rdepth = OUTPUT_FORMATS[pix_fmt]["rdepth"]
+        clen = OUTPUT_FORMATS[pix_fmt]["clen"]
+        order = OUTPUT_FORMATS[pix_fmt]["order"]
+
+        # make sure the width is OK
+        # for Bayer pixel formats, only the width is important
+        assert (
+            width % clen == 0
+        ), f"error: invalid width ({width}) as clen: {clen} for {pix_fmt}"
+
+        row = 0
+        col = 0
+        buffer = b""
+        while row < height:
+            # 1. get components in order
+            components = []
+            for _ in range(clen):
+                if debug > 0:
+                    print(f"debug: {row=} {col=}")
+                component = packed[row][col]
+                components.append(component)
+                col += 1
+            # 2. convert component depth (if needed)
+            if rdepth > 8 and rdepth < 16:
+                components = list(c >> (16 - rdepth) for c in components)
+            if debug > 1:
+                print(f"debug:  {components=}")
+            # 3. write components to the output
+            odata = OUTPUT_FORMATS[pix_fmt]["wfun"](*components[0:clen], debug)
+            buffer += odata
+            # 5. update row numbers
+            if col == width:
+                col = 0
+                row += 1
+        return BayerImage("", buffer, packed, None, width, height, pix_fmt, debug)
 
 
 def get_options(argv):
@@ -1250,7 +1284,7 @@ def convert_image_planar_mode(
     # check the output pixel format
     o_pix_fmt = get_canonical_output_pix_fmt(o_pix_fmt)
 
-    # read input image file (packed) into planar
+    # read input image file
     bayer_image = BayerImage.FromFile(infile, i_pix_fmt, width, height, debug)
 
     # write planar into output image file (packed)
