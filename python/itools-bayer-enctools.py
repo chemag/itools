@@ -22,6 +22,7 @@ import sys
 import tempfile
 
 itools_version = importlib.import_module("itools-version")
+itools_bayer = importlib.import_module("itools-bayer-conversor")
 
 
 DEFAULT_QUALITIES = [25, 75, 85, 95, 96, 97, 98, 99]
@@ -48,7 +49,7 @@ default_values = {
     "workdir": tempfile.gettempdir(),
     "width": -1,
     "height": -1,
-    "depth": 8,
+    "pix_fmt": "bayer_rggb8",
     "infile_list": None,
     "outfile": None,
 }
@@ -58,7 +59,7 @@ COLUMN_LIST = [
     "infile",
     "width",
     "height",
-    "depth",
+    "pix_fmt",
     "approach",
     "codec",
     "quality",
@@ -239,37 +240,6 @@ def convert_ydgcocg_to_rg1g2b_components(bayer_y, bayer_dg, bayer_co, bayer_cg, 
     return bayer_r, bayer_g1, bayer_g2, bayer_b
 
 
-# reads a bayer image as packed
-def read_bayer_image_packed_mode(infile, width, height, depth):
-    # read the file into a buffer
-    with open(infile, "rb") as fin:
-        buffer = fin.read(expected_size)
-
-    # convert buffer into a bayer packed image
-    if depth == 8:
-        bayer_packed_image = np.frombuffer(buffer, dtype=np.uint8)
-    elif depth == 16:
-        bayer_packed_image = np.frombuffer(buffer, dtype=np.uint16)  # little-endian
-        # bayer_packed_image = np.frombuffer(buffer, dtype=">u2")  # big-endian
-    elif depth in (10, 12, 14):
-        # cv2 assumes color to be 16-bit depth if dtype is uint16
-        # For 10/12/14-bit color, let's expand to 16-bit before
-        # further processing. This also helps unify all further
-        # processing as 16-bit.
-        # support expanded and/or packed bayer formats
-        # if expanded:
-        # a. read as little-endian
-        bayer_packed_image = np.frombuffer(buffer, dtype=np.uint16)
-        # b. expand to 16 bits
-        bayer_packed_image <<= 16 - depth
-        # elif packed:
-    else:
-        raise ValueError(f"Unsupported depth value: {depth}")
-    # reshape image
-    bayer_packed_image = bayer_packed_image.reshape(width, height)
-    return bayer_packed_image
-
-
 # encoding processing
 def codec_process(codec, quality, depth, arrays_list):
     if codec == "jpeg/cv2" and depth == 8:
@@ -297,15 +267,17 @@ def process_file_bayer_ydgcocg(
     infile,
     width,
     height,
-    depth,
+    pix_fmt,
     codec,
     quality_list,
     debug,
 ):
-    bayer_packed_image = read_bayer_image_packed_mode(infile, width, height, depth)
+    bayer_packed_image = itools_bayer.read_bayer_image_packed_mode(
+        infile, width, height, pix_fmt
+    )
     return process_file_bayer_ydgcocg_array(
         bayer_packed_image,
-        depth,
+        pix_fmt,
         infile,
         codec,
         quality_list,
@@ -315,7 +287,7 @@ def process_file_bayer_ydgcocg(
 
 def process_file_bayer_ydgcocg_array(
     bayer_packed_image,
-    depth,
+    pix_fmt,
     infile,
     codec,
     quality_list,
@@ -323,6 +295,7 @@ def process_file_bayer_ydgcocg_array(
 ):
     df = pd.DataFrame(columns=COLUMN_LIST)
     width, height = bayer_packed_image.shape
+    depth = itools_bayer.get_depth(pix_fmt)
 
     # 1. demosaic raw image to RGB
     rgb_image = cv2.cvtColor(bayer_packed_image, cv2.COLOR_BAYER_BG2RGB)
@@ -387,7 +360,7 @@ def process_file_bayer_ydgcocg_array(
             infile,
             width,
             height,
-            depth,
+            pix_fmt,
             "bayer-ydgcocg",
             codec,
             quality,
@@ -413,15 +386,17 @@ def process_file_bayer_ydgcocg_420(
     infile,
     width,
     height,
-    depth,
+    pix_fmt,
     codec,
     quality_list,
     debug,
 ):
-    bayer_packed_image = read_bayer_image_packed_mode(infile, width, height, depth)
+    bayer_packed_image = itools_bayer.read_bayer_image_packed_mode(
+        infile, width, height, pix_fmt
+    )
     return process_file_bayer_ydgcocg_420_array(
         bayer_packed_image,
-        depth,
+        pix_fmt,
         infile,
         codec,
         quality_list,
@@ -431,7 +406,7 @@ def process_file_bayer_ydgcocg_420(
 
 def process_file_bayer_ydgcocg_420_array(
     bayer_packed_image,
-    depth,
+    pix_fmt,
     infile,
     codec,
     quality_list,
@@ -439,6 +414,7 @@ def process_file_bayer_ydgcocg_420_array(
 ):
     df = pd.DataFrame(columns=COLUMN_LIST)
     width, height = bayer_packed_image.shape
+    depth = itools_bayer.get_depth(pix_fmt)
 
     # 1. demosaic raw image to RGB
     rgb_image = cv2.cvtColor(bayer_packed_image, cv2.COLOR_BAYER_BG2RGB)
@@ -513,7 +489,7 @@ def process_file_bayer_ydgcocg_420_array(
             infile,
             width,
             height,
-            depth,
+            pix_fmt,
             "bayer-ydgcocg-420",
             codec,
             quality,
@@ -539,15 +515,17 @@ def process_file_bayer_single(
     infile,
     width,
     height,
-    depth,
+    pix_fmt,
     codec,
     quality_list,
     debug,
 ):
-    bayer_packed_image = read_bayer_image_packed_mode(infile, width, height, depth)
+    bayer_packed_image = itools_bayer.read_bayer_image_packed_mode(
+        infile, width, height, pix_fmt
+    )
     return process_file_bayer_single_array(
         bayer_packed_image,
-        depth,
+        pix_fmt,
         infile,
         codec,
         quality_list,
@@ -557,7 +535,7 @@ def process_file_bayer_single(
 
 def process_file_bayer_single_array(
     bayer_packed_image,
-    depth,
+    pix_fmt,
     infile,
     codec,
     quality_list,
@@ -565,6 +543,7 @@ def process_file_bayer_single_array(
 ):
     df = pd.DataFrame(columns=COLUMN_LIST)
     width, height = bayer_packed_image.shape
+    depth = itools_bayer.get_depth(pix_fmt)
 
     # 1. demosaic raw image to RGB
     rgb_image = cv2.cvtColor(bayer_packed_image, cv2.COLOR_BAYER_BG2RGB)
@@ -610,7 +589,7 @@ def process_file_bayer_single_array(
             infile,
             width,
             height,
-            depth,
+            pix_fmt,
             "bayer-single",
             codec,
             quality,
@@ -636,15 +615,17 @@ def process_file_bayer_rggb(
     infile,
     width,
     height,
-    depth,
+    pix_fmt,
     codec,
     quality_list,
     debug,
 ):
-    bayer_packed_image = read_bayer_image_packed_mode(infile, width, height, depth)
+    bayer_packed_image = itools_bayer.read_bayer_image_packed_mode(
+        infile, width, height, pix_fmt
+    )
     return process_file_bayer_rggb_array(
         bayer_packed_image,
-        depth,
+        pix_fmt,
         infile,
         codec,
         quality_list,
@@ -654,7 +635,7 @@ def process_file_bayer_rggb(
 
 def process_file_bayer_rggb_array(
     bayer_packed_image,
-    depth,
+    pix_fmt,
     infile,
     codec,
     quality_list,
@@ -662,6 +643,7 @@ def process_file_bayer_rggb_array(
 ):
     df = pd.DataFrame(columns=COLUMN_LIST)
     width, height = bayer_packed_image.shape
+    depth = itools_bayer.get_depth(pix_fmt)
 
     # 1. demosaic raw image to RGB
     rgb_image = cv2.cvtColor(bayer_packed_image, cv2.COLOR_BAYER_BG2RGB)
@@ -727,7 +709,7 @@ def process_file_bayer_rggb_array(
             infile,
             width,
             height,
-            depth,
+            pix_fmt,
             "bayer-rggb",
             codec,
             quality,
@@ -753,15 +735,17 @@ def process_file_yuv444(
     infile,
     width,
     height,
-    depth,
+    pix_fmt,
     codec,
     quality_list,
     debug,
 ):
-    bayer_packed_image = read_bayer_image_packed_mode(infile, width, height, depth)
+    bayer_packed_image = itools_bayer.read_bayer_image_packed_mode(
+        infile, width, height, pix_fmt
+    )
     return process_file_yuv444_array(
         bayer_packed_image,
-        depth,
+        pix_fmt,
         infile,
         codec,
         quality_list,
@@ -771,7 +755,7 @@ def process_file_yuv444(
 
 def process_file_yuv444_array(
     bayer_packed_image,
-    depth,
+    pix_fmt,
     infile,
     codec,
     quality_list,
@@ -779,6 +763,7 @@ def process_file_yuv444_array(
 ):
     df = pd.DataFrame(columns=COLUMN_LIST)
     width, height = bayer_packed_image.shape
+    depth = itools_bayer.get_depth(pix_fmt)
 
     # 1. demosaic raw image to RGB
     rgb_image = cv2.cvtColor(bayer_packed_image, cv2.COLOR_BAYER_BG2RGB)
@@ -827,7 +812,7 @@ def process_file_yuv444_array(
             infile,
             width,
             height,
-            depth,
+            pix_fmt,
             "yuv444",
             codec,
             quality,
@@ -852,15 +837,17 @@ def process_file_yuv420(
     infile,
     width,
     height,
-    depth,
+    pix_fmt,
     codec,
     quality_list,
     debug,
 ):
-    bayer_packed_image = read_bayer_image_packed_mode(infile, width, height, depth)
+    bayer_packed_image = itools_bayer.read_bayer_image_packed_mode(
+        infile, width, height, pix_fmt
+    )
     return process_file_yuv420_array(
         bayer_packed_image,
-        depth,
+        pix_fmt,
         infile,
         codec,
         quality_list,
@@ -870,7 +857,7 @@ def process_file_yuv420(
 
 def process_file_yuv420_array(
     bayer_packed_image,
-    depth,
+    pix_fmt,
     infile,
     codec,
     quality_list,
@@ -878,6 +865,7 @@ def process_file_yuv420_array(
 ):
     df = pd.DataFrame(columns=COLUMN_LIST)
     width, height = bayer_packed_image.shape
+    depth = itools_bayer.get_depth(pix_fmt)
 
     # 1. demosaic raw image to RGB
     rgb_image = cv2.cvtColor(bayer_packed_image, cv2.COLOR_BAYER_BG2RGB)
@@ -933,7 +921,7 @@ def process_file_yuv420_array(
             infile,
             width,
             height,
-            depth,
+            pix_fmt,
             "yuv420",
             codec,
             quality,
@@ -959,15 +947,17 @@ def process_file_rgb(
     infile,
     width,
     height,
-    depth,
+    pix_fmt,
     codec,
     quality_list,
     debug,
 ):
-    bayer_packed_image = read_bayer_image_packed_mode(infile, width, height, depth)
+    bayer_packed_image = itools_bayer.read_bayer_image_packed_mode(
+        infile, width, height, pix_fmt
+    )
     return process_file_rgb_array(
         bayer_packed_image,
-        depth,
+        pix_fmt,
         infile,
         codec,
         quality_list,
@@ -977,7 +967,7 @@ def process_file_rgb(
 
 def process_file_rgb_array(
     bayer_packed_image,
-    depth,
+    pix_fmt,
     infile,
     codec,
     quality_list,
@@ -985,6 +975,7 @@ def process_file_rgb_array(
 ):
     df = pd.DataFrame(columns=COLUMN_LIST)
     width, height = bayer_packed_image.shape
+    depth = itools_bayer.get_depth(pix_fmt)
 
     # 1. demosaic raw image to RGB
     rgb_image = cv2.cvtColor(bayer_packed_image, cv2.COLOR_BAYER_BG2RGB)
@@ -1033,7 +1024,7 @@ def process_file_rgb_array(
             infile,
             width,
             height,
-            depth,
+            pix_fmt,
             "rgb",
             codec,
             quality,
@@ -1077,7 +1068,7 @@ def get_average_results(df):
         COLUMNS_MEAN = (
             "width",
             "height",
-            "depth",
+            "pix_fmt",
             "encoded_size",
             "encoded_bpp",
             "psnr_bayer",
@@ -1102,7 +1093,7 @@ def process_data(
     quality_list,
     width,
     height,
-    depth,
+    pix_fmt,
     workdir,
     outfile,
     cleanup,
@@ -1116,37 +1107,37 @@ def process_data(
     for infile in infile_list:
         # 2.1. run the Bayer-ydgcocg encoding pipeline
         tmp_df = process_file_bayer_ydgcocg(
-            infile, width, height, depth, codec, quality_list, debug
+            infile, width, height, pix_fmt, codec, quality_list, debug
         )
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
         # 2.2. run the YUV444 encoding pipeline
         tmp_df = process_file_yuv444(
-            infile, width, height, depth, codec, quality_list, debug
+            infile, width, height, pix_fmt, codec, quality_list, debug
         )
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
         # 2.3. run the RGB-encoding pipeline
         tmp_df = process_file_rgb(
-            infile, width, height, depth, codec, quality_list, debug
+            infile, width, height, pix_fmt, codec, quality_list, debug
         )
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
         # 2.4. run the traditional YUV-encoding pipeline (4:2:0)
         tmp_df = process_file_yuv420(
-            infile, width, height, depth, codec, quality_list, debug
+            infile, width, height, pix_fmt, codec, quality_list, debug
         )
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
         # 2.5. run the Bayer-single-encoding pipeline
         tmp_df = process_file_bayer_single(
-            infile, width, height, depth, codec, quality_list, debug
+            infile, width, height, pix_fmt, codec, quality_list, debug
         )
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
         # 2.6. run the Bayer-subsampled-encoding pipeline
         tmp_df = process_file_bayer_ydgcocg_420(
-            infile, width, height, depth, codec, quality_list, debug
+            infile, width, height, pix_fmt, codec, quality_list, debug
         )
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
         # 2.7. run the Bayer-rggb-encoding pipeline
         tmp_df = process_file_bayer_rggb(
-            infile, width, height, depth, codec, quality_list, debug
+            infile, width, height, pix_fmt, codec, quality_list, debug
         )
         df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
 
@@ -1294,16 +1285,17 @@ def get_options(argv):
         help="use <width>x<height>",
     )
 
+    input_choices_str = " | ".join(itools_bayer.I_PIX_FMT_LIST)
     parser.add_argument(
-        "--depth",
+        "--pix_fmt",
         action="store",
-        type=int,
-        dest="depth",
-        default=default_values["depth"],
-        metavar="DEPTH",
-        help=(f"use DEPTH depth (default: {default_values['depth']})"),
+        type=str,
+        dest="pix_fmt",
+        default=default_values["pix_fmt"],
+        choices=itools_bayer.I_PIX_FMT_LIST,
+        metavar=f"[{input_choices_str}]",
+        help="input pixel format",
     )
-
     parser.add_argument(
         dest="infile_list",
         type=str,
@@ -1347,7 +1339,7 @@ def main(argv):
         options.quality_list,
         options.width,
         options.height,
-        options.depth,
+        options.pix_fmt,
         options.workdir,
         options.outfile,
         options.cleanup,

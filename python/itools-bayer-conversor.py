@@ -851,6 +851,7 @@ OUTPUT_ALIAS_LIST = list(
 I_PIX_FMT_LIST = INPUT_CANONICAL_LIST + INPUT_ALIAS_LIST
 O_PIX_FMT_LIST = OUTPUT_CANONICAL_LIST + OUTPUT_ALIAS_LIST
 
+
 default_values = {
     "debug": 0,
     "dry_run": False,
@@ -864,7 +865,7 @@ default_values = {
 }
 
 
-def check_input_pix_fmt(i_pix_fmt):
+def get_canonical_input_pix_fmt(i_pix_fmt):
     # convert input pixel format to the canonical name
     if i_pix_fmt in INPUT_CANONICAL_LIST:
         return i_pix_fmt
@@ -877,7 +878,7 @@ def check_input_pix_fmt(i_pix_fmt):
         raise AssertionError(f"error: unknown input pix_fmt: {i_pix_fmt}")
 
 
-def check_output_pix_fmt(o_pix_fmt):
+def get_canonical_output_pix_fmt(o_pix_fmt):
     # convert output pixel format to the canonical name
     if o_pix_fmt in OUTPUT_CANONICAL_LIST:
         return o_pix_fmt
@@ -892,11 +893,49 @@ def check_output_pix_fmt(o_pix_fmt):
         raise AssertionError(f"error: unknown output pix_fmt: {o_pix_fmt}")
 
 
+def get_depth(pix_fmt):
+    i_pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
+    return BAYER_FORMATS[i_pix_fmt]["cdepth"]
+
+
 def get_planes(order, row, plane_order):
     assert set(order) == COLOR_COMPONENTS, f"error: invalid Bayer components {order}"
     plane_names = order[0:2] if row % 2 == 0 else order[2:4]
     plane_ids = list(plane_order.index(plane_name) for plane_name in list(plane_names))
     return plane_ids
+
+
+# read bayer packed format into bayer packed image
+def read_bayer_image_packed_mode(infile, width, height, pix_fmt):
+    # read the file into a buffer
+    with open(infile, "rb") as fin:
+        buffer = fin.read(expected_size)
+
+    # convert buffer into a bayer packed image
+    depth = get_depth(pix_fmt)
+
+    if depth == 8:
+        bayer_packed_image = np.frombuffer(buffer, dtype=np.uint8)
+    elif depth == 16:
+        bayer_packed_image = np.frombuffer(buffer, dtype=np.uint16)  # little-endian
+        # bayer_packed_image = np.frombuffer(buffer, dtype=">u2")  # big-endian
+    elif depth in (10, 12, 14):
+        # cv2 assumes color to be 16-bit depth if dtype is uint16
+        # For 10/12/14-bit color, let's expand to 16-bit before
+        # further processing. This also helps unify all further
+        # processing as 16-bit.
+        # support expanded and/or packed bayer formats
+        # if expanded:
+        # a. read as little-endian
+        bayer_packed_image = np.frombuffer(buffer, dtype=np.uint16)
+        # b. expand to 16 bits
+        bayer_packed_image <<= 16 - depth
+        # elif packed:
+    else:
+        raise ValueError(f"Unsupported depth value: {depth}")
+    # reshape image
+    bayer_packed_image = bayer_packed_image.reshape(width, height)
+    return bayer_packed_image
 
 
 # read bayer packed format into bayer planar image
@@ -1175,9 +1214,9 @@ def convert_image_planar_mode(
 ):
     # get common depth
     # check the input pixel format
-    i_pix_fmt = check_input_pix_fmt(i_pix_fmt)
+    i_pix_fmt = get_canonical_input_pix_fmt(i_pix_fmt)
     # check the output pixel format
-    o_pix_fmt = check_output_pix_fmt(o_pix_fmt)
+    o_pix_fmt = get_canonical_output_pix_fmt(o_pix_fmt)
 
     irdepth = INPUT_FORMATS[i_pix_fmt]["rdepth"]
     ordepth = OUTPUT_FORMATS[o_pix_fmt]["rdepth"]
