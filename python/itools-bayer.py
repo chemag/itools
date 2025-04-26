@@ -1241,7 +1241,7 @@ def convert_image_planar_mode(
         fout.write(bayer_image_copy.GetBuffer())
 
     ffmpeg_support = OUTPUT_FORMATS[o_pix_fmt]["ffmpeg"]
-    if ffmpeg_support:
+    if debug > 0 and ffmpeg_support:
         print(
             f"info: {itools_common.FFMPEG_SILENT} -f rawvideo -pixel_format {o_pix_fmt} "
             f"-s {width}x{height} -i {outfile} {outfile}.png"
