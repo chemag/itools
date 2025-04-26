@@ -1235,7 +1235,7 @@ def convert_image_planar_mode(
     o_pix_fmt = get_canonical_output_pix_fmt(o_pix_fmt)
 
     # read input image file (packed) into planar
-    bayer_image = BayerImage.FromFile(infile, i_pix_fmt, width, height)
+    bayer_image = BayerImage.FromFile(infile, i_pix_fmt, width, height, debug)
 
     # write planar into output image file (packed)
     bayer_image_copy = BayerImage.FromPlanar(
@@ -1255,7 +1255,7 @@ def convert_image_planar_mode(
             f"info: {itools_common.FFMPEG_SILENT} -f rawvideo -pixel_format {o_pix_fmt} "
             f"-s {width}x{height} -i {outfile} {outfile}.png"
         )
-    return bayer_image.GetPlanar(planar_order)
+    return bayer_image
 
 
 def main(argv):

@@ -357,7 +357,7 @@ class MainTest(unittest.TestCase):
             debug = test_case["debug"]
 
             # 1. run forward conversion
-            bayer_planar_image = itools_bayer.convert_image_planar_mode(
+            bayer_image = itools_bayer.convert_image_planar_mode(
                 infile,
                 i_pix_fmt,
                 width,
@@ -371,7 +371,7 @@ class MainTest(unittest.TestCase):
             absolute_tolerance = 1
             np.testing.assert_allclose(
                 test_case["bayer_planar_image"],
-                bayer_planar_image,
+                bayer_image.GetPlanar(planar_order),
                 atol=absolute_tolerance,
                 err_msg=f"error on forward case {test_case['name']}",
             )
