@@ -384,7 +384,29 @@ class MainTest(unittest.TestCase):
                 output,
                 f"error on forward test {test_case['name']}",
             )
-            # 2. run loop conversion
+
+            # 2. run output loop conversion
+            _ = itools_bayer.convert_image_planar_mode(
+                outfile,
+                o_pix_fmt,
+                width,
+                height,
+                outfile,
+                o_pix_fmt,
+                planar_order,
+                debug,
+            )
+            # read output file
+            with open(outfile, "rb") as f:
+                output = f.read()
+            # check the values
+            self.assertEqual(
+                test_case["output"],
+                output,
+                f"error on output loop test {test_case['name']}",
+            )
+
+            # 3. run input loop conversion
             _ = itools_bayer.convert_image_planar_mode(
                 infile,
                 i_pix_fmt,
@@ -402,7 +424,7 @@ class MainTest(unittest.TestCase):
             self.assertEqual(
                 test_case["input"],
                 output,
-                f"error on loop test {test_case['name']}",
+                f"error on input loop test {test_case['name']}",
             )
 
 
