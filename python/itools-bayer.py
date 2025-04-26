@@ -962,7 +962,7 @@ class BayerImage:
             clen = INPUT_FORMATS[pix_fmt]["clen"]
             order = INPUT_FORMATS[pix_fmt]["order"]
             # create bayer planar image
-            dtype = np.uint8 if rdepth > 8 else np.uint16
+            dtype = np.uint16 if rdepth > 8 else np.uint8
             self.planar = np.zeros((4, self.height // 2, self.width // 2), dtype=dtype)
             # fill it up
             row = 0
