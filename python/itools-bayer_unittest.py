@@ -38,6 +38,15 @@ processImageTestCases = [
             ],
             dtype=np.uint8,
         ),
+        "bayer_packed_image": np.array(
+            [
+                [1, 2, 3, 4],
+                [5, 6, 7, 8],
+                [9, 10, 11, 12],
+                [13, 14, 15, 16],
+            ],
+            dtype=np.uint8,
+        ),
         "output": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
     },
     {
@@ -55,6 +64,15 @@ processImageTestCases = [
                 [[6, 8], [14, 16]],
                 [[1, 3], [9, 11]],
                 [[5, 7], [13, 15]],
+            ],
+            dtype=np.uint8,
+        ),
+        "bayer_packed_image": np.array(
+            [
+                [1, 2, 3, 4],
+                [5, 6, 7, 8],
+                [9, 10, 11, 12],
+                [13, 14, 15, 16],
             ],
             dtype=np.uint8,
         ),
@@ -80,6 +98,15 @@ processImageTestCases = [
             ],
             dtype=np.uint8,
         ),
+        "bayer_packed_image": np.array(
+            [
+                [1, 2, 3, 4],
+                [5, 6, 7, 8],
+                [9, 10, 11, 12],
+                [13, 14, 15, 16],
+            ],
+            dtype=np.uint8,
+        ),
         "output": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
     },
     {
@@ -100,6 +127,15 @@ processImageTestCases = [
             ],
             dtype=np.uint8,
         ),
+        "bayer_packed_image": np.array(
+            [
+                [1, 2, 3, 4],
+                [5, 6, 7, 8],
+                [9, 10, 11, 12],
+                [13, 14, 15, 16],
+            ],
+            dtype=np.uint8,
+        ),
         "output": b"\x02\x01\x04\x03\x06\x05\x08\x07\x0a\x09\x0c\x0b\x0e\x0d\x10\x0f",
     },
     {
@@ -117,6 +153,15 @@ processImageTestCases = [
                 [[5, 7], [13, 15]],
                 [[6, 8], [14, 16]],
                 [[1, 3], [9, 11]],
+            ],
+            dtype=np.uint8,
+        ),
+        "bayer_packed_image": np.array(
+            [
+                [1, 2, 3, 4],
+                [5, 6, 7, 8],
+                [9, 10, 11, 12],
+                [13, 14, 15, 16],
             ],
             dtype=np.uint8,
         ),
@@ -140,6 +185,15 @@ processImageTestCases = [
             ],
             dtype=np.uint8,
         ),
+        "bayer_packed_image": np.array(
+            [
+                [1, 2, 3, 4],
+                [5, 6, 7, 8],
+                [9, 10, 11, 12],
+                [13, 14, 15, 16],
+            ],
+            dtype=np.uint8,
+        ),
         "output": b"\x02\x06\x04\x08\x01\x05\x03\x07\x0a\x0e\x0c\x10\x09\x0d\x0b\x0f",
     },
     {
@@ -157,6 +211,15 @@ processImageTestCases = [
                 [[5, 7], [13, 15]],
                 [[6, 8], [14, 16]],
                 [[1, 3], [9, 11]],
+            ],
+            dtype=np.uint8,
+        ),
+        "bayer_packed_image": np.array(
+            [
+                [1, 2, 3, 4],
+                [5, 6, 7, 8],
+                [9, 10, 11, 12],
+                [13, 14, 15, 16],
             ],
             dtype=np.uint8,
         ),
@@ -180,6 +243,15 @@ processImageTestCases = [
             ],
             dtype=np.uint8,
         ),
+        "bayer_packed_image": np.array(
+            [
+                [1, 2, 3, 4],
+                [5, 6, 7, 8],
+                [9, 10, 11, 12],
+                [13, 14, 15, 16],
+            ],
+            dtype=np.uint8,
+        ),
         "output": b"\x02\x05\x04\x07\x06\x01\x08\x03\x0a\x0d\x0c\x0f\x0e\x09\x10\x0b",
     },
     {
@@ -200,6 +272,15 @@ processImageTestCases = [
             ],
             dtype=np.uint8,
         ),
+        "bayer_packed_image": np.array(
+            [
+                [1, 2, 3, 4],
+                [5, 6, 7, 8],
+                [9, 10, 11, 12],
+                [13, 14, 15, 16],
+            ],
+            dtype=np.uint8,
+        ),
         "output": b"\x06\x02\x08\x04\x01\x05\x03\x07\x0e\x0a\x10\x0c\x09\x0d\x0b\x0f",
     },
     {
@@ -217,6 +298,15 @@ processImageTestCases = [
                 [[5, 7], [13, 15]],
                 [[6, 8], [14, 16]],
                 [[1, 3], [9, 11]],
+            ],
+            dtype=np.uint8,
+        ),
+        "bayer_packed_image": np.array(
+            [
+                [1, 2, 3, 4],
+                [5, 6, 7, 8],
+                [9, 10, 11, 12],
+                [13, 14, 15, 16],
             ],
             dtype=np.uint8,
         ),
@@ -241,6 +331,15 @@ processImageTestCases = [
             ],
             dtype=np.uint8,
         ),
+        "bayer_packed_image": np.array(
+            [
+                [1, 2, 3, 4],
+                [5, 6, 7, 8],
+                [9, 10, 11, 12],
+                [13, 14, 15, 16],
+            ],
+            dtype=np.uint8,
+        ),
         "output": b"\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08\x00\x09\x00\x0a\x00\x0b\x00\x0c\x00\x0d\x00\x0e\x00\x0f\x00\x10\x00",
     },
     {
@@ -261,6 +360,15 @@ processImageTestCases = [
             ],
             dtype=np.uint8,
         ),
+        "bayer_packed_image": np.array(
+            [
+                [1, 2, 3, 4],
+                [5, 6, 7, 8],
+                [9, 10, 11, 12],
+                [13, 14, 15, 16],
+            ],
+            dtype=np.uint8,
+        ),
         "output": b"\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08\x00\x09\x00\x0a\x00\x0b\x00\x0c\x00\x0d\x00\x0e\x00\x0f\x00\x10\x00",
     },
     {
@@ -278,6 +386,15 @@ processImageTestCases = [
                 [[0x5, 0x7], [0xD, 0xF]],
                 [[0x6, 0x8], [0xE, 0x10]],
                 [[0x1, 0x3], [0x9, 0xB]],
+            ],
+            dtype=np.uint8,
+        ),
+        "bayer_packed_image": np.array(
+            [
+                [1, 2, 3, 4],
+                [5, 6, 7, 8],
+                [9, 10, 11, 12],
+                [13, 14, 15, 16],
             ],
             dtype=np.uint8,
         ),
@@ -303,6 +420,15 @@ processImageTestCases = [
             ],
             dtype=np.uint16,
         ),
+        "bayer_packed_image": np.array(
+            [
+                [0x40, 0x40C0, 0x8140, 0xC1C0],
+                [0x240, 0x42C0, 0x8340, 0xC3C0],
+                [0x440, 0x44C0, 0x8540, 0xC5C0],
+                [0x640, 0x46C0, 0x8740, 0xC7C0],
+            ],
+            dtype=np.uint16,
+        ),
         "output": b"\x40\x00\xc0\x40\x40\x81\xc0\xc1\x40\x02\xc0\x42\x40\x83\xc0\xc3\x40\x04\xc0\x44\x40\x85\xc0\xc5\x40\x06\xc0\x46\x40\x87\xc0\xc7",
     },
     # bayer10->bayer16 (packed)
@@ -323,6 +449,16 @@ processImageTestCases = [
                 [[0x780, 0x900], [0x1140, 0x1300]],
             ],
             dtype=np.uint16,
+        ),
+        # TODO(chema): BROKEN
+        "bayer_packed_image": np.array(
+            [
+                [1, 2, 3, 4],
+                [5, 6, 7, 8],
+                [9, 10, 11, 12],
+                [13, 14, 15, 16],
+            ],
+            dtype=np.uint8,
         ),
         "output": b"\x80\x07\x40\x02\x00\x09\x00\x04\x80\x06\x40\x01\x00\x08\x00\x03\x40\x11\xc0\x0c\x00\x13\x00\x0e\x00\x10\xc0\x0b\x40\x12\x00\x0d",
     },
@@ -372,6 +508,13 @@ class MainTest(unittest.TestCase):
             np.testing.assert_allclose(
                 test_case["bayer_planar_image"],
                 bayer_image.GetPlanar(planar_order),
+                atol=absolute_tolerance,
+                err_msg=f"error on forward case {test_case['name']}",
+            )
+            # check the packed representation is correct
+            np.testing.assert_allclose(
+                test_case["bayer_packed_image"],
+                bayer_image.GetPacked(),
                 atol=absolute_tolerance,
                 err_msg=f"error on forward case {test_case['name']}",
             )

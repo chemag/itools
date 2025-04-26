@@ -944,7 +944,7 @@ class BayerImage:
                 # a. read as little-endian
                 self.packed = np.frombuffer(self.buffer, dtype=np.uint16)
                 # b. expand to 16 bits
-                self.packed <<= 16 - depth
+                self.packed = self.packed << (16 - depth)
                 # elif packed:
             else:
                 raise ValueError(f"Unsupported depth value: {depth}")
