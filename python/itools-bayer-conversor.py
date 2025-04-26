@@ -930,6 +930,12 @@ def read_bayer_image_planar_mode(
         expected_size == file_size
     ), f"error: invalid dimensions: {height}x{width}, {i_pix_fmt=}, {expected_size=}, {file_size=}"
 
+    # read the file into a buffer
+    with open(infile, "rb") as fin:
+        buffer = fin.read(expected_size)
+
+    # convert buffer into a bayer planar image
+
     # create bayer planar image
     dtype = np.uint8 if process_using_8bits else np.uint16
     bayer_planar_image = np.zeros((4, height // 2, width // 2), dtype=dtype)
@@ -937,41 +943,43 @@ def read_bayer_image_planar_mode(
     # open infile
     row = 0
     col = 0
-    with open(infile, "rb") as fin:
-        while True:
-            if debug > 0:
-                print(f"debug: {row=} {col=}", file=logfd)
-            # 1. get affected plane IDs
-            plane_ids = get_planes(iorder, row, plane_order)
-            # 2. read components from the input
-            components = ()
-            while len(components) < iclen:
-                idata = fin.read(INPUT_FORMATS[i_pix_fmt]["blen"])
-                if not idata:
-                    break
-                components += INPUT_FORMATS[i_pix_fmt]["rfun"](idata, logfd, debug)
-            if len(components) < iclen:
-                # end of input
+    i = 0
+    while True:
+        if debug > 0:
+            print(f"debug: {row=} {col=}", file=logfd)
+        # 1. get affected plane IDs
+        plane_ids = get_planes(iorder, row, plane_order)
+        # 2. read components from the input
+        components = ()
+        while len(components) < iclen:
+            length = INPUT_FORMATS[i_pix_fmt]["blen"]
+            idata = buffer[i : i + length]
+            i += length
+            if not idata:
                 break
-            # 3. convert component depth to 16-bit
-            if not process_using_8bits and irdepth < 16:
-                components = list(c << (16 - irdepth) for c in components)
+            components += INPUT_FORMATS[i_pix_fmt]["rfun"](idata, logfd, debug)
+        if len(components) < iclen:
+            # end of input
+            break
+        # 3. convert component depth to 16-bit
+        if not process_using_8bits and irdepth < 16:
+            components = list(c << (16 - irdepth) for c in components)
+        if debug > 1:
+            print(f"debug:  {components=}", file=logfd)
+        # 4. convert component order
+        for component in components:
+            plane_id = plane_ids[col % len(plane_ids)]
+            # get planar row and col
+            prow = row // 2
+            pcol = col // 2
+            bayer_planar_image[plane_id][prow][pcol] = component
             if debug > 1:
-                print(f"debug:  {components=}", file=logfd)
-            # 4. convert component order
-            for component in components:
-                plane_id = plane_ids[col % len(plane_ids)]
-                # get planar row and col
-                prow = row // 2
-                pcol = col // 2
-                bayer_planar_image[plane_id][prow][pcol] = component
-                if debug > 1:
-                    print(f"debug: {plane_id=} {prow=} {pcol=}", file=logfd)
-                col += 1
-            # 5. update input row numbers
-            if col == width:
-                col = 0
-                row += 1
+                print(f"debug: {plane_id=} {prow=} {pcol=}", file=logfd)
+            col += 1
+        # 5. update input row numbers
+        if col == width:
+            col = 0
+            row += 1
     return bayer_planar_image
 
 
