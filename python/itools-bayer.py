@@ -29,7 +29,7 @@ __version__ = "0.1"
 COLOR_COMPONENTS = set("RGgB")
 
 # internal planar bayer image format is G1G2RB
-DEFAULT_PLANE_ORDER = list("GgRB")
+DEFAULT_PLANAR_ORDER = list("GgRB")
 
 
 # planar read/write functions
@@ -952,9 +952,7 @@ class BayerImage:
             self.packed = self.packed.reshape(self.width, self.height)
         return self.packed
 
-    def GetPlanar(self):
-        # TODO(chema): fix this
-        plane_order = DEFAULT_PLANE_ORDER
+    def GetPlanar(self, planar_order):
         if self.planar is None:
             # convert buffer to planar
             assert self.buffer is not None, "error: invalid buffer"
@@ -974,7 +972,7 @@ class BayerImage:
                 if self.debug > 0:
                     print(f"debug: {row=} {col=}")
                 # 1. get affected plane IDs
-                plane_ids = get_planes(order, row, plane_order)
+                plane_ids = self.GetPlaneIds(order, row, planar_order)
                 # 2. read components from the input
                 components = ()
                 while len(components) < clen:
@@ -1007,6 +1005,18 @@ class BayerImage:
                     col = 0
                     row += 1
         return self.planar
+
+    @classmethod
+    def GetPlanarOrder(cls, planar_order):
+        assert set(planar_order) == COLOR_COMPONENTS, f"error: invalid Bayer components {planar_order}"
+        return planar_order
+
+    @classmethod
+    def GetPlaneIds(cls, order, row, planar_order):
+        order = cls.GetPlanarOrder(order)
+        plane_names = order[0:2] if row % 2 == 0 else order[2:4]
+        plane_ids = list(planar_order.index(plane_name) for plane_name in list(plane_names))
+        return plane_ids
 
     # factory methods
     @classmethod
@@ -1041,9 +1051,7 @@ class BayerImage:
         return BayerImage(infile, buffer, None, None, width, height, pix_fmt, debug)
 
     @classmethod
-    def FromPlanar(cls, planar, pix_fmt, width, height, debug=0):
-        # TODO(chema): fix this
-        plane_order = DEFAULT_PLANE_ORDER
+    def FromPlanar(cls, planar, pix_fmt, width, height, planar_order, debug=0):
         # get format info
         rdepth = OUTPUT_FORMATS[pix_fmt]["rdepth"]
         clen = OUTPUT_FORMATS[pix_fmt]["clen"]
@@ -1060,7 +1068,7 @@ class BayerImage:
         buffer = b""
         while row < height:
             # 1. get affected plane IDs
-            plane_ids = get_planes(order, row, plane_order)
+            plane_ids = cls.GetPlaneIds(order, row, planar_order)
             # 2. get components in order
             components = []
             for component_id in range(clen):
@@ -1087,14 +1095,6 @@ class BayerImage:
                 col = 0
                 row += 1
         return BayerImage("", buffer, None, planar, width, height, pix_fmt, debug)
-
-
-# TODO(chema): fix plane order
-def get_planes(order, row, plane_order):
-    assert set(order) == COLOR_COMPONENTS, f"error: invalid Bayer components {order}"
-    plane_names = order[0:2] if row % 2 == 0 else order[2:4]
-    plane_ids = list(plane_order.index(plane_name) for plane_name in list(plane_names))
-    return plane_ids
 
 
 def get_options(argv):
@@ -1215,14 +1215,17 @@ def get_options(argv):
 
 
 def convert_image_planar_mode(
-    infile, i_pix_fmt, width, height, outfile, o_pix_fmt, debug
+    infile, i_pix_fmt, width, height, outfile, o_pix_fmt, planar_order, debug
 ):
-    # get common depth
+    # check input parameters
+    planar_order = BayerImage.GetPlanarOrder(planar_order)
+
     # check the input pixel format
     i_pix_fmt = get_canonical_input_pix_fmt(i_pix_fmt)
     # check the output pixel format
     o_pix_fmt = get_canonical_output_pix_fmt(o_pix_fmt)
 
+    # get common depth
     irdepth = INPUT_FORMATS[i_pix_fmt]["rdepth"]
     ordepth = OUTPUT_FORMATS[o_pix_fmt]["rdepth"]
     process_using_8bits = False
@@ -1235,7 +1238,7 @@ def convert_image_planar_mode(
 
     # write planar into output image file (packed)
     bayer_image_copy = BayerImage.FromPlanar(
-        bayer_image.GetPlanar(), o_pix_fmt, width, height, debug
+        bayer_image.GetPlanar(planar_order), o_pix_fmt, width, height, planar_order, debug
     )
     with open(outfile, "wb") as fout:
         fout.write(bayer_image_copy.GetBuffer())
@@ -1246,7 +1249,7 @@ def convert_image_planar_mode(
             f"info: {itools_common.FFMPEG_SILENT} -f rawvideo -pixel_format {o_pix_fmt} "
             f"-s {width}x{height} -i {outfile} {outfile}.png"
         )
-    return bayer_image.GetPlanar()
+    return bayer_image.GetPlanar(planar_order)
 
 
 def main(argv):
@@ -1271,6 +1274,7 @@ def main(argv):
         options.height,
         options.outfile,
         options.o_pix_fmt,
+        DEFAULT_PLANAR_ORDER,
         options.debug,
     )
 

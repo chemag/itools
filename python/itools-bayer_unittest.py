@@ -19,14 +19,36 @@ itools_bayer = importlib.import_module("itools-bayer")
 
 
 processImageTestCases = [
+    # (a) component order
     {
-        "name": "basic-8x8",
+        "name": "basic-8x8.noop",
+        "width": 4,
+        "height": 4,
+        "i_pix_fmt": "bayer_ggrb8",
+        "o_pix_fmt": "bayer_ggrb8",
+        "debug": 0,
+        "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
+        "planar_order": itools_bayer.DEFAULT_PLANAR_ORDER,
+        "bayer_planar_image": np.array(
+            [
+                [[1, 3], [9, 11]],
+                [[2, 4], [10, 12]],
+                [[5, 7], [13, 15]],
+                [[6, 8], [14, 16]],
+            ],
+            dtype=np.uint8,
+        ),
+        "output": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
+    },
+    {
+        "name": "basic-8x8.01",
         "width": 4,
         "height": 4,
         "i_pix_fmt": "bayer_rgbg8",
         "o_pix_fmt": "bayer_bggr8",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
+        "planar_order": itools_bayer.DEFAULT_PLANAR_ORDER,
         "bayer_planar_image": np.array(
             [
                 [[2, 4], [10, 12]],
@@ -38,6 +60,7 @@ processImageTestCases = [
         ),
         "output": b"\x05\x02\x07\x04\x06\x01\x08\x03\x0d\x0a\x0f\x0c\x0e\x09\x10\x0b",
     },
+    # (b) depth/pix_fmt changes
     # bayer8->bayer16
     {
         "name": "basic-bayer_bggr8-bayer_bggr8",
@@ -47,6 +70,7 @@ processImageTestCases = [
         "o_pix_fmt": "bayer_bggr8",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
+        "planar_order": itools_bayer.DEFAULT_PLANAR_ORDER,
         "bayer_planar_image": np.array(
             [
                 [[2, 4], [10, 12]],
@@ -66,6 +90,7 @@ processImageTestCases = [
         "o_pix_fmt": "bayer_gbrg8",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
+        "planar_order": itools_bayer.DEFAULT_PLANAR_ORDER,
         "bayer_planar_image": np.array(
             [
                 [[2, 4], [10, 12]],
@@ -85,6 +110,7 @@ processImageTestCases = [
         "o_pix_fmt": "bayer_gbrg8",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
+        "planar_order": itools_bayer.DEFAULT_PLANAR_ORDER,
         "bayer_planar_image": np.array(
             [
                 [[2, 4], [10, 12]],
@@ -104,6 +130,7 @@ processImageTestCases = [
         "o_pix_fmt": "bayer_grbg8",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
+        "planar_order": itools_bayer.DEFAULT_PLANAR_ORDER,
         "bayer_planar_image": np.array(
             [
                 [[2, 4], [10, 12]],
@@ -123,6 +150,7 @@ processImageTestCases = [
         "o_pix_fmt": "bayer_ggbr8",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
+        "planar_order": itools_bayer.DEFAULT_PLANAR_ORDER,
         "bayer_planar_image": np.array(
             [
                 [[2, 4], [10, 12]],
@@ -142,6 +170,7 @@ processImageTestCases = [
         "o_pix_fmt": "bayer_ggrb8",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
+        "planar_order": itools_bayer.DEFAULT_PLANAR_ORDER,
         "bayer_planar_image": np.array(
             [
                 [[2, 4], [10, 12]],
@@ -161,6 +190,7 @@ processImageTestCases = [
         "o_pix_fmt": "bayer_rgbg8",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
+        "planar_order": itools_bayer.DEFAULT_PLANAR_ORDER,
         "bayer_planar_image": np.array(
             [
                 [[2, 4], [10, 12]],
@@ -180,6 +210,7 @@ processImageTestCases = [
         "o_pix_fmt": "bayer_bgrg8",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
+        "planar_order": itools_bayer.DEFAULT_PLANAR_ORDER,
         "bayer_planar_image": np.array(
             [
                 [[2, 4], [10, 12]],
@@ -193,42 +224,66 @@ processImageTestCases = [
     },
     # bayer8->bayer16
     {
-        "name": "basic-8x16.le",
+        "name": "basic-8x16.le.readable",
         "width": 4,
         "height": 4,
-        "i_pix_fmt": "bayer_rgbg8",
+        "i_pix_fmt": "bayer_bggr8",
         "o_pix_fmt": "bayer_bggr16le",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
+        "planar_order": "BGgR",
         "bayer_planar_image": np.array(
             [
-                [[0x200, 0x400], [0xA00, 0xC00]],
-                [[0x600, 0x800], [0xE00, 0x1000]],
-                [[0x100, 0x300], [0x900, 0xB00]],
-                [[0x500, 0x700], [0xD00, 0xF00]],
+                [[0x1, 0x3], [0x9, 0xB]],
+                [[0x2, 0x4], [0xA, 0xC]],
+                [[0x5, 0x7], [0xD, 0xF]],
+                [[0x6, 0x8], [0xE, 0x10]],
             ],
-            dtype=np.uint16,
+            dtype=np.uint8,
         ),
-        "output": b"\x00\x05\x00\x02\x00\x07\x00\x04\x00\x06\x00\x01\x00\x08\x00\x03\x00\x0d\x00\x0a\x00\x0f\x00\x0c\x00\x0e\x00\x09\x00\x10\x00\x0b",
+        "output": b"\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08\x00\x09\x00\x0a\x00\x0b\x00\x0c\x00\x0d\x00\x0e\x00\x0f\x00\x10\x00"
+
+    },
+    {
+        "name": "basic-8x16.le",
+        "width": 4,
+        "height": 4,
+        "i_pix_fmt": "bayer_bggr8",
+        "o_pix_fmt": "bayer_bggr16le",
+        "debug": 0,
+        "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
+        "planar_order": itools_bayer.DEFAULT_PLANAR_ORDER,
+        "bayer_planar_image": np.array(
+            [
+                [[0x2, 0x4], [0xA, 0xC]],
+                [[0x5, 0x7], [0xD, 0xF]],
+                [[0x6, 0x8], [0xE, 0x10]],
+                [[0x1, 0x3], [0x9, 0xB]],
+            ],
+            dtype=np.uint8,
+        ),
+        "output": b"\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08\x00\x09\x00\x0a\x00\x0b\x00\x0c\x00\x0d\x00\x0e\x00\x0f\x00\x10\x00"
+
     },
     {
         "name": "basic-8x16.be",
         "width": 4,
         "height": 4,
-        "i_pix_fmt": "bayer_rgbg8",
+        "i_pix_fmt": "bayer_bggr8",
         "o_pix_fmt": "bayer_bggr16be",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
+        "planar_order": itools_bayer.DEFAULT_PLANAR_ORDER,
         "bayer_planar_image": np.array(
             [
-                [[0x200, 0x400], [0xA00, 0xC00]],
-                [[0x600, 0x800], [0xE00, 0x1000]],
-                [[0x100, 0x300], [0x900, 0xB00]],
-                [[0x500, 0x700], [0xD00, 0xF00]],
+                [[0x2, 0x4], [0xA, 0xC]],
+                [[0x5, 0x7], [0xD, 0xF]],
+                [[0x6, 0x8], [0xE, 0x10]],
+                [[0x1, 0x3], [0x9, 0xB]],
             ],
-            dtype=np.uint16,
+            dtype=np.uint8,
         ),
-        "output": b"\x05\x00\x02\x00\x07\x00\x04\x00\x06\x00\x01\x00\x08\x00\x03\x00\x0d\x00\x0a\x00\x0f\x00\x0c\x00\x0e\x00\x09\x00\x10\x00\x0b\x00",
+        "output": b"\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08\x00\x09\x00\x0a\x00\x0b\x00\x0c\x00\x0d\x00\x0e\x00\x0f\x00\x10"
     },
     # bayer10->bayer16 (extended)
     {
@@ -239,11 +294,12 @@ processImageTestCases = [
         "o_pix_fmt": "bayer_rggb16le",
         "debug": 0,
         "input": b"\x01\x00\x03\x01\x05\x02\x07\x03\x09\x00\x0b\x01\x0d\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
+        "planar_order": "RGgB",
         "bayer_planar_image": np.array(
             [
-                [[0x40C0, 0xC1C0], [0x44C0, 0xC5C0]],
-                [[0x240, 0x8340], [0x640, 0x8740]],
                 [[0x40, 0x8140], [0x440, 0x8540]],
+                [[0x240, 0x8340], [0x640, 0x8740]],
+                [[0x40C0, 0xC1C0], [0x44C0, 0xC5C0]],
                 [[0x42C0, 0xC3C0], [0x46C0, 0xC7C0]],
             ],
             dtype=np.uint16,
@@ -259,6 +315,7 @@ processImageTestCases = [
         "o_pix_fmt": "bayer_bggr16le",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14",
+        "planar_order": itools_bayer.DEFAULT_PLANAR_ORDER,
         "bayer_planar_image": np.array(
             [
                 [[0x240, 0x400], [0xCC0, 0xE00]],
@@ -297,10 +354,11 @@ class MainTest(unittest.TestCase):
             width = test_case["width"]
             height = test_case["height"]
             o_pix_fmt = test_case["o_pix_fmt"]
+            planar_order = test_case["planar_order"]
             debug = test_case["debug"]
             # 1. run forward conversion
             bayer_planar_image = itools_bayer.convert_image_planar_mode(
-                infile, i_pix_fmt, width, height, outfile, o_pix_fmt, debug
+                infile, i_pix_fmt, width, height, outfile, o_pix_fmt, planar_order, debug
             )
             # check the planar representation is correct
             absolute_tolerance = 1
@@ -308,7 +366,7 @@ class MainTest(unittest.TestCase):
                 test_case["bayer_planar_image"],
                 bayer_planar_image,
                 atol=absolute_tolerance,
-                err_msg=f"error on forward case {test_case['name']}"
+                err_msg=f"error on forward case {test_case['name']}",
             )
             # read output file
             with open(outfile, "rb") as f:
@@ -321,7 +379,7 @@ class MainTest(unittest.TestCase):
             )
             # 2. run loop conversion
             _ = itools_bayer.convert_image_planar_mode(
-                infile, i_pix_fmt, width, height, outfile, i_pix_fmt, debug
+                infile, i_pix_fmt, width, height, outfile, i_pix_fmt, planar_order, debug
             )
             # read output file
             with open(outfile, "rb") as f:
