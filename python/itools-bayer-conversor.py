@@ -47,11 +47,10 @@ def rfun_10_expanded_to_16(data, logfd, debug):
     # |b7 |b6 |b5 |b4 |b3 |b2 |b1 |b0 | | 0 | 0 | 0 | 0 | 0 | 0 |b9 |b8 |
     # +---+---+---+---+---+---+---+---+ +---+---+---+---+---+---+---+---+
     if (data[1] & 0xFC) != 0 or (data[3] & 0xFC) != 0:
-        print("warn: upper 6 bits are not zero", file=logfd)
-    return (
-        ((data[0]) | ((data[1] & 0x03) << 8)) << 6,
-        ((data[2]) | ((data[3] & 0x03) << 8)) << 6,
-    )
+        print("warn: upper 6 bits are not zero")
+    c0 = ((data[0]) | ((data[1] & 0x03) << 8)) << 6
+    c1 = ((data[2]) | ((data[3] & 0x03) << 8)) << 6
+    return (c0, c1)
 
 
 # 2 bytes -> 2 components
@@ -114,7 +113,7 @@ def wfun_10_ipu3_expanded_to_16(carray, logfd, debug):
 def rfun_12_expanded_to_16(data, logfd, debug):
     # check the high 4 bits of both components are 0x0
     if (data[1] & 0xF0) != 0 or (data[3] & 0xF0) != 0:
-        print("warn: upper 4 bits are not zero", file=logfd)
+        print("warn: upper 4 bits are not zero")
     return (
         (data[0] << 4) | ((data[1] & 0x0F) << 12),
         (data[2] << 4) | ((data[3] & 0x0F) << 12),
@@ -142,7 +141,7 @@ def wfun_12_packed_expanded_to_16(c0, c1, logfd, debug):
 def rfun_14_expanded_to_16(data, logfd, debug):
     # check the high 2 bits of both components are 0x0
     if (data[1] & 0xC0) != 0 or (data[3] & 0xC0) != 0:
-        print("warn: upper 2 bits are not zero", file=logfd)
+        print("warn: upper 2 bits are not zero")
     return (
         (data[0] << 2) | ((data[1] & 0x3F) << 10),
         (data[2] << 2) | ((data[3] & 0x3F) << 10),

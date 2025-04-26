@@ -238,24 +238,24 @@ processImageTestCases = [
         "i_pix_fmt": "RG10",  # SRGGB10
         "o_pix_fmt": "bayer_rggb16le",
         "debug": 0,
-        "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x20",
+        "input": b"\x01\x00\x03\x01\x05\x02\x07\x03\x09\x00\x0b\x01\x0d\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
         "bayer_planar": np.array(
             [
-                [[0xC0, 0x1C0], [0x4C0, 0x5C0]],
-                [[0x8240, 0x8340], [0x8640, 0x8740]],
-                [[0x8040, 0x8140], [0x8440, 0x8540]],
-                [[0x2C0, 0x3C0], [0x6C0, 0x7C0]],
+                [[0x40C0, 0xC1C0], [0x44C0, 0xC5C0]],
+                [[0x240, 0x8340], [0x640, 0x8740]],
+                [[0x40, 0x8140], [0x440, 0x8540]],
+                [[0x42C0, 0xC3C0], [0x46C0, 0xC7C0]],
             ],
             dtype=np.uint16,
         ),
-        "output": b"\x40\x80\xc0\x00\x40\x81\xc0\x01\x40\x82\xc0\x02\x40\x83\xc0\x03\x40\x84\xc0\x04\x40\x85\xc0\x05\x40\x86\xc0\x06\x40\x87\xc0\x07",
+        "output": b"\x40\x00\xc0\x40\x40\x81\xc0\xc1\x40\x02\xc0\x42\x40\x83\xc0\xc3\x40\x04\xc0\x44\x40\x85\xc0\xc5\x40\x06\xc0\x46\x40\x87\xc0\xc7",
     },
     # bayer10->bayer16 (packed)
     {
         "name": "basic-packed10x16.le",
         "width": 4,
         "height": 4,
-        "i_pix_fmt": "pRAA",
+        "i_pix_fmt": "pRAA",  # SRGGB10P
         "o_pix_fmt": "bayer_bggr16le",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14",
@@ -318,7 +318,7 @@ class MainTest(unittest.TestCase):
                 f"error on forward test {test_case['name']}",
             )
             # 2. run loop conversion
-            bayer_planar = itools_bayer_conversor.process_image(
+            _ = itools_bayer_conversor.process_image(
                 infile, i_pix_fmt, width, height, outfile, i_pix_fmt, logfd, debug
             )
             # read output file
