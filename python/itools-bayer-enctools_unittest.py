@@ -23,7 +23,7 @@ convertRg1g2bToYdgcocgTestCases = [
     {
         "name": "basic-4x4",
         "depth": 8,
-        "bayer_image": np.array(
+        "bayer_packed_image": np.array(
             [
                 [0x00, 0x40, 0x10, 0x30],
                 [0x80, 0xFF, 0x90, 0xF0],
@@ -40,7 +40,7 @@ convertRg1g2bToYdgcocgTestCases = [
     {
         "name": "reverse-4x4",
         "depth": 8,
-        "bayer_image": np.array(
+        "bayer_packed_image": np.array(
             [
                 [0x00, 0x40, 0x10, 0x30],
                 [0x80, 0x00, 0x90, 0xF0],
@@ -66,7 +66,7 @@ class MainTest(unittest.TestCase):
             # 1. run RG1G2B to YDgCoCg function
             bayer_y, bayer_dg, bayer_co, bayer_cg = (
                 itools_bayer_enctool.convert_rg1g2b_to_ydgcocg(
-                    test_case["bayer_image"],
+                    test_case["bayer_packed_image"],
                     depth,
                 )
             )
@@ -76,12 +76,14 @@ class MainTest(unittest.TestCase):
             np.testing.assert_array_equal(test_case["bayer_co"], bayer_co)
             np.testing.assert_array_equal(test_case["bayer_cg"], bayer_cg)
             # 2. run YDgCoCg to RG1G2B function (reverse)
-            bayer_image = itools_bayer_enctool.convert_ydgcocg_to_rg1g2b(
+            bayer_packed_image = itools_bayer_enctool.convert_ydgcocg_to_rg1g2b(
                 bayer_y, bayer_dg, bayer_co, bayer_cg, depth
             )
             absolute_tolerance = 1
             np.testing.assert_allclose(
-                test_case["bayer_image"], bayer_image, atol=absolute_tolerance
+                test_case["bayer_packed_image"],
+                bayer_packed_image,
+                atol=absolute_tolerance,
             )
 
 
