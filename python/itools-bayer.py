@@ -924,32 +924,48 @@ class BayerImage:
         if self.packed is None:
             # convert buffer to packed
             assert self.buffer is not None, "error: invalid buffer"
-            # convert buffer into a bayer packed image
-            depth = get_depth(self.pix_fmt)
-            # TODO(chema): make this a function of pix_fmt
-            if depth == 8:
-                self.packed = np.frombuffer(self.buffer, dtype=np.uint8)
-            elif depth == 16:
-                self.packed = np.frombuffer(
-                    self.buffer, dtype=np.uint16
-                )  # TODO(chema): this assumes little-endian
-                # self.packed = np.frombuffer(self.buffer, dtype=">u2")  # big-endian
-            elif depth in (10, 12, 14):
-                # cv2 assumes color to be 16-bit depth if dtype is uint16
-                # For 10/12/14-bit color, let's expand to 16-bit before
-                # further processing. This also helps unify all further
-                # processing as 16-bit.
-                # support expanded and/or packed bayer formats
-                # if expanded:
-                # a. read as little-endian
-                self.packed = np.frombuffer(self.buffer, dtype=np.uint16)
-                # b. expand to 16 bits
-                self.packed = self.packed << (16 - depth)
-                # elif packed:
-            else:
-                raise ValueError(f"Unsupported depth value: {depth}")
-            # reshape image
-            self.packed = self.packed.reshape(self.width, self.height)
+            # get format info
+            pix_fmt = self.pix_fmt
+            rdepth = INPUT_FORMATS[pix_fmt]["rdepth"]
+            clen = INPUT_FORMATS[pix_fmt]["clen"]
+            order = INPUT_FORMATS[pix_fmt]["order"]
+            # create bayer packed image
+            dtype = np.uint16 if rdepth > 8 else np.uint8
+            self.packed = np.zeros((self.height, self.width), dtype=dtype)
+            # fill it up
+            row = 0
+            col = 0
+            i = 0
+            while True:
+                if self.debug > 0:
+                    print(f"debug: {row=} {col=}")
+                # 1. read components from the input
+                components = ()
+                while len(components) < clen:
+                    length = INPUT_FORMATS[pix_fmt]["blen"]
+                    idata = self.buffer[i : i + length]
+                    i += length
+                    if not idata:
+                        break
+                    components += INPUT_FORMATS[pix_fmt]["rfun"](idata, self.debug)
+                if len(components) < clen:
+                    # end of input
+                    break
+                # 2. convert component depth (if needed)
+                if rdepth > 8 and rdepth < 16:
+                    components = list(c << (16 - rdepth) for c in components)
+                if self.debug > 1:
+                    print(f"debug:  {components=}")
+                # 3. convert component order
+                for component in components:
+                    self.packed[row][col] = component
+                    if self.debug > 1:
+                        print(f"debug: {row=} {col=}")
+                    col += 1
+                # 5. update input row numbers
+                if col == self.width:
+                    col = 0
+                    row += 1
         return self.packed
 
     def GetPlanar(self, planar_order):
@@ -971,9 +987,7 @@ class BayerImage:
             while True:
                 if self.debug > 0:
                     print(f"debug: {row=} {col=}")
-                # 1. get affected plane IDs
-                plane_ids = self.GetPlaneIds(order, row, planar_order)
-                # 2. read components from the input
+                # 1. read components from the input
                 components = ()
                 while len(components) < clen:
                     length = INPUT_FORMATS[pix_fmt]["blen"]
@@ -985,11 +999,13 @@ class BayerImage:
                 if len(components) < clen:
                     # end of input
                     break
-                # 3. convert component depth to 16-bit
+                # 2. convert component depth (if needed)
                 if rdepth > 8 and rdepth < 16:
                     components = list(c << (16 - rdepth) for c in components)
                 if self.debug > 1:
                     print(f"debug:  {components=}")
+                # 3. get affected plane IDs
+                plane_ids = self.GetPlaneIds(order, row, planar_order)
                 # 4. convert component order
                 for component in components:
                     plane_id = plane_ids[col % len(plane_ids)]

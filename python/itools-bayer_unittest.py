@@ -450,15 +450,14 @@ processImageTestCases = [
             ],
             dtype=np.uint16,
         ),
-        # TODO(chema): BROKEN
         "bayer_packed_image": np.array(
             [
-                [1, 2, 3, 4],
-                [5, 6, 7, 8],
-                [9, 10, 11, 12],
-                [13, 14, 15, 16],
+                [0x140, 0x240, 0x300, 0x400],
+                [0x680, 0x780, 0x800, 0x900],
+                [0xBC0, 0xCC0, 0xD00, 0xE00],
+                [0x1000, 0x1140, 0x1240, 0x1300],
             ],
-            dtype=np.uint8,
+            dtype=np.uint16,
         ),
         "output": b"\x80\x07\x40\x02\x00\x09\x00\x04\x80\x06\x40\x01\x00\x08\x00\x03\x40\x11\xc0\x0c\x00\x13\x00\x0e\x00\x10\xc0\x0b\x40\x12\x00\x0d",
     },
