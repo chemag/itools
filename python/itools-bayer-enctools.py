@@ -69,6 +69,7 @@ COLUMN_LIST = [
     "width",
     "height",
     "pix_fmt",
+    "depth",
     "approach",
     "codec",
     "quality",
@@ -90,14 +91,16 @@ COLUMN_LIST = [
 def calculate_psnr(obj1, obj2):
     if type(obj1) == dict and type(obj2) == dict:
         # a. check if the dictionaries have the same keys
-        assert set(obj1.keys()) == set(obj2.keys()), "calculate_psnr: Dicts with different keys"
+        assert set(obj1.keys()) == set(
+            obj2.keys()
+        ), "calculate_psnr: Dicts with different keys"
         # b. check if the numpy arrays have the same values
         psnr = {}
         for key in obj1:
             psnr[key] = calculate_psnr_planar(obj1[key], obj2[key])
         return psnr
     else:
-        return calculate_psnr_planar(plane1, plane2)
+        return calculate_psnr_planar(obj1, obj2)
 
 
 def calculate_psnr_planar(plane1, plane2):
@@ -113,31 +116,27 @@ def calculate_psnr_planar(plane1, plane2):
     return float(psnr)
 
 
-def remosaic_rgb_image(rgb_image, pix_fmt):
-    depth = itools_bayer.get_depth(bayer_image.pix_fmt)
-    st_dtype = np.uint8 if depth == 8 else np.uint16
-    bgr_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2BGR)
-    height, width, _ = bgr_image.shape
-    bayer_packed_image = np.zeros((height, width), dtype=st_dtype)
-    for i in range(height):
-        for j in range(width):
-            if (i + j) % 2 == 0:
-                bayer_packed_image[i, j] = bgr_image[i, j, 0]  # Blue
-            else:
-                if i % 2 == 0:
-                    bayer_packed_image[i, j] = bgr_image[i, j, 1]  # Green
-                else:
-                    bayer_packed_image[i, j] = bgr_image[i, j, 2]  # Red
-    return itools_bayer.BayerImage.FromPacked(
-        bayer_packed_image, pix_fmt, width, height
+def bayer_ydgcocg_subsample_planar(bayer_ydgcocg_planar):
+    bayer_ydgcocg_subsampled_planar = bayer_ydgcocg_planar.copy()
+    bayer_ydgcocg_subsampled_planar["co"] = bayer_ydgcocg_subsampled_planar["co"][
+        ::2, ::2
+    ]
+    bayer_ydgcocg_subsampled_planar["cg"] = bayer_ydgcocg_subsampled_planar["cg"][
+        ::2, ::2
+    ]
+    return bayer_ydgcocg_subsampled_planar
+
+
+def bayer_ydgcocg_upsample_planar(bayer_ydgcocg_subsampled_planar):
+    bayer_ydgcocg_planar = bayer_ydgcocg_subsampled_planar.copy()
+    original_shape = bayer_ydgcocg_planar["y"].shape
+    bayer_ydgcocg_planar["co"] = itools_bayer.upsample_matrix(
+        bayer_ydgcocg_planar["co"], original_shape
     )
-
-
-def upsample_matrix(arr, shape):
-    upsampled_array = np.repeat(np.repeat(arr, 2, axis=0), 2, axis=1)
-    rows, cols = shape
-    height, width = shape
-    return upsampled_array[:height, :width]
+    bayer_ydgcocg_planar["cg"] = itools_bayer.upsample_matrix(
+        bayer_ydgcocg_planar["cg"], original_shape
+    )
+    return bayer_ydgcocg_planar
 
 
 # matrix clippers
@@ -168,6 +167,7 @@ def clip_positive(arr, depth, check=True):
     # clip values to the closest integer and convert to storage dtype
     return np.clip(arr, 0, max_value).astype(st_dtype)
 
+
 # (b) integer value, in the [-2^{<depth>}, 2^{<depth>} - 1] range. This is
 # what happens to the Dg, Co, and Cg components, as they are calculated by
 # adding/substracting the R/G1/G2/B components. Note that it is not possible
@@ -181,6 +181,7 @@ def clip_positive(arr, depth, check=True):
 # [-255, 255] range. In order to encode it, we scale it to half (effectively
 # throwing the LSB), and then add a shift. The value ends up in the range
 # [0, 255].
+
 
 def clip_integer_and_scale(arr, depth, check=True):
     max_value = 2**depth - 1
@@ -214,10 +215,10 @@ def convert_rg1g2b_to_ydgcocg(bayer_image, depth):
     bayer_g2 = bayer_planar_image["g"]
     bayer_b = bayer_planar_image["B"]
     # 2. do the color conversion
-    bayer_y, bayer_dg, bayer_co, bayer_cg = convert_rg1g2b_to_ydgcocg_components(
+    bayer_ydgcocg_planar = convert_rg1g2b_to_ydgcocg_components(
         bayer_r, bayer_g1, bayer_g2, bayer_b, depth
     )
-    return bayer_y, bayer_dg, bayer_co, bayer_cg
+    return bayer_ydgcocg_planar
 
 
 def convert_rg1g2b_to_ydgcocg_components(bayer_r, bayer_g1, bayer_g2, bayer_b, depth):
@@ -235,26 +236,33 @@ def convert_rg1g2b_to_ydgcocg_components(bayer_r, bayer_g1, bayer_g2, bayer_b, d
     bayer_co = (1) * bayer_r + (-1) * bayer_b
     bayer_cg = (bayer_g1 >> 1) + (bayer_g2 >> 1) - (bayer_r >> 1) - (bayer_b >> 1)
     # 2. clip matrices to storage type
-    bayer_y = clip_positive(bayer_y, depth)
-    bayer_dg = clip_integer_and_scale(bayer_dg, depth)
-    bayer_co = clip_integer_and_scale(bayer_co, depth)
-    bayer_cg = clip_integer_and_scale(bayer_cg, depth)
-    return bayer_y, bayer_dg, bayer_co, bayer_cg
+    bayer_ydgcocg_planar = {
+        "y": clip_positive(bayer_y, depth),
+        "dg": clip_integer_and_scale(bayer_dg, depth),
+        "co": clip_integer_and_scale(bayer_co, depth),
+        "cg": clip_integer_and_scale(bayer_cg, depth),
+    }
+    return bayer_ydgcocg_planar
 
 
-def convert_ydgcocg_to_rg1g2b(bayer_y, bayer_dg, bayer_co, bayer_cg, depth):
+def convert_ydgcocg_to_rg1g2b(bayer_ydgcocg_planar, depth):
     # 1. do the color conversion
+    bayer_y = bayer_ydgcocg_planar["y"]
+    bayer_dg = bayer_ydgcocg_planar["dg"]
+    bayer_co = bayer_ydgcocg_planar["co"]
+    bayer_cg = bayer_ydgcocg_planar["cg"]
     bayer_r, bayer_g1, bayer_g2, bayer_b = convert_ydgcocg_to_rg1g2b_components(
         bayer_y, bayer_dg, bayer_co, bayer_cg, depth
     )
     # 2. merge Bayer components
-    return merge_bayer_planes(bayer_r, bayer_g1, bayer_g2, bayer_b, depth)
+    bayer_image = merge_bayer_planes(bayer_r, bayer_g1, bayer_g2, bayer_b, depth)
+    return bayer_image
 
 
 def merge_bayer_planes(bayer_r, bayer_g1, bayer_g2, bayer_b, depth):
-    o_pix_fmt = CV2_OPERATION_PIX_FMT_DICT[depth]
+    pix_fmt = CV2_OPERATION_PIX_FMT_DICT[depth]
     return itools_bayer.BayerImage.FromPlanars(
-        bayer_r, bayer_g1, bayer_g2, bayer_b, o_pix_fmt
+        bayer_r, bayer_g1, bayer_g2, bayer_b, pix_fmt
     )
 
 
@@ -289,30 +297,36 @@ def convert_ydgcocg_to_rg1g2b_components(bayer_y, bayer_dg, bayer_co, bayer_cg, 
 
 
 # encoding processing
-def codec_process(codec, quality, depth, arrays_list):
+def codec_process(codec, quality, depth, planar, label, debug):
     if codec == "jpeg/cv2" and depth == 8:
-        return jpeg_cv2_process(quality, arrays_list)
+        return jpeg_cv2_process(quality, planar, label, debug)
 
 
-def jpeg_cv2_process(quality, arrays_list):
-    arrays_prime_list = []
-    encoded_size_list = []
-    for array in arrays_list:
-        # encode file
+def jpeg_cv2_process(quality, planar, label, debug):
+    planar_prime = {}
+    encoded_size_dict = {}
+    for key in planar:
+        array = planar[key]
+        # encode array into file
         success, array_encoded = cv2.imencode(
             ".jpg", array, [cv2.IMWRITE_JPEG_QUALITY, quality]
         )
-        encoded_size = len(array_encoded)
-        encoded_size_list.append(encoded_size)
-        # decode file
+        if debug > 1:
+            filename = (
+                f"/tmp/itools.bayer.test.{label}.{key}.quality_{quality}.output.jpg"
+            )
+            array_encoded.tofile(filename)
+
+        encoded_size_dict[key] = len(array_encoded)
+        # decode file into array
         array_prime = cv2.imdecode(array_encoded, cv2.IMREAD_GRAYSCALE)
-        arrays_prime_list.append(array_prime)
-    return arrays_prime_list, encoded_size_list
+        planar_prime[key] = array_prime
+    return planar_prime, encoded_size_dict
 
 
 # read a Bayer image, and make sure the packed version is opencv-friendly
-def read_bayer_image(infile, i_pix_fmt, width, height):
-    i_pix_fmt = get_canonical_input_pix_fmt(i_pix_fmt)
+def read_bayer_image(infile, pix_fmt, width, height, debug):
+    pix_fmt = itools_bayer.get_canonical_input_pix_fmt(pix_fmt)
 
     # read the input image
     bayer_image = itools_bayer.BayerImage.FromFile(infile, pix_fmt, width, height)
@@ -320,10 +334,11 @@ def read_bayer_image(infile, i_pix_fmt, width, height):
 
     # convert to a same-depth format that is opencv-friendly
     o_pix_fmt = CV2_OPERATION_PIX_FMT_DICT[depth]
-    o_pix_fmt = get_canonical_output_pix_fmt(o_pix_fmt)
-    bayer_image_cv2 = BayerImage.FromPlanar(
+    o_pix_fmt = itools_bayer.get_canonical_output_pix_fmt(o_pix_fmt)
+    bayer_image_cv2 = itools_bayer.BayerImage.FromPlanar(
         bayer_image.GetPlanar(),
         o_pix_fmt,
+        bayer_image.infile,
         debug,
     )
     return bayer_image_cv2
@@ -339,7 +354,7 @@ def process_file_bayer_ydgcocg(
     quality_list,
     debug,
 ):
-    bayer_image = read_bayer_image(infile, pix_fmt, width, height)
+    bayer_image = read_bayer_image(infile, pix_fmt, width, height, debug)
     return process_file_bayer_ydgcocg_array(
         bayer_image,
         codec,
@@ -354,93 +369,72 @@ def process_file_bayer_ydgcocg_array(
     quality_list,
     debug,
 ):
+    label = "bayer-ydgcocg"
     df = pd.DataFrame(columns=COLUMN_LIST)
     width, height = bayer_image.width, bayer_image.height
     depth = itools_bayer.get_depth(bayer_image.pix_fmt)
 
     # 1. demosaic raw image to RGB
-    rgb_image = cv2.cvtColor(bayer_image.GetPacked(), cv2.COLOR_BAYER_BG2RGB)
-    rgb_r, rgb_g, rgb_b = cv2.split(rgb_image)
+    rgb_planar = bayer_image.GetRGBPlanar()
 
     # 2. convert RGB to YUV
-    yuv_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2YUV)
-    yuv_y, yuv_u, yuv_v = cv2.split(yuv_image)
+    yuv_planar = bayer_image.GetYUVPlanar()
 
     # 3. demosaic Bayer image to YDgCoCg
-    bayer_y, bayer_dg, bayer_co, bayer_cg = convert_rg1g2b_to_ydgcocg(
-        bayer_image, depth
-    )
+    bayer_ydgcocg_planar = convert_rg1g2b_to_ydgcocg(bayer_image, depth)
 
     for quality in quality_list:
         # 4. encode and decode the 4 planes
-        (
-            bayer_y_prime,
-            bayer_dg_prime,
-            bayer_co_prime,
-            bayer_cg_prime,
-        ), encoded_size_list = codec_process(
-            codec, quality, depth, (bayer_y, bayer_dg, bayer_co, bayer_cg)
+        bayer_ydgcocg_planar_prime, encoded_size_dict = codec_process(
+            codec, quality, depth, bayer_ydgcocg_planar, label, debug
         )
 
         # 5. convert YDgCoCg image back to Bayer
-        bayer_image_prime = convert_ydgcocg_to_rg1g2b(
-            bayer_y_prime, bayer_dg_prime, bayer_co_prime, bayer_cg_prime, depth
-        )
+        bayer_image_prime = convert_ydgcocg_to_rg1g2b(bayer_ydgcocg_planar_prime, depth)
 
         # 6. demosaic raw image to RGB
-        rgb_image_prime = cv2.cvtColor(
-            bayer_image_prime.GetPacked(), cv2.COLOR_BAYER_BG2RGB
-        )
-        rgb_r_prime, rgb_g_prime, rgb_b_prime = cv2.split(rgb_image_prime)
+        rgb_planar_prime = bayer_image_prime.GetRGBPlanar()
 
         # 7. convert RGB to YUV
-        yuv_image_prime = cv2.cvtColor(rgb_image_prime, cv2.COLOR_RGB2YUV)
-        yuv_y_prime, yuv_u_prime, yuv_v_prime = cv2.split(yuv_image_prime)
+        yuv_planar_prime = bayer_image_prime.GetYUVPlanar()
 
         # 8. calculate results
         # sizes
-        encoded_size = sum(encoded_size_list)
-        encoder_bpp = (encoded_size * 8.0) / (width * height)
+        encoded_size = sum(encoded_size_dict.values())
+        encoded_bpp = (encoded_size * 8.0) / (width * height)
         # psnr values
         # psnr values: YUV
-        psnr_yuv_y = calculate_psnr(yuv_y, yuv_y_prime)
-        psnr_yuv_u = calculate_psnr(yuv_u, yuv_u_prime)
-        psnr_yuv_v = calculate_psnr(yuv_v, yuv_v_prime)
-        psnr_yuv = np.mean([psnr_yuv_y, psnr_yuv_u, psnr_yuv_v])
+        psnr_yuv_dict = calculate_psnr(yuv_planar, yuv_planar_prime)
+        psnr_yuv = np.mean(list(psnr_yuv_dict.values()))
         # psnr values: RGB
-        psnr_rgb_r = calculate_psnr(rgb_r, rgb_r_prime)
-        psnr_rgb_g = calculate_psnr(rgb_g, rgb_g_prime)
-        psnr_rgb_b = calculate_psnr(rgb_b, rgb_b_prime)
-        psnr_rgb = np.mean([psnr_rgb_r, psnr_rgb_g, psnr_rgb_b])
+        psnr_rgb_dict = calculate_psnr(rgb_planar, rgb_planar_prime)
+        psnr_rgb = np.mean(list(psnr_rgb_dict.values()))
         # psnr values: Bayer
         psnr_bayer = calculate_psnr(
             bayer_image.GetPacked(), bayer_image_prime.GetPacked()
         )
-        # psnr_bayer_y = calculate_psnr(bayer_y, bayer_y_prime)
-        # psnr_bayer_dg = calculate_psnr(bayer_dg, bayer_dg_prime)
-        # psnr_bayer_co = calculate_psnr(bayer_co, bayer_co_prime)
-        # psnr_bayer_cg = calculate_psnr(bayer_cg, bayer_cg_prime)
         # add new element
         df.loc[df.size] = (
             bayer_image.infile,
             bayer_image.width,
             bayer_image.height,
             bayer_image.pix_fmt,
-            "bayer-ydgcocg",
+            bayer_image.depth,
+            label,
             codec,
             quality,
             encoded_size,
-            ":".join(str(size) for size in encoded_size_list),
-            encoder_bpp,
+            ":".join(str(size) for size in encoded_size_dict.values()),
+            encoded_bpp,
             psnr_bayer,
             psnr_rgb,
-            psnr_rgb_r,
-            psnr_rgb_g,
-            psnr_rgb_b,
+            psnr_rgb_dict["r"],
+            psnr_rgb_dict["g"],
+            psnr_rgb_dict["b"],
             psnr_yuv,
-            psnr_yuv_y,
-            psnr_yuv_u,
-            psnr_yuv_v,
+            psnr_yuv_dict["y"],
+            psnr_yuv_dict["u"],
+            psnr_yuv_dict["v"],
         )
 
     return df
@@ -456,7 +450,7 @@ def process_file_bayer_ydgcocg_420(
     quality_list,
     debug,
 ):
-    bayer_image = read_bayer_image(infile, pix_fmt, width, height)
+    bayer_image = read_bayer_image(infile, pix_fmt, width, height, debug)
     return process_file_bayer_ydgcocg_420_array(
         bayer_image,
         codec,
@@ -471,109 +465,89 @@ def process_file_bayer_ydgcocg_420_array(
     quality_list,
     debug,
 ):
+    label = "bayer-ydgcocg-420"
     df = pd.DataFrame(columns=COLUMN_LIST)
     width, height = bayer_image.width, bayer_image.height
     depth = itools_bayer.get_depth(bayer_image.pix_fmt)
 
     # 1. demosaic raw image to RGB
-    rgb_image = cv2.cvtColor(bayer_image.GetPacked(), cv2.COLOR_BAYER_BG2RGB)
-    rgb_r, rgb_g, rgb_b = cv2.split(rgb_image)
+    rgb_planar = bayer_image.GetRGBPlanar()
 
     # 2. convert RGB to YUV
-    yuv_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2YUV)
-    yuv_y, yuv_u, yuv_v = cv2.split(yuv_image)
+    yuv_planar = bayer_image.GetYUVPlanar()
 
     # 3. demosaic Bayer image to YDgCoCg
-    bayer_y, bayer_dg, bayer_co, bayer_cg = convert_rg1g2b_to_ydgcocg(
-        bayer_image, depth
+    bayer_ydgcocg_planar = convert_rg1g2b_to_ydgcocg(bayer_image, depth)
+
+    # 4. subsample the chromas
+    bayer_ydgcocg_subsampled_planar = bayer_ydgcocg_subsample_planar(
+        bayer_ydgcocg_planar
     )
 
     for quality in quality_list:
-        # 4. encode and decode the 4 planes
-        # subsample the chromas
-        bayer_co_subsampled = bayer_co[::2, ::2]
-        bayer_cg_subsampled = bayer_cg[::2, ::2]
+        # 5. encode and decode the 4 planes
         # encode and decode the 4 planes
-        (
-            bayer_y_prime,
-            bayer_dg_prime,
-            bayer_co_subsampled_prime,
-            bayer_cg_subsampled_prime,
-        ), encoded_size_list = codec_process(
-            codec,
-            quality,
-            depth,
-            (bayer_y, bayer_dg, bayer_co_subsampled, bayer_cg_subsampled),
-        )
-        # upsample the chromas
-        bayer_co_prime = upsample_matrix(bayer_co_subsampled_prime, bayer_co.shape)
-        bayer_cg_prime = upsample_matrix(bayer_cg_subsampled_prime, bayer_cg.shape)
-
-        # 5. convert YDgCoCg image back to Bayer
-        bayer_image_prime = convert_ydgcocg_to_rg1g2b(
-            bayer_y_prime, bayer_dg_prime, bayer_co_prime, bayer_cg_prime, depth
+        bayer_ydgcocg_subsampled_planar_prime, encoded_size_dict = codec_process(
+            codec, quality, depth, bayer_ydgcocg_subsampled_planar, label, debug
         )
 
-        # 6. demosaic raw image to RGB
-        rgb_image_prime = cv2.cvtColor(
-            bayer_image_prime.GetPacked(), cv2.COLOR_BAYER_BG2RGB
+        # 6. upsample the chromas
+        bayer_ydgcocg_planar_prime = bayer_ydgcocg_upsample_planar(
+            bayer_ydgcocg_subsampled_planar_prime
         )
-        rgb_r_prime, rgb_g_prime, rgb_b_prime = cv2.split(rgb_image_prime)
 
-        # 7. convert RGB to YUV
-        yuv_image_prime = cv2.cvtColor(rgb_image_prime, cv2.COLOR_RGB2YUV)
-        yuv_y_prime, yuv_u_prime, yuv_v_prime = cv2.split(yuv_image_prime)
+        # 7. convert YDgCoCg image back to Bayer
+        bayer_image_prime = convert_ydgcocg_to_rg1g2b(bayer_ydgcocg_planar_prime, depth)
 
-        # 8. calculate results
+        # 8. demosaic raw image to RGB
+        rgb_planar_prime = bayer_image_prime.GetRGBPlanar()
+
+        # 9. convert RGB to YUV
+        yuv_planar_prime = bayer_image_prime.GetYUVPlanar()
+
+        # 10. calculate results
         # sizes
-        encoded_size = sum(encoded_size_list)
-        encoder_bpp = (encoded_size * 8.0) / (width * height)
+        encoded_size = sum(encoded_size_dict.values())
+        encoded_bpp = (encoded_size * 8.0) / (width * height)
         # psnr values
         # psnr values: YUV
-        psnr_yuv_y = calculate_psnr(yuv_y, yuv_y_prime)
-        psnr_yuv_u = calculate_psnr(yuv_u, yuv_u_prime)
-        psnr_yuv_v = calculate_psnr(yuv_v, yuv_v_prime)
-        psnr_yuv = np.mean([psnr_yuv_y, psnr_yuv_u, psnr_yuv_v])
+        psnr_yuv_dict = calculate_psnr(yuv_planar, yuv_planar_prime)
+        psnr_yuv = np.mean(list(psnr_yuv_dict.values()))
         # psnr values: RGB
-        psnr_rgb_r = calculate_psnr(rgb_r, rgb_r_prime)
-        psnr_rgb_g = calculate_psnr(rgb_g, rgb_g_prime)
-        psnr_rgb_b = calculate_psnr(rgb_b, rgb_b_prime)
-        psnr_rgb = np.mean([psnr_rgb_r, psnr_rgb_g, psnr_rgb_b])
+        psnr_rgb_dict = calculate_psnr(rgb_planar, rgb_planar_prime)
+        psnr_rgb = np.mean(list(psnr_rgb_dict.values()))
         # psnr values: Bayer
         psnr_bayer = calculate_psnr(
             bayer_image.GetPacked(), bayer_image_prime.GetPacked()
         )
-        # psnr_bayer_y = calculate_psnr(bayer_y, bayer_y_prime)
-        # psnr_bayer_dg = calculate_psnr(bayer_dg, bayer_dg_prime)
-        # psnr_bayer_co = calculate_psnr(bayer_co, bayer_co_prime)
-        # psnr_bayer_cg = calculate_psnr(bayer_cg, bayer_cg_prime)
         # add new element
         df.loc[df.size] = (
             bayer_image.infile,
             bayer_image.width,
             bayer_image.height,
             bayer_image.pix_fmt,
-            "bayer-ydgcocg-420",
+            bayer_image.depth,
+            label,
             codec,
             quality,
             encoded_size,
-            ":".join(str(size) for size in encoded_size_list),
-            encoder_bpp,
+            ":".join(str(size) for size in encoded_size_dict.values()),
+            encoded_bpp,
             psnr_bayer,
             psnr_rgb,
-            psnr_rgb_r,
-            psnr_rgb_g,
-            psnr_rgb_b,
+            psnr_rgb_dict["r"],
+            psnr_rgb_dict["g"],
+            psnr_rgb_dict["b"],
             psnr_yuv,
-            psnr_yuv_y,
-            psnr_yuv_u,
-            psnr_yuv_v,
+            psnr_yuv_dict["y"],
+            psnr_yuv_dict["u"],
+            psnr_yuv_dict["v"],
         )
 
     return df
 
 
-# Bayer processing stack (single encoding)
+# Bayer processing stack (single plane encoding)
 def process_file_bayer_single(
     infile,
     width,
@@ -583,7 +557,7 @@ def process_file_bayer_single(
     quality_list,
     debug,
 ):
-    bayer_image = read_bayer_image(infile, pix_fmt, width, height)
+    bayer_image = read_bayer_image(infile, pix_fmt, width, height, debug)
     return process_file_bayer_single_array(
         bayer_image,
         codec,
@@ -598,50 +572,45 @@ def process_file_bayer_single_array(
     quality_list,
     debug,
 ):
+    label = "bayer-single"
     df = pd.DataFrame(columns=COLUMN_LIST)
     width, height = bayer_image.width, bayer_image.height
     depth = itools_bayer.get_depth(bayer_image.pix_fmt)
 
     # 1. demosaic raw image to RGB
-    rgb_image = cv2.cvtColor(bayer_image.GetPacked(), cv2.COLOR_BAYER_BG2RGB)
-    rgb_r, rgb_g, rgb_b = cv2.split(rgb_image)
+    rgb_planar = bayer_image.GetRGBPlanar()
 
     # 2. convert RGB to YUV
-    yuv_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2YUV)
-    yuv_y, yuv_u, yuv_v = cv2.split(yuv_image)
+    yuv_planar = bayer_image.GetYUVPlanar()
 
     for quality in quality_list:
         # 3. encode and decode the single planes
-        (bayer_image_prime_packed), encoded_size_list = codec_process(
-            codec, quality, depth, (bayer_image.GetPacked(),)
+        bayer_packed_dict = {"bayer": bayer_image.GetPacked()}
+        bayer_packed_prime_dict, encoded_size_dict = codec_process(
+            codec, quality, depth, bayer_packed_dict, label, debug
         )
-        bayer_image_prime = itools_bayer.BayerImage.FromPacked(bayer_image_prime_packed)
-
-        # 5. demosaic raw image to RGB
-        rgb_image_prime = cv2.cvtColor(
-            bayer_image_prime.GetPacked(), cv2.COLOR_BAYER_BG2RGB
+        bayer_packed_prime = bayer_packed_prime_dict["bayer"]
+        bayer_image_prime = itools_bayer.BayerImage.FromPacked(
+            bayer_packed_prime, bayer_image.pix_fmt
         )
-        rgb_r_prime, rgb_g_prime, rgb_b_prime = cv2.split(rgb_image_prime)
 
-        # 6. convert RGB to YUV
-        yuv_image_prime = cv2.cvtColor(rgb_image_prime, cv2.COLOR_RGB2YUV)
-        yuv_y_prime, yuv_u_prime, yuv_v_prime = cv2.split(yuv_image_prime)
+        # 4. demosaic raw image to RGB
+        rgb_planar_prime = bayer_image_prime.GetRGBPlanar()
+
+        # 5. convert RGB to YUV
+        yuv_planar_prime = bayer_image_prime.GetYUVPlanar()
 
         # 7. calculate results
         # sizes
-        encoded_size = sum(encoded_size_list)
-        encoder_bpp = (encoded_size * 8.0) / (width * height)
+        encoded_size = sum(encoded_size_dict.values())
+        encoded_bpp = (encoded_size * 8.0) / (width * height)
         # psnr values
         # psnr values: YUV
-        psnr_yuv_y = calculate_psnr(yuv_y, yuv_y_prime)
-        psnr_yuv_u = calculate_psnr(yuv_u, yuv_u_prime)
-        psnr_yuv_v = calculate_psnr(yuv_v, yuv_v_prime)
-        psnr_yuv = np.mean([psnr_yuv_y, psnr_yuv_u, psnr_yuv_v])
+        psnr_yuv_dict = calculate_psnr(yuv_planar, yuv_planar_prime)
+        psnr_yuv = np.mean(list(psnr_yuv_dict.values()))
         # psnr values: RGB
-        psnr_rgb_r = calculate_psnr(rgb_r, rgb_r_prime)
-        psnr_rgb_g = calculate_psnr(rgb_g, rgb_g_prime)
-        psnr_rgb_b = calculate_psnr(rgb_b, rgb_b_prime)
-        psnr_rgb = np.mean([psnr_rgb_r, psnr_rgb_g, psnr_rgb_b])
+        psnr_rgb_dict = calculate_psnr(rgb_planar, rgb_planar_prime)
+        psnr_rgb = np.mean(list(psnr_rgb_dict.values()))
         # psnr values: Bayer
         psnr_bayer = calculate_psnr(
             bayer_image.GetPacked(), bayer_image_prime.GetPacked()
@@ -652,27 +621,28 @@ def process_file_bayer_single_array(
             bayer_image.width,
             bayer_image.height,
             bayer_image.pix_fmt,
-            "bayer-single",
+            bayer_image.depth,
+            label,
             codec,
             quality,
             encoded_size,
-            ":".join(str(size) for size in encoded_size_list),
-            encoder_bpp,
+            ":".join(str(size) for size in encoded_size_dict.values()),
+            encoded_bpp,
             psnr_bayer,
             psnr_rgb,
-            psnr_rgb_r,
-            psnr_rgb_g,
-            psnr_rgb_b,
+            psnr_rgb_dict["r"],
+            psnr_rgb_dict["g"],
+            psnr_rgb_dict["b"],
             psnr_yuv,
-            psnr_yuv_y,
-            psnr_yuv_u,
-            psnr_yuv_v,
+            psnr_yuv_dict["y"],
+            psnr_yuv_dict["u"],
+            psnr_yuv_dict["v"],
         )
 
     return df
 
 
-# Bayer processing stack (single encoding)
+# Bayer processing stack (plane encoding)
 def process_file_bayer_rggb(
     infile,
     width,
@@ -682,7 +652,7 @@ def process_file_bayer_rggb(
     quality_list,
     debug,
 ):
-    bayer_image = read_bayer_image(infile, pix_fmt, width, height)
+    bayer_image = read_bayer_image(infile, pix_fmt, width, height, debug)
     return process_file_bayer_rggb_array(
         bayer_image,
         codec,
@@ -697,65 +667,43 @@ def process_file_bayer_rggb_array(
     quality_list,
     debug,
 ):
+    label = "bayer-rggb"
     df = pd.DataFrame(columns=COLUMN_LIST)
     width, height = bayer_image.width, bayer_image.height
     depth = itools_bayer.get_depth(bayer_image.pix_fmt)
 
     # 1. demosaic raw image to RGB
-    rgb_image = cv2.cvtColor(bayer_image.GetPacked(), cv2.COLOR_BAYER_BG2RGB)
-    rgb_r, rgb_g, rgb_b = cv2.split(rgb_image)
+    rgb_planar = bayer_image.GetRGBPlanar()
 
     # 2. convert RGB to YUV
-    yuv_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2YUV)
-    yuv_y, yuv_u, yuv_v = cv2.split(yuv_image)
-
-    # 3. separate Bayer components
-    bayer_planar_image = bayer_image.GetPlanar()
-    bayer_r = bayer_planar_image["R"]
-    bayer_g1 = bayer_planar_image["G"]
-    bayer_g2 = bayer_planar_image["g"]
-    bayer_b = bayer_planar_image["B"]
+    yuv_planar = bayer_image.GetYUVPlanar()
 
     for quality in quality_list:
-        # 4. encode and decode the 4 planes
-        (
-            bayer_r_prime,
-            bayer_g1_prime,
-            bayer_g2_prime,
-            bayer_b_prime,
-        ), encoded_size_list = codec_process(
-            codec, quality, depth, (bayer_r, bayer_g1, bayer_g2, bayer_b)
+        # 3. encode and decode the 4 Bayer planes
+        bayer_planar_prime, encoded_size_dict = codec_process(
+            codec, quality, depth, bayer_image.GetPlanar(), label, debug
         )
-        # merge Bayer components
-        bayer_image_prime = merge_bayer_planes(
-            bayer_r_prime, bayer_g1_prime, bayer_g2_prime, bayer_b_prime, depth
+        bayer_image_prime = itools_bayer.BayerImage.FromPlanar(
+            bayer_planar_prime, bayer_image.pix_fmt
         )
 
-        # 5. demosaic raw image to RGB
-        rgb_image_prime = cv2.cvtColor(
-            bayer_image_prime.GetPacked(), cv2.COLOR_BAYER_BG2RGB
-        )
-        rgb_r_prime, rgb_g_prime, rgb_b_prime = cv2.split(rgb_image_prime)
+        # 4. demosaic raw image to RGB
+        rgb_planar_prime = bayer_image_prime.GetRGBPlanar()
 
-        # 6. convert RGB to YUV
-        yuv_image_prime = cv2.cvtColor(rgb_image_prime, cv2.COLOR_RGB2YUV)
-        yuv_y_prime, yuv_u_prime, yuv_v_prime = cv2.split(yuv_image_prime)
+        # 5. convert RGB to YUV
+        yuv_planar_prime = bayer_image_prime.GetYUVPlanar()
 
         # 7. calculate results
         # sizes
-        encoded_size = sum(encoded_size_list)
-        encoder_bpp = (encoded_size * 8.0) / (width * height)
+        encoded_size = sum(encoded_size_dict.values())
+        encoded_bpp = (encoded_size * 8.0) / (width * height)
         # psnr values
         # psnr values: YUV
-        psnr_yuv_y = calculate_psnr(yuv_y, yuv_y_prime)
-        psnr_yuv_u = calculate_psnr(yuv_u, yuv_u_prime)
-        psnr_yuv_v = calculate_psnr(yuv_v, yuv_v_prime)
-        psnr_yuv = np.mean([psnr_yuv_y, psnr_yuv_u, psnr_yuv_v])
+        psnr_yuv_dict = calculate_psnr(yuv_planar, yuv_planar_prime)
+        psnr_yuv = np.mean(list(psnr_yuv_dict.values()))
         # psnr values: RGB
-        psnr_rgb_r = calculate_psnr(rgb_r, rgb_r_prime)
-        psnr_rgb_g = calculate_psnr(rgb_g, rgb_g_prime)
-        psnr_rgb_b = calculate_psnr(rgb_b, rgb_b_prime)
-        psnr_rgb = np.mean([psnr_rgb_r, psnr_rgb_g, psnr_rgb_b])
+        psnr_rgb_dict = calculate_psnr(rgb_planar, rgb_planar_prime)
+        psnr_rgb = np.mean(list(psnr_rgb_dict.values()))
         # psnr values: Bayer
         psnr_bayer = calculate_psnr(
             bayer_image.GetPacked(), bayer_image_prime.GetPacked()
@@ -766,21 +714,22 @@ def process_file_bayer_rggb_array(
             bayer_image.width,
             bayer_image.height,
             bayer_image.pix_fmt,
-            "bayer-rggb",
+            bayer_image.depth,
+            label,
             codec,
             quality,
             encoded_size,
-            ":".join(str(size) for size in encoded_size_list),
-            encoder_bpp,
+            ":".join(str(size) for size in encoded_size_dict.values()),
+            encoded_bpp,
             psnr_bayer,
             psnr_rgb,
-            psnr_rgb_r,
-            psnr_rgb_g,
-            psnr_rgb_b,
+            psnr_rgb_dict["r"],
+            psnr_rgb_dict["g"],
+            psnr_rgb_dict["b"],
             psnr_yuv,
-            psnr_yuv_y,
-            psnr_yuv_u,
-            psnr_yuv_v,
+            psnr_yuv_dict["y"],
+            psnr_yuv_dict["u"],
+            psnr_yuv_dict["v"],
         )
 
     return df
@@ -796,7 +745,7 @@ def process_file_yuv444(
     quality_list,
     debug,
 ):
-    bayer_image = read_bayer_image(infile, pix_fmt, width, height)
+    bayer_image = read_bayer_image(infile, pix_fmt, width, height, debug)
     return process_file_yuv444_array(
         bayer_image,
         codec,
@@ -811,50 +760,44 @@ def process_file_yuv444_array(
     quality_list,
     debug,
 ):
+    label = "yuv444"
     df = pd.DataFrame(columns=COLUMN_LIST)
     width, height = bayer_image.width, bayer_image.height
     depth = itools_bayer.get_depth(bayer_image.pix_fmt)
 
     # 1. demosaic raw image to RGB
-    rgb_image = cv2.cvtColor(bayer_image.GetPacked(), cv2.COLOR_BAYER_BG2RGB)
-    rgb_r, rgb_g, rgb_b = cv2.split(rgb_image)
+    rgb_planar = bayer_image.GetRGBPlanar()
 
     # 2. convert RGB to YUV
-    yuv_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2YUV)
-    yuv_y, yuv_u, yuv_v = cv2.split(yuv_image)
+    yuv_planar = bayer_image.GetYUVPlanar()
 
     for quality in quality_list:
         # 3. encode and decode the 3 planes
-        (
-            yuv_y_prime,
-            yuv_u_prime,
-            yuv_v_prime,
-        ), encoded_size_list = codec_process(
-            codec, quality, depth, (yuv_y, yuv_u, yuv_v)
+        yuv_planar_prime, encoded_size_dict = codec_process(
+            codec, quality, depth, yuv_planar, label, debug
         )
-        yuv_image_prime = cv2.merge([yuv_y_prime, yuv_u_prime, yuv_v_prime])
 
         # 4. convert YUV image back to RGB
-        rgb_image_prime = cv2.cvtColor(yuv_image_prime, cv2.COLOR_YUV2RGB)
-        rgb_b_prime, rgb_g_prime, rgb_r_prime = cv2.split(rgb_image_prime)
+        rgb_planar_prime = itools_bayer.yuv_planar_to_rgb_planar(
+            yuv_planar_prime, depth
+        )
 
         # 5. remosaic RGB image back to raw
-        bayer_image_prime = remosaic_rgb_image(rgb_image_prime, pix_fmt)
+        bayer_image_prime = itools_bayer.rgb_planar_to_bayer_image(
+            rgb_planar_prime, bayer_image.pix_fmt
+        )
 
         # 6. calculate results
         # sizes
-        encoded_size = sum(encoded_size_list)
-        encoder_bpp = (encoded_size * 8.0) / (width * height)
+        encoded_size = sum(encoded_size_dict.values())
+        encoded_bpp = (encoded_size * 8.0) / (width * height)
+        # psnr values
         # psnr values: YUV
-        psnr_yuv_y = calculate_psnr(yuv_y, yuv_y_prime)
-        psnr_yuv_u = calculate_psnr(yuv_u, yuv_u_prime)
-        psnr_yuv_v = calculate_psnr(yuv_v, yuv_v_prime)
-        psnr_yuv = np.mean([psnr_yuv_y, psnr_yuv_u, psnr_yuv_v])
+        psnr_yuv_dict = calculate_psnr(yuv_planar, yuv_planar_prime)
+        psnr_yuv = np.mean(list(psnr_yuv_dict.values()))
         # psnr values: RGB
-        psnr_rgb_r = calculate_psnr(rgb_r, rgb_r_prime)
-        psnr_rgb_g = calculate_psnr(rgb_g, rgb_g_prime)
-        psnr_rgb_b = calculate_psnr(rgb_b, rgb_b_prime)
-        psnr_rgb = np.mean([psnr_rgb_r, psnr_rgb_g, psnr_rgb_b])
+        psnr_rgb_dict = calculate_psnr(rgb_planar, rgb_planar_prime)
+        psnr_rgb = np.mean(list(psnr_rgb_dict.values()))
         # psnr values: Bayer
         psnr_bayer = calculate_psnr(
             bayer_image.GetPacked(), bayer_image_prime.GetPacked()
@@ -865,21 +808,22 @@ def process_file_yuv444_array(
             bayer_image.width,
             bayer_image.height,
             bayer_image.pix_fmt,
-            "yuv444",
+            bayer_image.depth,
+            label,
             codec,
             quality,
             encoded_size,
-            ":".join(str(size) for size in encoded_size_list),
-            encoder_bpp,
+            ":".join(str(size) for size in encoded_size_dict.values()),
+            encoded_bpp,
             psnr_bayer,
             psnr_rgb,
-            psnr_rgb_r,
-            psnr_rgb_g,
-            psnr_rgb_b,
+            psnr_rgb_dict["r"],
+            psnr_rgb_dict["g"],
+            psnr_rgb_dict["b"],
             psnr_yuv,
-            psnr_yuv_y,
-            psnr_yuv_u,
-            psnr_yuv_v,
+            psnr_yuv_dict["y"],
+            psnr_yuv_dict["u"],
+            psnr_yuv_dict["v"],
         )
 
     return df
@@ -894,7 +838,7 @@ def process_file_yuv420(
     quality_list,
     debug,
 ):
-    bayer_image = read_bayer_image(infile, pix_fmt, width, height)
+    bayer_image = read_bayer_image(infile, pix_fmt, width, height, debug)
     return process_file_yuv420_array(
         bayer_image,
         codec,
@@ -909,57 +853,50 @@ def process_file_yuv420_array(
     quality_list,
     debug,
 ):
+    label = "yuv420"
     df = pd.DataFrame(columns=COLUMN_LIST)
     width, height = bayer_image.width, bayer_image.height
     depth = itools_bayer.get_depth(bayer_image.pix_fmt)
 
     # 1. demosaic raw image to RGB
-    rgb_image = cv2.cvtColor(bayer_image.GetPacked(), cv2.COLOR_BAYER_BG2RGB)
-    rgb_r, rgb_g, rgb_b = cv2.split(rgb_image)
+    rgb_planar = bayer_image.GetRGBPlanar()
 
     # 2. convert RGB to YUV
-    yuv_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2YUV)
-    yuv_y, yuv_u, yuv_v = cv2.split(yuv_image)
+    yuv_planar = bayer_image.GetYUVPlanar()
+
+    # 3. subsample the chromas
+    yuv_subsampled_planar = itools_bayer.yuv_subsample_planar(yuv_planar)
 
     for quality in quality_list:
-        # 3. encode the 3 planes
-        # subsample the chromas
-        yuv_u_subsampled = yuv_u[::2, ::2]
-        yuv_v_subsampled = yuv_v[::2, ::2]
-        # encode and decode the 3 planes
-        (
-            yuv_y_prime,
-            yuv_u_subsampled_prime,
-            yuv_v_subsampled_prime,
-        ), encoded_size_list = codec_process(
-            codec, quality, depth, (yuv_y, yuv_u_subsampled, yuv_v_subsampled)
+        # 4. encode and decode the planes
+        yuv_subsampled_planar_prime, encoded_size_dict = codec_process(
+            codec, quality, depth, yuv_subsampled_planar, label, debug
         )
-        # upsample the chromas
-        yuv_u_prime = upsample_matrix(yuv_u_subsampled_prime, yuv_u.shape)
-        yuv_v_prime = upsample_matrix(yuv_u_subsampled_prime, yuv_v.shape)
-        yuv_image_prime = cv2.merge([yuv_y_prime, yuv_u_prime, yuv_v_prime])
 
-        # 5. convert YUV image back to RGB
-        rgb_image_prime = cv2.cvtColor(yuv_image_prime, cv2.COLOR_YUV2RGB)
-        rgb_b_prime, rgb_g_prime, rgb_r_prime = cv2.split(rgb_image_prime)
+        # 5. upsample the chromas
+        yuv_planar_prime = itools_bayer.yuv_upsample_planar(yuv_subsampled_planar_prime)
 
-        # 6. remosaic RGB image back to raw
-        bayer_image_prime = remosaic_rgb_image(rgb_image_prime, pix_fmt)
+        # 6. convert YUV image back to RGB
+        rgb_planar_prime = itools_bayer.yuv_planar_to_rgb_planar(
+            yuv_planar_prime, depth
+        )
 
-        # 7. calculate results
+        # 7. remosaic RGB image back to raw
+        bayer_image_prime = itools_bayer.rgb_planar_to_bayer_image(
+            rgb_planar_prime, bayer_image.pix_fmt
+        )
+
+        # 8. calculate results
         # sizes
-        encoded_size = sum(encoded_size_list)
-        encoder_bpp = (encoded_size * 8.0) / (width * height)
+        encoded_size = sum(encoded_size_dict.values())
+        encoded_bpp = (encoded_size * 8.0) / (width * height)
+        # psnr values
         # psnr values: YUV
-        psnr_yuv_y = calculate_psnr(yuv_y, yuv_y_prime)
-        psnr_yuv_u = calculate_psnr(yuv_u, yuv_u_prime)
-        psnr_yuv_v = calculate_psnr(yuv_v, yuv_v_prime)
-        psnr_yuv = np.mean([psnr_yuv_y, psnr_yuv_u, psnr_yuv_v])
+        psnr_yuv_dict = calculate_psnr(yuv_planar, yuv_planar_prime)
+        psnr_yuv = np.mean(list(psnr_yuv_dict.values()))
         # psnr values: RGB
-        psnr_rgb_r = calculate_psnr(rgb_r, rgb_r_prime)
-        psnr_rgb_g = calculate_psnr(rgb_g, rgb_g_prime)
-        psnr_rgb_b = calculate_psnr(rgb_b, rgb_b_prime)
-        psnr_rgb = np.mean([psnr_rgb_r, psnr_rgb_g, psnr_rgb_b])
+        psnr_rgb_dict = calculate_psnr(rgb_planar, rgb_planar_prime)
+        psnr_rgb = np.mean(list(psnr_rgb_dict.values()))
         # psnr values: Bayer
         psnr_bayer = calculate_psnr(
             bayer_image.GetPacked(), bayer_image_prime.GetPacked()
@@ -970,21 +907,22 @@ def process_file_yuv420_array(
             bayer_image.width,
             bayer_image.height,
             bayer_image.pix_fmt,
-            "yuv420",
+            bayer_image.depth,
+            label,
             codec,
             quality,
             encoded_size,
-            ":".join(str(size) for size in encoded_size_list),
-            encoder_bpp,
+            ":".join(str(size) for size in encoded_size_dict.values()),
+            encoded_bpp,
             psnr_bayer,
             psnr_rgb,
-            psnr_rgb_r,
-            psnr_rgb_g,
-            psnr_rgb_b,
+            psnr_rgb_dict["r"],
+            psnr_rgb_dict["g"],
+            psnr_rgb_dict["b"],
             psnr_yuv,
-            psnr_yuv_y,
-            psnr_yuv_u,
-            psnr_yuv_v,
+            psnr_yuv_dict["y"],
+            psnr_yuv_dict["u"],
+            psnr_yuv_dict["v"],
         )
 
     return df
@@ -1000,7 +938,7 @@ def process_file_rgb(
     quality_list,
     debug,
 ):
-    bayer_image = read_bayer_image(infile, pix_fmt, width, height)
+    bayer_image = read_bayer_image(infile, pix_fmt, width, height, debug)
     return process_file_rgb_array(
         bayer_image,
         codec,
@@ -1015,50 +953,44 @@ def process_file_rgb_array(
     quality_list,
     debug,
 ):
+    label = "rgb"
     df = pd.DataFrame(columns=COLUMN_LIST)
     width, height = bayer_image.width, bayer_image.height
     depth = itools_bayer.get_depth(bayer_image.pix_fmt)
 
     # 1. demosaic raw image to RGB
-    rgb_image = cv2.cvtColor(bayer_image.GetPacked(), cv2.COLOR_BAYER_BG2RGB)
-    rgb_r, rgb_g, rgb_b = cv2.split(rgb_image)
+    rgb_planar = bayer_image.GetRGBPlanar()
 
     # 2. convert RGB to YUV
-    yuv_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2YUV)
-    yuv_y, yuv_u, yuv_v = cv2.split(yuv_image)
+    yuv_planar = bayer_image.GetYUVPlanar()
 
     for quality in quality_list:
         # 3. encode and decode the 3 planes
-        (
-            rgb_r_prime,
-            rgb_g_prime,
-            rgb_b_prime,
-        ), encoded_size_list = codec_process(
-            codec, quality, depth, (rgb_r, rgb_g, rgb_b)
+        rgb_planar_prime, encoded_size_dict = codec_process(
+            codec, quality, depth, rgb_planar, label, debug
         )
-        rgb_image_prime = cv2.merge([rgb_r_prime, rgb_g_prime, rgb_b_prime])
 
         # 4. convert RGB to YUV
-        yuv_image_prime = cv2.cvtColor(rgb_image_prime, cv2.COLOR_RGB2YUV)
-        yuv_y_prime, yuv_u_prime, yuv_v_prime = cv2.split(yuv_image_prime)
+        yuv_planar_prime = itools_bayer.rgb_planar_to_yuv_planar(
+            rgb_planar_prime, depth
+        )
 
         # 5. remosaic RGB image back to raw
-        bayer_image_prime = remosaic_rgb_image(rgb_image_prime, pix_fmt)
+        bayer_image_prime = itools_bayer.rgb_planar_to_bayer_image(
+            rgb_planar_prime, bayer_image.pix_fmt
+        )
 
         # 6. calculate results
         # sizes
-        encoded_size = sum(encoded_size_list)
-        encoder_bpp = (encoded_size * 8.0) / (width * height)
+        encoded_size = sum(encoded_size_dict.values())
+        encoded_bpp = (encoded_size * 8.0) / (width * height)
+        # psnr values
         # psnr values: YUV
-        psnr_yuv_y = calculate_psnr(yuv_y, yuv_y_prime)
-        psnr_yuv_u = calculate_psnr(yuv_u, yuv_u_prime)
-        psnr_yuv_v = calculate_psnr(yuv_v, yuv_v_prime)
-        psnr_yuv = np.mean([psnr_yuv_y, psnr_yuv_u, psnr_yuv_v])
+        psnr_yuv_dict = calculate_psnr(yuv_planar, yuv_planar_prime)
+        psnr_yuv = np.mean(list(psnr_yuv_dict.values()))
         # psnr values: RGB
-        psnr_rgb_r = calculate_psnr(rgb_r, rgb_r_prime)
-        psnr_rgb_g = calculate_psnr(rgb_g, rgb_g_prime)
-        psnr_rgb_b = calculate_psnr(rgb_b, rgb_b_prime)
-        psnr_rgb = np.mean([psnr_rgb_r, psnr_rgb_g, psnr_rgb_b])
+        psnr_rgb_dict = calculate_psnr(rgb_planar, rgb_planar_prime)
+        psnr_rgb = np.mean(list(psnr_rgb_dict.values()))
         # psnr values: Bayer
         psnr_bayer = calculate_psnr(
             bayer_image.GetPacked(), bayer_image_prime.GetPacked()
@@ -1069,21 +1001,22 @@ def process_file_rgb_array(
             bayer_image.width,
             bayer_image.height,
             bayer_image.pix_fmt,
-            "rgb",
+            bayer_image.depth,
+            label,
             codec,
             quality,
             encoded_size,
-            ":".join(str(size) for size in encoded_size_list),
-            encoder_bpp,
+            ":".join(str(size) for size in encoded_size_dict.values()),
+            encoded_bpp,
             psnr_bayer,
             psnr_rgb,
-            psnr_rgb_r,
-            psnr_rgb_g,
-            psnr_rgb_b,
+            psnr_rgb_dict["r"],
+            psnr_rgb_dict["g"],
+            psnr_rgb_dict["b"],
             psnr_yuv,
-            psnr_yuv_y,
-            psnr_yuv_u,
-            psnr_yuv_v,
+            psnr_yuv_dict["y"],
+            psnr_yuv_dict["u"],
+            psnr_yuv_dict["v"],
         )
 
     return df
@@ -1112,7 +1045,6 @@ def get_average_results(df):
         COLUMNS_MEAN = (
             "width",
             "height",
-            "pix_fmt",
             "encoded_size",
             "encoded_bpp",
             "psnr_bayer",
