@@ -87,7 +87,20 @@ COLUMN_LIST = [
 ]
 
 
-def calculate_psnr(plane1, plane2):
+def calculate_psnr(obj1, obj2):
+    if type(obj1) == dict and type(obj2) == dict:
+        # a. check if the dictionaries have the same keys
+        assert set(obj1.keys()) == set(obj2.keys()), "calculate_psnr: Dicts with different keys"
+        # b. check if the numpy arrays have the same values
+        psnr = {}
+        for key in obj1:
+            psnr[key] = calculate_psnr_planar(obj1[key], obj2[key])
+        return psnr
+    else:
+        return calculate_psnr_planar(plane1, plane2)
+
+
+def calculate_psnr_planar(plane1, plane2):
     # Calculate the mean squared error (MSE)
     mse = np.mean((plane1 - plane2) ** 2)
     # Calculate the maximum possible value (peak)
