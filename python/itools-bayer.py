@@ -905,104 +905,106 @@ class BayerImage:
         return self.buffer
 
     def GetPacked(self):
-        if self.packed is None:
-            # convert buffer to packed
-            assert self.buffer is not None, "error: invalid buffer"
-            # get format info
-            pix_fmt = self.pix_fmt
-            depth = INPUT_FORMATS[pix_fmt]["depth"]
-            clen = INPUT_FORMATS[pix_fmt]["clen"]
-            order = INPUT_FORMATS[pix_fmt]["order"]
-            blen = INPUT_FORMATS[pix_fmt]["blen"]
-            rfun = INPUT_FORMATS[pix_fmt]["rfun"]
-            # create bayer packed image
-            dtype = np.uint16 if depth > 8 else np.uint8
-            self.packed = np.zeros((self.height, self.width), dtype=dtype)
-            # fill it up
-            row = 0
-            col = 0
-            i = 0
-            while True:
-                if self.debug > 0:
-                    print(f"debug: {row=} {col=}")
-                # 1. read components from the input
-                components = ()
-                while len(components) < clen:
-                    idata = self.buffer[i : i + blen]
-                    i += blen
-                    if not idata:
-                        break
-                    components += rfun(idata, self.debug)
-                if len(components) < clen:
-                    # end of input
+        if self.packed is not None:
+            return self.packed
+        # convert buffer to packed
+        assert self.buffer is not None, "error: invalid buffer"
+        # get format info
+        pix_fmt = self.pix_fmt
+        depth = INPUT_FORMATS[pix_fmt]["depth"]
+        clen = INPUT_FORMATS[pix_fmt]["clen"]
+        order = INPUT_FORMATS[pix_fmt]["order"]
+        blen = INPUT_FORMATS[pix_fmt]["blen"]
+        rfun = INPUT_FORMATS[pix_fmt]["rfun"]
+        # create bayer packed image
+        dtype = np.uint16 if depth > 8 else np.uint8
+        self.packed = np.zeros((self.height, self.width), dtype=dtype)
+        # fill it up
+        row = 0
+        col = 0
+        i = 0
+        while True:
+            if self.debug > 0:
+                print(f"debug: {row=} {col=}")
+            # 1. read components from the input
+            components = ()
+            while len(components) < clen:
+                idata = self.buffer[i : i + blen]
+                i += blen
+                if not idata:
                     break
+                components += rfun(idata, self.debug)
+            if len(components) < clen:
+                # end of input
+                break
+            if self.debug > 1:
+                print(f"debug:  {components=}")
+            # 2. convert component order
+            for component in components:
+                self.packed[row][col] = component
                 if self.debug > 1:
-                    print(f"debug:  {components=}")
-                # 2. convert component order
-                for component in components:
-                    self.packed[row][col] = component
-                    if self.debug > 1:
-                        print(f"debug: {row=} {col=}")
-                    col += 1
-                # 3. update input row numbers
-                if col == self.width:
-                    col = 0
-                    row += 1
+                    print(f"debug: {row=} {col=}")
+                col += 1
+            # 3. update input row numbers
+            if col == self.width:
+                col = 0
+                row += 1
         return self.packed
 
     def GetPlanar(self):
-        if self.planar is None:
-            # convert buffer to planar
-            assert self.buffer is not None, "error: invalid buffer"
-            # get format info
-            pix_fmt = self.pix_fmt
-            depth = INPUT_FORMATS[pix_fmt]["depth"]
-            clen = INPUT_FORMATS[pix_fmt]["clen"]
-            order = INPUT_FORMATS[pix_fmt]["order"]
-            blen = INPUT_FORMATS[pix_fmt]["blen"]
-            rfun = INPUT_FORMATS[pix_fmt]["rfun"]
-            # create bayer planar image
-            dtype = np.uint16 if depth > 8 else np.uint8
-            self.planar = {
-                plane_id: np.zeros((self.height // 2, self.width // 2), dtype=dtype)
-                for plane_id in DEFAULT_PLANAR_ORDER
-            }
-            # fill it up
-            row = 0
-            col = 0
-            i = 0
-            while True:
-                if self.debug > 0:
-                    print(f"debug: {row=} {col=}")
-                # 1. read components from the input
-                components = ()
-                while len(components) < clen:
-                    idata = self.buffer[i : i + blen]
-                    i += blen
-                    if not idata:
-                        break
-                    components += rfun(idata, self.debug)
-                if len(components) < clen:
-                    # end of input
+        if self.planar is not None:
+            return self.planar
+        # convert buffer to planar
+        assert self.buffer is not None, "error: invalid buffer"
+        # get format info
+        pix_fmt = self.pix_fmt
+        depth = INPUT_FORMATS[pix_fmt]["depth"]
+        clen = INPUT_FORMATS[pix_fmt]["clen"]
+        order = INPUT_FORMATS[pix_fmt]["order"]
+        blen = INPUT_FORMATS[pix_fmt]["blen"]
+        rfun = INPUT_FORMATS[pix_fmt]["rfun"]
+        # create bayer planar image
+        dtype = np.uint16 if depth > 8 else np.uint8
+        self.planar = {
+            plane_id: np.zeros((self.height // 2, self.width // 2), dtype=dtype)
+            for plane_id in DEFAULT_PLANAR_ORDER
+        }
+        # fill it up
+        row = 0
+        col = 0
+        i = 0
+        while True:
+            if self.debug > 0:
+                print(f"debug: {row=} {col=}")
+            # 1. read components from the input
+            components = ()
+            while len(components) < clen:
+                idata = self.buffer[i : i + blen]
+                i += blen
+                if not idata:
                     break
+                components += rfun(idata, self.debug)
+            if len(components) < clen:
+                # end of input
+                break
+            if self.debug > 1:
+                print(f"debug:  {components=}")
+            # 2. get affected plane IDs
+            plane_ids = self.GetPlaneIds(order, row)
+            # 3. convert component order
+            for component in components:
+                plane_id = plane_ids[col % len(plane_ids)]
+                # get planar row and col
+                prow = row // 2
+                pcol = col // 2
+                self.planar[plane_id][prow][pcol] = component
                 if self.debug > 1:
-                    print(f"debug:  {components=}")
-                # 2. get affected plane IDs
-                plane_ids = self.GetPlaneIds(order, row)
-                # 3. convert component order
-                for component in components:
-                    plane_id = plane_ids[col % len(plane_ids)]
-                    # get planar row and col
-                    prow = row // 2
-                    pcol = col // 2
-                    self.planar[plane_id][prow][pcol] = component
-                    if self.debug > 1:
-                        print(f"debug: {plane_id=} {prow=} {pcol=}")
-                    col += 1
-                # 4. update input row numbers
-                if col == self.width:
-                    col = 0
-                    row += 1
+                    print(f"debug: {plane_id=} {prow=} {pcol=}")
+                col += 1
+            # 4. update input row numbers
+            if col == self.width:
+                col = 0
+                row += 1
         return self.planar
 
     @classmethod
