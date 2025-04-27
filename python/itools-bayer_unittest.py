@@ -419,9 +419,6 @@ class MainTest(unittest.TestCase):
                 prefix="itools-bayer_unittest.", suffix=".bin"
             ).name
             expected_output = test_case["output"]
-            logfile = tempfile.NamedTemporaryFile(
-                prefix="itools-bayer_unittest.", suffix=".log"
-            ).name
             # prepare parameters
             i_pix_fmt = test_case["i_pix_fmt"]
             width = test_case["width"]
