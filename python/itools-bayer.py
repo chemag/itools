@@ -354,7 +354,10 @@ BAYER_FORMATS = {
     },
     # 10-bit Bayer formats expanded to 16 bits
     "RG10": {
-        "alias": ("SRGGB10",),
+        "alias": (
+            "SRGGB10",
+            "bayer_rggb10",
+        ),
         "blen": 4,
         "clen": 2,
         "depth": 10,
@@ -364,7 +367,10 @@ BAYER_FORMATS = {
         "ffmpeg": False,
     },
     "BA10": {
-        "alias": ("SGRBG10",),
+        "alias": (
+            "SGRBG10",
+            "bayer_grbg10",
+        ),
         "blen": 4,
         "clen": 2,
         "depth": 10,
@@ -374,7 +380,10 @@ BAYER_FORMATS = {
         "ffmpeg": False,
     },
     "GB10": {
-        "alias": ("SGBRG10",),
+        "alias": (
+            "SGBRG10",
+            "bayer_gbrg10",
+        ),
         "blen": 4,
         "clen": 2,
         "depth": 10,
@@ -384,7 +393,10 @@ BAYER_FORMATS = {
         "ffmpeg": False,
     },
     "BG10": {
-        "alias": ("SBGGR10",),
+        "alias": (
+            "SBGGR10",
+            "bayer_bggr10",
+        ),
         "blen": 4,
         "clen": 2,
         "depth": 10,
