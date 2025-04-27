@@ -403,7 +403,155 @@ processImageTestCases = [
 ]
 
 
+processColorConversions = [
+    # (a) 8-bit, red/purple image
+    {
+        "name": "red-purple.8bits.4x4",
+        "width": 4,
+        "height": 4,
+        "pix_fmt": "bayer_rggb8",
+        "debug": 0,
+        "input": b"\xFF\x00\xFF\x00\x00\x00\x00\x80\xFF\x00\xFF\x00\x00\x80\x00\xFF",
+        "bayer_planar_image": {
+            "R": np.array([[0xFF, 0xFF], [0xFF, 0xFF]], dtype=np.uint8),
+            "G": np.array([[0x00, 0x00], [0x00, 0x00]], dtype=np.uint8),
+            "g": np.array([[0x00, 0x00], [0x00, 0x00]], dtype=np.uint8),
+            "B": np.array([[0x00, 0x80], [0x80, 0xFF]], dtype=np.uint8),
+        },
+        "rgb_planar_image": {
+            "r": np.array(
+                [
+                    [0xFF, 0xFF, 0xFF, 0xFF],
+                    [0xFF, 0xFF, 0xFF, 0xFF],
+                    [0xFF, 0xFF, 0xFF, 0xFF],
+                    [0xFF, 0xFF, 0xFF, 0xFF],
+                ],
+                dtype=np.uint8,
+            ),
+            "g": np.array(
+                [
+                    [0x00, 0x00, 0x00, 0x00],
+                    [0x00, 0x00, 0x00, 0x00],
+                    [0x00, 0x00, 0x00, 0x00],
+                    [0x00, 0x00, 0x00, 0x00],
+                ],
+                dtype=np.uint8,
+            ),
+            "b": np.array(
+                [
+                    [0x00, 0x00, 0x40, 0x40],
+                    [0x00, 0x00, 0x40, 0x40],
+                    [0x40, 0x40, 0x80, 0x80],
+                    [0x40, 0x40, 0x80, 0x80],
+                ],
+                dtype=np.uint8,
+            ),
+        },
+    },
+    # (b) 10-bit, red/purple image
+    {
+        "name": "red-purple.10bits.4x4",
+        "width": 4,
+        "height": 4,
+        "pix_fmt": "bayer_rggb10",
+        "debug": 0,
+        "input": b"\xFF\x03\x00\x00\xFF\x03\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\xFF\x03\x00\x00\xFF\x03\x00\x00\x00\x00\x00\x02\x00\x00\xFF\x03",
+        "bayer_planar_image": {
+            "R": np.array([[0x3FF, 0x3FF], [0x3FF, 0x3FF]], dtype=np.uint16),
+            "G": np.array([[0x000, 0x000], [0x000, 0x000]], dtype=np.uint16),
+            "g": np.array([[0x000, 0x000], [0x000, 0x000]], dtype=np.uint16),
+            "B": np.array([[0x000, 0x200], [0x200, 0x3FF]], dtype=np.uint16),
+        },
+        "rgb_planar_image": {
+            "r": np.array(
+                [
+                    [0x3FF, 0x3FF, 0x3FF, 0x3FF],
+                    [0x3FF, 0x3FF, 0x3FF, 0x3FF],
+                    [0x3FF, 0x3FF, 0x3FF, 0x3FF],
+                    [0x3FF, 0x3FF, 0x3FF, 0x3FF],
+                ],
+                dtype=np.uint16,
+            ),
+            "g": np.array(
+                [
+                    [0x000, 0x000, 0x000, 0x000],
+                    [0x000, 0x000, 0x000, 0x000],
+                    [0x000, 0x000, 0x000, 0x000],
+                    [0x000, 0x000, 0x000, 0x000],
+                ],
+                dtype=np.uint16,
+            ),
+            "b": np.array(
+                [
+                    [0x000, 0x000, 0x100, 0x100],
+                    [0x000, 0x000, 0x100, 0x100],
+                    [0x100, 0x100, 0x200, 0x200],
+                    [0x100, 0x100, 0x200, 0x200],
+                ],
+                dtype=np.uint16,
+            ),
+        },
+    },
+]
+
+
 class MainTest(unittest.TestCase):
+    def testProcessColorConversions(self):
+        """Test GetRGBPlanar()test."""
+        for test_case in processColorConversions:
+            print("...running %s" % test_case["name"])
+            # prepare input file
+            infile = tempfile.NamedTemporaryFile(
+                prefix="itools-bayer_unittest.", suffix=".bin"
+            ).name
+            with open(infile, "wb") as f:
+                f.write(test_case["input"])
+            # prepare output file(s)
+            # prepare parameters
+            pix_fmt = test_case["pix_fmt"]
+            width = test_case["width"]
+            height = test_case["height"]
+            debug = test_case["debug"]
+
+            # 1. run forward conversion
+            pix_fmt = itools_bayer.get_canonical_input_pix_fmt(pix_fmt)
+            bayer_image = itools_bayer.BayerImage.FromFile(
+                infile, pix_fmt, width, height, debug
+            )
+
+            # 2. check the Bayer planar representation is correct
+            absolute_tolerance = 1
+            # a. check if the dictionaries have the same keys
+            expected_planar = test_case["bayer_planar_image"]
+            planar = bayer_image.GetPlanar()
+            assert set(expected_planar.keys()) == set(
+                planar.keys()
+            ), "Broken planar output"
+            # b. check if the numpy arrays have the same values
+            for key in expected_planar:
+                np.testing.assert_allclose(
+                    expected_planar[key],
+                    planar[key],
+                    atol=absolute_tolerance,
+                    err_msg=f"error on forward case {key=} {test_case['name']}",
+                )
+
+            # 3. check the RGB planar representation is correct
+            # a. check if the dictionaries have the same keys
+            expected_planar = test_case["rgb_planar_image"]
+            planar = bayer_image.GetRGBPlanar()
+            assert set(expected_planar.keys()) == set(
+                planar.keys()
+            ), "Broken planar output"
+            # b. check if the numpy arrays have the same values
+            for key in expected_planar:
+                np.testing.assert_allclose(
+                    expected_planar[key],
+                    planar[key],
+                    atol=absolute_tolerance,
+                    err_msg=f"error on forward case {key=} {test_case['name']}",
+                )
+
     def testProcessImage(self):
         """Simplest get_data test."""
         for test_case in processImageTestCases:

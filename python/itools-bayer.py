@@ -16,6 +16,7 @@ Notes:
 
 
 import argparse
+import cv2
 import importlib
 import numpy as np
 import os
@@ -30,6 +31,8 @@ COLOR_COMPONENTS = set("RGgB")
 
 # internal planar bayer image format is G1G2RB
 DEFAULT_PLANAR_ORDER = list("GgRB")
+
+OPENCV_PLANAR_ORDER = "RGgB"
 
 
 # planar read/write functions
@@ -898,6 +901,8 @@ class BayerImage:
         self.height = height
         self.pix_fmt = pix_fmt
         self.debug = debug
+        self.rgb_packed = None
+        self.rgb_planar = None
 
     # accessors
     def GetBuffer(self):
@@ -1006,6 +1011,38 @@ class BayerImage:
                 col = 0
                 row += 1
         return self.planar
+
+    def GetRGBPlanar(self):
+        if self.rgb_planar is not None:
+            return self.rgb_planar
+        rgb_packed = self.GetRGBPacked()
+        self.rgb_planar = {
+            "r": rgb_packed[:, :, 0],
+            "g": rgb_packed[:, :, 1],
+            "b": rgb_packed[:, :, 2],
+        }
+        return self.rgb_planar
+
+    def GetRGBPacked(self):
+        if self.rgb_packed is not None:
+            return self.rgb_packed
+        # make sure that the packed representation is "RGGB" (only one accepted
+        # by opencv)
+        pix_fmt = self.pix_fmt
+        order = INPUT_FORMATS[pix_fmt]["order"]
+        assert (
+            order == OPENCV_PLANAR_ORDER
+        ), f"error: invalid {pix_fmt=} which means {order=}. opencv only accepts order: {OPENCV_PLANAR_ORDER}"
+        # check the depth is supports
+        depth = OUTPUT_FORMATS[pix_fmt]["depth"]
+        assert depth in (
+            8,
+            10,
+        ), f"error: invalid {pix_fmt=} which means {depth=}. opencv only accepts 8- or 10-bit depths"
+        # use opencv to do the Bayer->RGB conversion from the packed
+        # representation
+        self.rgb_packed = cv2.cvtColor(self.GetPacked(), cv2.COLOR_BAYER_BG2RGB)
+        return self.rgb_packed
 
     @classmethod
     def GetPlanarOrder(cls, planar_order):
