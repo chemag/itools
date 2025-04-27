@@ -447,6 +447,35 @@ processColorConversions = [
                 dtype=np.uint8,
             ),
         },
+        "yuv_planar_image": {
+            "y": np.array(
+                [
+                    [0x4C, 0x4C, 0x54, 0x54],
+                    [0x4C, 0x4C, 0x54, 0x54],
+                    [0x54, 0x54, 0x5B, 0x5B],
+                    [0x54, 0x54, 0x5B, 0x5B],
+                ],
+                dtype=np.uint8,
+            ),
+            "u": np.array(
+                [
+                    [0x5B, 0x5B, 0x76, 0x76],
+                    [0x5B, 0x5B, 0x76, 0x76],
+                    [0x76, 0x76, 0x92, 0x92],
+                    [0x76, 0x76, 0x92, 0x92],
+                ],
+                dtype=np.uint8,
+            ),
+            "v": np.array(
+                [
+                    [0xFF, 0xFF, 0xFF, 0xFF],
+                    [0xFF, 0xFF, 0xFF, 0xFF],
+                    [0xFF, 0xFF, 0xFF, 0xFF],
+                    [0xFF, 0xFF, 0xFF, 0xFF],
+                ],
+                dtype=np.uint8,
+            ),
+        },
     },
     # (b) 10-bit, red/purple image
     {
@@ -485,8 +514,37 @@ processColorConversions = [
                 [
                     [0x000, 0x000, 0x100, 0x100],
                     [0x000, 0x000, 0x100, 0x100],
-                    [0x100, 0x100, 0x200, 0x200],
-                    [0x100, 0x100, 0x200, 0x200],
+                    [0x100, 0x100, 0x1FF, 0x1FF],
+                    [0x100, 0x100, 0x1FF, 0x1FF],
+                ],
+                dtype=np.uint16,
+            ),
+        },
+        "yuv_planar_image": {
+            "y": np.array(
+                [
+                    [0x131, 0x131, 0x14F, 0x14F],
+                    [0x131, 0x131, 0x14F, 0x14F],
+                    [0x14F, 0x14F, 0x16C, 0x16C],
+                    [0x14F, 0x14F, 0x16C, 0x16C],
+                ],
+                dtype=np.uint16,
+            ),
+            "u": np.array(
+                [
+                    [0x169, 0x169, 0x1D9, 0x1D9],
+                    [0x169, 0x169, 0x1D9, 0x1D9],
+                    [0x1D9, 0x1D9, 0x248, 0x248],
+                    [0x1D9, 0x1D9, 0x248, 0x248],
+                ],
+                dtype=np.uint16,
+            ),
+            "v": np.array(
+                [
+                    [0x3FF, 0x3FF, 0x3FF, 0x3FF],
+                    [0x3FF, 0x3FF, 0x3FF, 0x3FF],
+                    [0x3FF, 0x3FF, 0x3FF, 0x3FF],
+                    [0x3FF, 0x3FF, 0x3FF, 0x3FF],
                 ],
                 dtype=np.uint16,
             ),
@@ -497,7 +555,7 @@ processColorConversions = [
 
 class MainTest(unittest.TestCase):
     def testProcessColorConversions(self):
-        """Test GetRGBPlanar()test."""
+        """Test color conversions."""
         for test_case in processColorConversions:
             print("...running %s" % test_case["name"])
             # prepare input file
@@ -543,6 +601,23 @@ class MainTest(unittest.TestCase):
             assert set(expected_planar.keys()) == set(
                 planar.keys()
             ), "Broken planar output"
+            # b. check if the numpy arrays have the same values
+            for key in expected_planar:
+                np.testing.assert_allclose(
+                    expected_planar[key],
+                    planar[key],
+                    atol=absolute_tolerance,
+                    err_msg=f"error on forward case {key=} {test_case['name']}",
+                )
+
+            # 4. check the YUV planar representation is correct
+            # a. check if the dictionaries have the same keys
+            expected_planar = test_case["yuv_planar_image"]
+            planar = bayer_image.GetYUVPlanar()
+            assert set(expected_planar.keys()) == set(
+                planar.keys()
+            ), "Broken planar output"
+
             # b. check if the numpy arrays have the same values
             for key in expected_planar:
                 np.testing.assert_allclose(

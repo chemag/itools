@@ -900,9 +900,13 @@ class BayerImage:
         self.width = width
         self.height = height
         self.pix_fmt = pix_fmt
+        pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
+        self.depth = INPUT_FORMATS[pix_fmt]["depth"]
         self.debug = debug
         self.rgb_packed = None
         self.rgb_planar = None
+        self.yuv_packed = None
+        self.yuv_planar = None
 
     # accessors
     def GetBuffer(self):
@@ -916,13 +920,12 @@ class BayerImage:
         assert self.buffer is not None, "error: invalid buffer"
         # get format info
         pix_fmt = self.pix_fmt
-        depth = INPUT_FORMATS[pix_fmt]["depth"]
         clen = INPUT_FORMATS[pix_fmt]["clen"]
         order = INPUT_FORMATS[pix_fmt]["order"]
         blen = INPUT_FORMATS[pix_fmt]["blen"]
         rfun = INPUT_FORMATS[pix_fmt]["rfun"]
         # create bayer packed image
-        dtype = np.uint16 if depth > 8 else np.uint8
+        dtype = np.uint16 if self.depth > 8 else np.uint8
         self.packed = np.zeros((self.height, self.width), dtype=dtype)
         # fill it up
         row = 0
@@ -963,13 +966,12 @@ class BayerImage:
         assert self.buffer is not None, "error: invalid buffer"
         # get format info
         pix_fmt = self.pix_fmt
-        depth = INPUT_FORMATS[pix_fmt]["depth"]
         clen = INPUT_FORMATS[pix_fmt]["clen"]
         order = INPUT_FORMATS[pix_fmt]["order"]
         blen = INPUT_FORMATS[pix_fmt]["blen"]
         rfun = INPUT_FORMATS[pix_fmt]["rfun"]
         # create bayer planar image
-        dtype = np.uint16 if depth > 8 else np.uint8
+        dtype = np.uint16 if self.depth > 8 else np.uint8
         self.planar = {
             plane_id: np.zeros((self.height // 2, self.width // 2), dtype=dtype)
             for plane_id in DEFAULT_PLANAR_ORDER
@@ -1033,16 +1035,51 @@ class BayerImage:
         assert (
             order == OPENCV_PLANAR_ORDER
         ), f"error: invalid {pix_fmt=} which means {order=}. opencv only accepts order: {OPENCV_PLANAR_ORDER}"
-        # check the depth is supports
-        depth = OUTPUT_FORMATS[pix_fmt]["depth"]
-        assert depth in (
-            8,
-            10,
-        ), f"error: invalid {pix_fmt=} which means {depth=}. opencv only accepts 8- or 10-bit depths"
+        # cv2 supports (among others) CV_8U and CV_16U types for color
+        # conversions. These data types affect the conversions, and are
+        # used when the input is an np.uint8 and np.uint16 numpy array,
+        # respectively. This means that the color conversion for 10/12/14-bit
+        # color need to first scale up to 16-bits.
         # use opencv to do the Bayer->RGB conversion from the packed
+        bayer_packed = self.GetPacked()
+        if self.depth in (10, 12, 14):
+            bayer_packed = bayer_packed << (16 - self.depth)
         # representation
-        self.rgb_packed = cv2.cvtColor(self.GetPacked(), cv2.COLOR_BAYER_BG2RGB)
+        rgb_packed = cv2.cvtColor(bayer_packed, cv2.COLOR_BAYER_BG2RGB)
+        if self.depth in (10, 12, 14):
+            rgb_packed = rgb_packed >> (16 - self.depth)
+        self.rgb_packed = rgb_packed
         return self.rgb_packed
+
+    def GetYUVPlanar(self):
+        if self.yuv_planar is not None:
+            return self.yuv_planar
+        yuv_packed = self.GetYUVPacked()
+        self.yuv_planar = {
+            "y": yuv_packed[:, :, 0],
+            "u": yuv_packed[:, :, 1],
+            "v": yuv_packed[:, :, 2],
+        }
+        return self.yuv_planar
+
+    def GetYUVPacked(self):
+        if self.yuv_packed is not None:
+            return self.yuv_packed
+        # cv2 supports (among others) CV_8U and CV_16U types for color
+        # conversions. These data types affect the conversions, and are
+        # used when the input is an np.uint8 and np.uint16 numpy array,
+        # respectively. This means that the color conversion for 10/12/14-bit
+        # color need to first scale up to 16-bits.
+        rgb_packed = self.GetRGBPacked()
+        if self.depth in (10, 12, 14):
+            rgb_packed = rgb_packed << (16 - self.depth)
+        # use opencv to do the RGB->YUV conversion from the packed RGB
+        # representation
+        yuv_packed = cv2.cvtColor(rgb_packed, cv2.COLOR_RGB2YUV)
+        if self.depth in (10, 12, 14):
+            yuv_packed = yuv_packed >> (16 - self.depth)
+        self.yuv_packed = yuv_packed
+        return self.yuv_packed
 
     @classmethod
     def GetPlanarOrder(cls, planar_order):
@@ -1105,7 +1142,6 @@ class BayerImage:
         # get format info
         height, width = (2 * dim for dim in planar["R"].shape)
         pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
-        depth = OUTPUT_FORMATS[pix_fmt]["depth"]
         clen = OUTPUT_FORMATS[pix_fmt]["clen"]
         order = OUTPUT_FORMATS[pix_fmt]["order"]
         wfun = OUTPUT_FORMATS[pix_fmt]["wfun"]
@@ -1151,7 +1187,6 @@ class BayerImage:
         # get format info
         height, width = packed.shape
         pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
-        depth = OUTPUT_FORMATS[pix_fmt]["depth"]
         clen = OUTPUT_FORMATS[pix_fmt]["clen"]
         order = OUTPUT_FORMATS[pix_fmt]["order"]
         wfun = OUTPUT_FORMATS[pix_fmt]["wfun"]
