@@ -73,7 +73,7 @@ clipIntegerAndScaleTestCases = [
 
 convertRg1g2bToYdgcocgTestCases = [
     {
-        "name": "basic-4x4",
+        "name": "rggb8-forward-4x4",
         "pix_fmt": "bayer_rggb8",
         "bayer_packed_image": np.array(
             [
@@ -90,7 +90,7 @@ convertRg1g2bToYdgcocgTestCases = [
         "bayer_cg": np.array([[0x70, 0x70], [0x70, 0x70]], dtype=np.uint16),
     },
     {
-        "name": "reverse-4x4",
+        "name": "rggb8-reverse-4x4",
         "pix_fmt": "bayer_rggb8",
         "bayer_packed_image": np.array(
             [
@@ -105,6 +105,74 @@ convertRg1g2bToYdgcocgTestCases = [
         "bayer_dg": np.array([[0xA0, 0xB0], [0xC0, 0xD0]], dtype=np.uint16),
         "bayer_co": np.array([[0x80, 0x10], [0x20, 0x30]], dtype=np.uint16),
         "bayer_cg": np.array([[0xB0, 0x70], [0x70, 0x70]], dtype=np.uint16),
+    },
+    {
+        "name": "rggb10-forward-4x4",
+        "pix_fmt": "SRGGB10",
+        "bayer_packed_image": np.array(
+            [
+                [0x00, 0x40, 0x10, 0x30],
+                [0x80, 0xFF, 0x90, 0xF0],
+                [0x20, 0x20, 0x30, 0x10],
+                [0xA0, 0xE0, 0xB0, 0xD0],
+            ],
+            dtype=np.uint16,
+        ),
+        "bayer_y": np.array([[0x06F, 0x070], [0x070, 0x070]], dtype=np.uint16),
+        "bayer_dg": np.array([[0x220, 0x230], [0x240, 0x250]], dtype=np.uint16),
+        "bayer_co": np.array([[0x180, 0x190], [0x1A0, 0x1B0]], dtype=np.uint16),
+        "bayer_cg": np.array([[0x1F0, 0x1F0], [0x1F0, 0x1F0]], dtype=np.uint16),
+    },
+    {
+        "name": "rggb10-reverse-4x4",
+        "pix_fmt": "SRGGB10",
+        "bayer_packed_image": np.array(
+            [
+                [0x00, 0x40, 0x10, 0x30],
+                [0x80, 0x00, 0x90, 0xF0],
+                [0x20, 0x20, 0x30, 0x10],
+                [0xA0, 0xE0, 0xB0, 0xD0],
+            ],
+            dtype=np.uint16,
+        ),
+        "bayer_y": np.array([[0x030, 0x070], [0x070, 0x070]], dtype=np.uint16),
+        "bayer_dg": np.array([[0x220, 0x230], [0x240, 0x250]], dtype=np.uint16),
+        "bayer_co": np.array([[0x200, 0x190], [0x1A0, 0x1B0]], dtype=np.uint16),
+        "bayer_cg": np.array([[0x230, 0x1F0], [0x1F0, 0x1F0]], dtype=np.uint16),
+    },
+    {
+        "name": "rggb10-scaled-forward-4x4",
+        "pix_fmt": "SRGGB10",
+        "bayer_packed_image": np.array(
+            [
+                [0x000, 0x100, 0x040, 0x0C0],
+                [0x200, 0x3FF, 0x240, 0x3C0],
+                [0x080, 0x080, 0x0C0, 0x040],
+                [0x280, 0x380, 0x2C0, 0x340],
+            ],
+            dtype=np.uint16,
+        ),
+        "bayer_y": np.array([[0x1BF, 0x1C0], [0x1C0, 0x1C0]], dtype=np.uint16),
+        "bayer_dg": np.array([[0x280, 0x2C0], [0x300, 0x340]], dtype=np.uint16),
+        "bayer_co": np.array([[0x000, 0x040], [0x080, 0x0C0]], dtype=np.uint16),
+        "bayer_cg": np.array([[0x1C0, 0x1C0], [0x1C0, 0x1C0]], dtype=np.uint16),
+    },
+    {
+        "name": "rggb10-scaled-reverse-4x4",
+        "pix_fmt": "SRGGB10",
+        "bayer_packed_image": np.array(
+            [
+                [0x000, 0x100, 0x040, 0x0C0],
+                [0x200, 0x000, 0x240, 0x3C0],
+                [0x080, 0x080, 0x0C0, 0x040],
+                [0x280, 0x380, 0x2C0, 0x340],
+            ],
+            dtype=np.uint16,
+        ),
+        "bayer_y": np.array([[0x0C0, 0x1C0], [0x1C0, 0x1C0]], dtype=np.uint16),
+        "bayer_dg": np.array([[0x280, 0x2C0], [0x300, 0x340]], dtype=np.uint16),
+        "bayer_co": np.array([[0x200, 0x040], [0x080, 0x0C0]], dtype=np.uint16),
+        "bayer_cg": np.array([[0x2C0, 0x1C0], [0x1C0, 0x1C0]], dtype=np.uint16),
     },
 ]
 
