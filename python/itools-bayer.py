@@ -929,6 +929,8 @@ class BayerImage:
             rdepth = INPUT_FORMATS[pix_fmt]["rdepth"]
             clen = INPUT_FORMATS[pix_fmt]["clen"]
             order = INPUT_FORMATS[pix_fmt]["order"]
+            blen = INPUT_FORMATS[pix_fmt]["blen"]
+            rfun = INPUT_FORMATS[pix_fmt]["rfun"]
             # create bayer packed image
             dtype = np.uint16 if rdepth > 8 else np.uint8
             self.packed = np.zeros((self.height, self.width), dtype=dtype)
@@ -942,12 +944,11 @@ class BayerImage:
                 # 1. read components from the input
                 components = ()
                 while len(components) < clen:
-                    length = INPUT_FORMATS[pix_fmt]["blen"]
-                    idata = self.buffer[i : i + length]
-                    i += length
+                    idata = self.buffer[i : i + blen]
+                    i += blen
                     if not idata:
                         break
-                    components += INPUT_FORMATS[pix_fmt]["rfun"](idata, self.debug)
+                    components += rfun(idata, self.debug)
                 if len(components) < clen:
                     # end of input
                     break
@@ -968,7 +969,7 @@ class BayerImage:
                     row += 1
         return self.packed
 
-    def GetPlanar(self, planar_order):
+    def GetPlanar(self):
         if self.planar is None:
             # convert buffer to planar
             assert self.buffer is not None, "error: invalid buffer"
@@ -977,9 +978,14 @@ class BayerImage:
             rdepth = INPUT_FORMATS[pix_fmt]["rdepth"]
             clen = INPUT_FORMATS[pix_fmt]["clen"]
             order = INPUT_FORMATS[pix_fmt]["order"]
+            blen = INPUT_FORMATS[pix_fmt]["blen"]
+            rfun = INPUT_FORMATS[pix_fmt]["rfun"]
             # create bayer planar image
             dtype = np.uint16 if rdepth > 8 else np.uint8
-            self.planar = np.zeros((4, self.height // 2, self.width // 2), dtype=dtype)
+            self.planar = {
+                plane_id: np.zeros((self.height // 2, self.width // 2), dtype=dtype)
+                for plane_id in DEFAULT_PLANAR_ORDER
+            }
             # fill it up
             row = 0
             col = 0
@@ -990,12 +996,11 @@ class BayerImage:
                 # 1. read components from the input
                 components = ()
                 while len(components) < clen:
-                    length = INPUT_FORMATS[pix_fmt]["blen"]
-                    idata = self.buffer[i : i + length]
-                    i += length
+                    idata = self.buffer[i : i + blen]
+                    i += blen
                     if not idata:
                         break
-                    components += INPUT_FORMATS[pix_fmt]["rfun"](idata, self.debug)
+                    components += rfun(idata, self.debug)
                 if len(components) < clen:
                     # end of input
                     break
@@ -1005,7 +1010,7 @@ class BayerImage:
                 if self.debug > 1:
                     print(f"debug:  {components=}")
                 # 3. get affected plane IDs
-                plane_ids = self.GetPlaneIds(order, row, planar_order)
+                plane_ids = self.GetPlaneIds(order, row)
                 # 4. convert component order
                 for component in components:
                     plane_id = plane_ids[col % len(plane_ids)]
@@ -1030,12 +1035,9 @@ class BayerImage:
         return planar_order
 
     @classmethod
-    def GetPlaneIds(cls, order, row, planar_order):
-        order = cls.GetPlanarOrder(order)
-        plane_names = order[0:2] if row % 2 == 0 else order[2:4]
-        plane_ids = list(
-            planar_order.index(plane_name) for plane_name in list(plane_names)
-        )
+    def GetPlaneIds(cls, planar_order, row):
+        planar_order = cls.GetPlanarOrder(planar_order)
+        plane_ids = planar_order[0:2] if row % 2 == 0 else planar_order[2:4]
         return plane_ids
 
     # factory methods
@@ -1071,7 +1073,7 @@ class BayerImage:
         return BayerImage(infile, buffer, None, None, width, height, pix_fmt, debug)
 
     @classmethod
-    def FromPlanar(cls, planar, pix_fmt, width, height, planar_order, debug=0):
+    def FromPlanar(cls, planar, pix_fmt, width, height, debug=0):
         # get format info
         rdepth = OUTPUT_FORMATS[pix_fmt]["rdepth"]
         clen = OUTPUT_FORMATS[pix_fmt]["clen"]
@@ -1088,7 +1090,7 @@ class BayerImage:
         buffer = b""
         while row < height:
             # 1. get affected plane IDs
-            plane_ids = cls.GetPlaneIds(order, row, planar_order)
+            plane_ids = cls.GetPlaneIds(order, row)
             # 2. get components in order
             components = []
             for _ in range(clen):
@@ -1274,11 +1276,8 @@ def get_options(argv):
 
 
 def convert_image_planar_mode(
-    infile, i_pix_fmt, width, height, outfile, o_pix_fmt, planar_order, debug
+    infile, i_pix_fmt, width, height, outfile, o_pix_fmt, debug
 ):
-    # check input parameters
-    planar_order = BayerImage.GetPlanarOrder(planar_order)
-
     # check the input pixel format
     i_pix_fmt = get_canonical_input_pix_fmt(i_pix_fmt)
     # check the output pixel format
@@ -1289,11 +1288,10 @@ def convert_image_planar_mode(
 
     # write planar into output image file (packed)
     bayer_image_copy = BayerImage.FromPlanar(
-        bayer_image.GetPlanar(planar_order),
+        bayer_image.GetPlanar(),
         o_pix_fmt,
         width,
         height,
-        planar_order,
         debug,
     )
     with open(outfile, "wb") as fout:
