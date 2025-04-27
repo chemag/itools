@@ -20,6 +20,57 @@ itools_bayer = importlib.import_module("itools-bayer")
 itools_bayer_enctools = importlib.import_module("itools-bayer-enctools")
 
 
+clipIntegerAndScaleTestCases = [
+    {
+        "name": "8-bits",
+        "depth": 8,
+        "arr": np.array(
+            [
+                [-0xFF, -0x80, -0x7F, 0x00, 0x7F, 0x80, 0xFF],
+            ],
+            dtype=np.int16,
+        ),
+        "clipped_arr": np.array(
+            [
+                [0x00, 0x40, 0x40, 0x80, 0xBF, 0xC0, 0xFF],
+            ],
+            dtype=np.uint8,
+        ),
+    },
+    {
+        "name": "10-bits",
+        "depth": 10,
+        "arr": np.array(
+            [
+                [-0x3FF, -0x200, -0x1FF, 0x00, 0x1FF, 0x200, 0x3FF],
+            ],
+            dtype=np.int32,
+        ),
+        "clipped_arr": np.array(
+            [
+                [0x000, 0x100, 0x100, 0x200, 0x2FF, 0x300, 0x3FF],
+            ],
+            dtype=np.uint16,
+        ),
+    },
+    {
+        "name": "16-bits",
+        "depth": 16,
+        "arr": np.array(
+            [
+                [-0xFFFF, -0x8000, -0x7FFF, 0x00, 0x7FFF, 0x8000, 0xFFFF],
+            ],
+            dtype=np.int32,
+        ),
+        "clipped_arr": np.array(
+            [
+                [0x0000, 0x4000, 0x4000, 0x8000, 0xBFFF, 0xC000, 0xFFFF],
+            ],
+            dtype=np.uint16,
+        ),
+    },
+]
+
 convertRg1g2bToYdgcocgTestCases = [
     {
         "name": "basic-4x4",
@@ -59,6 +110,32 @@ convertRg1g2bToYdgcocgTestCases = [
 
 
 class MainTest(unittest.TestCase):
+    def testClipIntegerAndScale(self):
+        """clip_integer_and_scale test."""
+        for test_case in clipIntegerAndScaleTestCases:
+            print("...running %s" % test_case["name"])
+            arr = test_case["arr"]
+            depth = test_case["depth"]
+            expected_clipped_arr = test_case["clipped_arr"]
+            # 1. run forward clipping
+            clipped_arr = itools_bayer_enctools.clip_integer_and_scale(arr, depth)
+            np.testing.assert_array_equal(
+                expected_clipped_arr,
+                clipped_arr,
+                err_msg=f"error on forward case {test_case['name']}",
+            )
+            # 2. run backward clipping
+            new_arr = itools_bayer_enctools.unclip_integer_and_unscale(
+                clipped_arr, depth
+            )
+            absolute_tolerance = 1
+            np.testing.assert_allclose(
+                arr,
+                new_arr,
+                atol=absolute_tolerance,
+                err_msg=f"error on forward case {test_case['name']}",
+            )
+
     def testConvertRg1g2bToYdgcocg(self):
         """convert_rg1g2b_to_ydgcocg test."""
         for test_case in convertRg1g2bToYdgcocgTestCases:

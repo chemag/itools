@@ -100,15 +100,9 @@ def calculate_psnr(plane1, plane2):
     return float(psnr)
 
 
-def get_opt_depth(depth):
-    op_depth = 8 * (1 + (depth - 1) // 8)
-    return op_depth
-
-
 def remosaic_rgb_image(rgb_image, pix_fmt):
     depth = itools_bayer.get_depth(bayer_image.pix_fmt)
-    op_depth = get_opt_depth(depth)
-    st_dtype = np.uint8 if op_depth == 8 else np.uint16
+    st_dtype = np.uint8 if depth == 8 else np.uint16
     bgr_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2BGR)
     height, width, _ = bgr_image.shape
     bayer_packed_image = np.zeros((height, width), dtype=st_dtype)
@@ -134,28 +128,57 @@ def upsample_matrix(arr, shape):
 
 
 # matrix clippers
+# In our matrix operations, the OP_DTYPE is np.int32. After applying the
+# matrix, we can have 2x situations:
+#
+# (a) positive value, in the [0, 2^{<depth>} - 1] range. This is what
+# happens to the Y component, as it is calculated by shifting the R/G1/G2/B
+# components to the right twice, and then add them.
+#   +----+----+----+----+----+----+----+----+
+#   |    |    |    |    |    |    |abcd|efgh| 8-bit
+#   +----+----+----+----+----+----+----+----+
+# In the 8-bit case, we clip the bits [a..h].
+#   +----+----+----+----+----+----+----+----+
+#   |    |    |    |    |    |  ab|cdef|ghij| 10-bit
+#   +----+----+----+----+----+----+----+----+
+# In the 10-bit case, we clip the bits [a..j].
+#   +----+----+----+----+----+----+----+----+
+#   |    |    |    |    |abcd|efgh|ijkl|mnop| 16-bit
+#   +----+----+----+----+----+----+----+----+
+# In the 10-bit case, we clip the bits [a..p].
 def clip_positive(arr, depth, check=True):
-    op_depth = get_opt_depth(depth)
-    max_value = 2**op_depth - 1
-    st_dtype = np.uint8 if op_depth == 8 else np.uint16
+    max_value = 2**depth - 1
+    st_dtype = np.uint8 if depth == 8 else np.uint16
     # check for values outside the valid range
     if check and np.any((arr < 0) | (arr > max_value)):
         raise ValueError("Array contains values outside the valid range")
-    # round values to the closest integer and convert to storage dtype
-    return np.clip(np.round(arr), 0, max_value).astype(st_dtype)
+    # clip values to the closest integer and convert to storage dtype
+    return np.clip(arr, 0, max_value).astype(st_dtype)
 
+# (b) integer value, in the [-2^{<depth>}, 2^{<depth>} - 1] range. This is
+# what happens to the Dg, Co, and Cg components, as they are calculated by
+# adding/substracting the R/G1/G2/B components. Note that it is not possible
+# to get away of the range.
+#
+# The solution in this case is to add a shift to center the value (positive
+# or negative) around zero, and then throw the LSB in order to encode the
+# right amount of bits.
+#
+# For example, for 8-bit components, the value of Dg/Co/Cg is in the
+# [-255, 255] range. In order to encode it, we scale it to half (effectively
+# throwing the LSB), and then add a shift. The value ends up in the range
+# [0, 255].
 
 def clip_integer_and_scale(arr, depth, check=True):
-    op_depth = get_opt_depth(depth)
-    max_value = 2**op_depth - 1
+    max_value = 2**depth - 1
     min_value = -max_value
-    shift = 2 ** (op_depth - 1)
-    st_dtype = np.uint8 if op_depth == 8 else np.uint16
+    shift = 2 ** (depth - 1)
+    st_dtype = np.uint8 if depth == 8 else np.uint16
     # check for values outside the valid range
     if check and np.any((arr < min_value) | (arr > max_value)):
         raise ValueError("Array contains values outside the valid range")
-    # scale and round values to the storage dtype
-    return np.round((arr >> 1) + shift).astype(st_dtype)
+    # scale and shift values to the storage dtype
+    return ((arr >> 1) + shift).astype(st_dtype)
 
 
 def unclip_positive(arr, depth):
@@ -163,8 +186,7 @@ def unclip_positive(arr, depth):
 
 
 def unclip_integer_and_unscale(arr, depth):
-    op_depth = get_opt_depth(depth)
-    shift = 2 ** (op_depth - 1)
+    shift = 2 ** (depth - 1)
     # unscale and convert
     return (arr.astype(OP_DTYPE) - shift) << 1
 
