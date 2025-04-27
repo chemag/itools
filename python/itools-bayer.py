@@ -32,7 +32,12 @@ COLOR_COMPONENTS = set("RGgB")
 # internal planar bayer image format is G1G2RB
 DEFAULT_PLANAR_ORDER = list("GgRB")
 
-OPENCV_PLANAR_ORDER = "RGgB"
+OPENCV_BAYER_FROM_CONVERSIONS = {
+    "RGgB": cv2.COLOR_BayerRGGB2RGB,
+    "GRBg": cv2.COLOR_BayerGRBG2RGB,
+    "BGgR": cv2.COLOR_BayerBGGR2RGB,
+    "GBRg": cv2.COLOR_BayerGBRG2RGB,
+}
 
 
 # planar read/write functions
@@ -890,6 +895,37 @@ def get_depth(pix_fmt):
     return BAYER_FORMATS[i_pix_fmt]["depth"]
 
 
+def bayer_to_rgb(bayer_packed, order, depth):
+    # make sure that the packed representation is supported by by opencv
+    assert (
+        order in OPENCV_BAYER_FROM_CONVERSIONS
+    ), f"error: invalid {pix_fmt=} which means {order=}. opencv only accepts order: {OPENCV_BAYER_FROM_CONVERSIONS.keys()}"
+    # cv2 supports (among others) CV_8U and CV_16U types for color
+    # conversions. These data types affect the conversions, and are
+    # used when the input is an np.uint8 and np.uint16 numpy array,
+    # respectively. This means that the color conversion for 10/12/14-bit
+    # color need to first scale up to 16-bits.
+    # use opencv to do the Bayer->RGB conversion from the packed
+    if depth in (10, 12, 14):
+        bayer_packed = bayer_packed << (16 - depth)
+    # representation
+    rgb_packed = cv2.cvtColor(bayer_packed, OPENCV_BAYER_FROM_CONVERSIONS[order])
+    if depth in (10, 12, 14):
+        rgb_packed = rgb_packed >> (16 - depth)
+    return rgb_packed
+
+
+def rgb_to_yuv(rgb_packed, depth):
+    if depth in (10, 12, 14):
+        rgb_packed = rgb_packed << (16 - depth)
+    # use opencv to do the RGB->YUV conversion from the packed RGB
+    # representation
+    yuv_packed = cv2.cvtColor(rgb_packed, cv2.COLOR_RGB2YUV)
+    if depth in (10, 12, 14):
+        yuv_packed = yuv_packed >> (16 - depth)
+    return yuv_packed
+
+
 class BayerImage:
 
     def __init__(self, infile, buffer, packed, planar, width, height, pix_fmt, debug=0):
@@ -1028,27 +1064,10 @@ class BayerImage:
     def GetRGBPacked(self):
         if self.rgb_packed is not None:
             return self.rgb_packed
-        # make sure that the packed representation is "RGGB" (only one accepted
-        # by opencv)
         pix_fmt = self.pix_fmt
         order = INPUT_FORMATS[pix_fmt]["order"]
-        assert (
-            order == OPENCV_PLANAR_ORDER
-        ), f"error: invalid {pix_fmt=} which means {order=}. opencv only accepts order: {OPENCV_PLANAR_ORDER}"
-        # cv2 supports (among others) CV_8U and CV_16U types for color
-        # conversions. These data types affect the conversions, and are
-        # used when the input is an np.uint8 and np.uint16 numpy array,
-        # respectively. This means that the color conversion for 10/12/14-bit
-        # color need to first scale up to 16-bits.
-        # use opencv to do the Bayer->RGB conversion from the packed
         bayer_packed = self.GetPacked()
-        if self.depth in (10, 12, 14):
-            bayer_packed = bayer_packed << (16 - self.depth)
-        # representation
-        rgb_packed = cv2.cvtColor(bayer_packed, cv2.COLOR_BAYER_BG2RGB)
-        if self.depth in (10, 12, 14):
-            rgb_packed = rgb_packed >> (16 - self.depth)
-        self.rgb_packed = rgb_packed
+        self.rgb_packed = bayer_to_rgb(bayer_packed, order, self.depth)
         return self.rgb_packed
 
     def GetYUVPlanar(self):
@@ -1071,14 +1090,7 @@ class BayerImage:
         # respectively. This means that the color conversion for 10/12/14-bit
         # color need to first scale up to 16-bits.
         rgb_packed = self.GetRGBPacked()
-        if self.depth in (10, 12, 14):
-            rgb_packed = rgb_packed << (16 - self.depth)
-        # use opencv to do the RGB->YUV conversion from the packed RGB
-        # representation
-        yuv_packed = cv2.cvtColor(rgb_packed, cv2.COLOR_RGB2YUV)
-        if self.depth in (10, 12, 14):
-            yuv_packed = yuv_packed >> (16 - self.depth)
-        self.yuv_packed = yuv_packed
+        self.yuv_packed = rgb_to_yuv(rgb_packed, self.depth)
         return self.yuv_packed
 
     @classmethod
