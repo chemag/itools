@@ -1073,8 +1073,21 @@ class BayerImage:
         return BayerImage(infile, buffer, None, None, width, height, pix_fmt, debug)
 
     @classmethod
-    def FromPlanar(cls, planar, pix_fmt, width, height, debug=0):
+    def FromPlanars(cls, bayer_r, bayer_g1, bayer_g2, bayer_b, pix_fmt, debug=0):
         # get format info
+        planar = {
+            "R": bayer_r,
+            "G": bayer_g1,
+            "g": bayer_g2,
+            "B": bayer_b,
+        }
+        return cls.FromPlanar(planar, pix_fmt)
+
+    @classmethod
+    def FromPlanar(cls, planar, pix_fmt, debug=0):
+        # get format info
+        height, width = (2 * dim for dim in planar["R"].shape)
+        pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
         rdepth = OUTPUT_FORMATS[pix_fmt]["rdepth"]
         clen = OUTPUT_FORMATS[pix_fmt]["clen"]
         order = OUTPUT_FORMATS[pix_fmt]["order"]
@@ -1119,8 +1132,10 @@ class BayerImage:
         return BayerImage("", buffer, None, planar, width, height, pix_fmt, debug)
 
     @classmethod
-    def FromPacked(cls, packed, pix_fmt, width, height, debug=0):
+    def FromPacked(cls, packed, pix_fmt, debug=0):
         # get format info
+        height, width = packed.shape
+        pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
         rdepth = OUTPUT_FORMATS[pix_fmt]["rdepth"]
         clen = OUTPUT_FORMATS[pix_fmt]["clen"]
         order = OUTPUT_FORMATS[pix_fmt]["order"]
@@ -1290,8 +1305,6 @@ def convert_image_planar_mode(
     bayer_image_copy = BayerImage.FromPlanar(
         bayer_image.GetPlanar(),
         o_pix_fmt,
-        width,
-        height,
         debug,
     )
     with open(outfile, "wb") as fout:
