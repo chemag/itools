@@ -54,36 +54,42 @@ def rfun_10_expanded_to_16(data, debug):
     # +---+---+---+---+---+---+---+---+ +---+---+---+---+---+---+---+---+
     if (data[1] & 0xFC) != 0 or (data[3] & 0xFC) != 0:
         print("warn: upper 6 bits are not zero")
-    c0 = ((data[0]) | ((data[1] & 0x03) << 8)) << 6
-    c1 = ((data[2]) | ((data[3] & 0x03) << 8)) << 6
+    c0 = (data[0]) | ((data[1] & 0x03) << 8)
+    c1 = (data[2]) | ((data[3] & 0x03) << 8)
     return (c0, c1)
 
 
 # 2 bytes -> 2 components
 def wfun_10_expanded_to_16(c0, c1, debug):
-    c0 >>= 6
-    c1 >>= 6
     return int(c0).to_bytes(2, "little") + int(c1).to_bytes(2, "little")
 
 
 # 5 bytes -> 4 components
 def rfun_10_packed_expanded_to_16(data, debug):
     low = data[4]
+    # 10-bit Bayer formats (packed) aka 4-in-5
+    #   +---+---+---+---+---+---+---+---+ +---+---+---+---+---+---+---+---+
+    #   |A9 |A8 |A7 |A6 |A5 |A4 |A3 |A2 | |B9 |B8 |B7 |B6 |B5 |B4 |B3 |B2 |
+    #   +---+---+---+---+---+---+---+---+ +---+---+---+---+---+---+---+---+
+    #   |C9 |C8 |C7 |C6 |C5 |C4 |C3 |C2 | |D9 |D8 |D7 |D6 |D5 |D4 |D3 |D2 |
+    #   +---+---+---+---+---+---+---+---+ +---+---+---+---+---+---+---+---+
+    #   |D1 |D0 |C1 |C0 |B1 |B0 |A1 |A0 |
+    #   +---+---+---+---+---+---+---+---+
     return (
-        (data[0] << 8) | ((low & 0x03) << 6),
-        (data[1] << 8) | ((low & 0x0C) << 4),
-        (data[2] << 8) | ((low & 0x30) << 2),
-        (data[3] << 8) | ((low & 0xC0) << 0),
+        (data[0] << 2) | ((low >> 0) & 0x03),
+        (data[1] << 2) | ((low >> 2) & 0x03),
+        (data[2] << 2) | ((low >> 4) & 0x03),
+        (data[3] << 2) | ((low >> 6) & 0x03),
     )
 
 
 def wfun_10_packed_expanded_to_16(c0, c1, c2, c3, debug):
-    main = ((c0 >> 8) << 24) | ((c1 >> 8) << 16) | ((c2 >> 8) << 8) | ((c3 >> 8) << 0)
+    main = ((c0 >> 2) << 24) | ((c1 >> 2) << 16) | ((c2 >> 2) << 8) | ((c3 >> 2) << 0)
     remaining = (
-        (((c3 >> 6) & 0x03) << 6)
-        | (((c2 >> 6) & 0x03) << 4)
-        | (((c1 >> 6) & 0x03) << 2)
-        | (((c0 >> 6) & 0x03) << 0)
+        ((c3 & 0x03) << 6)
+        | ((c2 & 0x03) << 4)
+        | ((c1 & 0x03) << 2)
+        | ((c0 & 0x03) << 0)
     )
     return int(main).to_bytes(4, "big") + int(remaining).to_bytes(1, "big")
 
@@ -118,11 +124,15 @@ def wfun_10_ipu3_expanded_to_16(carray, debug):
 # 4 bytes -> 2 components
 def rfun_12_expanded_to_16(data, debug):
     # check the high 4 bits of both components are 0x0
+    # 12-expanded-to-16 packs using
+    # +---+---+---+---+---+---+---+---+ +---+---+---+---+---+---+---+---+
+    # |b7 |b6 |b5 |b4 |b3 |b2 |b1 |b0 | | 0 | 0 | 0 | 0 |b11|b10|b9 |b8 |
+    # +---+---+---+---+---+---+---+---+ +---+---+---+---+---+---+---+---+
     if (data[1] & 0xF0) != 0 or (data[3] & 0xF0) != 0:
         print("warn: upper 4 bits are not zero")
     return (
-        (data[0] << 4) | ((data[1] & 0x0F) << 12),
-        (data[2] << 4) | ((data[3] & 0x0F) << 12),
+        data[0] | ((data[1] & 0x0F) << 8),
+        data[2] | ((data[3] & 0x0F) << 8),
     )
 
 
@@ -132,10 +142,16 @@ def wfun_12_expanded_to_16(c0, c1, debug):
 
 # 3 bytes -> 2 components
 def rfun_12_packed_expanded_to_16(data, debug):
+    # 12-bit Bayer formats (packed) aka 4-in-5
+    #   +---+---+---+---+---+---+---+---+ +---+---+---+---+---+---+---+---+
+    #   |A11|A10|A9 |A8 |A7 |A6 |A5 |A4 | |B11|B10|B9 |B8 |B7 |B6 |B5 |B4 |
+    #   +---+---+---+---+---+---+---+---+ +---+---+---+---+---+---+---+---+
+    #   |B3 |B2 |B1 |B0 |A3 |A2 |A1 |A0 |
+    #   +---+---+---+---+---+---+---+---+
     low = data[2]
     return (
-        (data[0] << 8) | ((low & 0x0F) << 4),
-        (data[1] << 8) | ((low & 0xF0) << 0),
+        (data[0] << 4) | ((low >> 0) & 0x0F),
+        (data[1] << 4) | ((low >> 4) & 0x0F),
     )
 
 
@@ -146,11 +162,15 @@ def wfun_12_packed_expanded_to_16(c0, c1, debug):
 # 4 bytes -> 2 components
 def rfun_14_expanded_to_16(data, debug):
     # check the high 2 bits of both components are 0x0
+    # 12-expanded-to-16 packs using
+    # +---+---+---+---+---+---+---+---+ +---+---+---+---+---+---+---+---+
+    # |b7 |b6 |b5 |b4 |b3 |b2 |b1 |b0 | | 0 | 0 |b13|b12|b11|b10|b9 |b8 |
+    # +---+---+---+---+---+---+---+---+ +---+---+---+---+---+---+---+---+
     if (data[1] & 0xC0) != 0 or (data[3] & 0xC0) != 0:
         print("warn: upper 2 bits are not zero")
     return (
-        (data[0] << 2) | ((data[1] & 0x3F) << 10),
-        (data[2] << 2) | ((data[3] & 0x3F) << 10),
+        data[0] | ((data[1] & 0x3F) << 8),
+        data[2] | ((data[3] & 0x3F) << 8),
     )
 
 
@@ -160,12 +180,22 @@ def wfun_14_expanded_to_16(c0, c1, debug):
 
 # 7 bytes -> 4 components
 def rfun_14_packed_expanded_to_16(data, debug):
+    # 14-bit Bayer formats (packed) aka 4-in-7
+    #  +---+---+---+---+---+---+---+---+ +---+---+---+---+---+---+---+---+
+    #  |A13|A12|A11|A10|A9 |A8 |A7 |A6 | |B13|B12|B11|B10|B9 |B8 |B7 |B6 |
+    #  +---+---+---+---+---+---+---+---+ +---+---+---+---+---+---+---+---+
+    #  |C13|C12|C11|C10|C9 |C8 |C7 |C6 | |D13|D12|D11|D10|D9 |D8 |D7 |D6 |
+    #  +---+---+---+---+---+---+---+---+ +---+---+---+---+---+---+---+---+
+    #  |B1 |B0 |A5 |A4 |A3 |A2 |A1 |A0 | |C3 |C2 |C1 |C0 |B5 |B4 |B3 |B2 |
+    #  +---+---+---+---+---+---+---+---+ +---+---+---+---+---+---+---+---+
+    #  |D5 |D4 |D3 |D2 |D1 |D0 |C5 |C4 |
+    #  +---+---+---+---+---+---+---+---+
     low0, low1, low2 = data[4:6]
     return (
-        (data[0] << 8) | ((low0 & 0x3F) << 2),
-        (data[1] << 8) | ((low1 & 0x0F) << 2) | ((low0 & 0xC0) << 0),
-        (data[2] << 8) | ((low2 & 0x03) << 2) | ((low1 & 0xF0) << 0),
-        (data[3] << 8) | ((low2 & 0xFC) << 0),
+        (data[0] << 6) | ((low0 >> 0) & 0x3F),
+        (data[1] << 6) | ((low1 << 2) & 0x3C) | ((low0 >> 6) & 0x03),
+        (data[2] << 6) | ((low2 << 4) & 0x30) | ((low1 >> 4) & 0x0F),
+        (data[3] << 6) | ((low2 >> 2) & 0x3F),
     )
 
 
@@ -211,9 +241,7 @@ BAYER_FORMATS = {
         # component length
         "clen": 2,
         # component depth (in bits)
-        "cdepth": 8,
-        # component read depth (in bits)
-        "rdepth": 8,
+        "depth": 8,
         # read function (planar)
         "rfun": rfun_8,
         # write function (planar)
@@ -229,8 +257,7 @@ BAYER_FORMATS = {
         "order": "RGgB",
         "blen": 2,
         "clen": 2,
-        "cdepth": 8,
-        "rdepth": 8,
+        "depth": 8,
         "rfun": rfun_8,
         "wfun": wfun_8,
         "ffmpeg": True,
@@ -243,8 +270,7 @@ BAYER_FORMATS = {
         "order": "GBRg",
         "blen": 2,
         "clen": 2,
-        "cdepth": 8,
-        "rdepth": 8,
+        "depth": 8,
         "rfun": rfun_8,
         "wfun": wfun_8,
         "ffmpeg": True,
@@ -257,8 +283,7 @@ BAYER_FORMATS = {
         "order": "GRBg",
         "blen": 2,
         "clen": 2,
-        "cdepth": 8,
-        "rdepth": 8,
+        "depth": 8,
         "rfun": rfun_8,
         "wfun": wfun_8,
         "ffmpeg": True,
@@ -271,9 +296,7 @@ BAYER_FORMATS = {
         # component length
         "clen": 2,
         # component depth (in bits)
-        "cdepth": 8,
-        # component read depth (in bits)
-        "rdepth": 8,
+        "depth": 8,
         # read function
         "rfun": rfun_8,
         # write function
@@ -289,9 +312,7 @@ BAYER_FORMATS = {
         # component length
         "clen": 2,
         # component depth (in bits)
-        "cdepth": 8,
-        # component read depth (in bits)
-        "rdepth": 8,
+        "depth": 8,
         # read function
         "rfun": rfun_8,
         # write function
@@ -307,9 +328,7 @@ BAYER_FORMATS = {
         # component length
         "clen": 2,
         # component depth (in bits)
-        "cdepth": 8,
-        # component read depth (in bits)
-        "rdepth": 8,
+        "depth": 8,
         # read function
         "rfun": rfun_8,
         # write function
@@ -325,9 +344,7 @@ BAYER_FORMATS = {
         # component length
         "clen": 2,
         # component depth (in bits)
-        "cdepth": 8,
-        # component read depth (in bits)
-        "rdepth": 8,
+        "depth": 8,
         # read function
         "rfun": rfun_8,
         # write function
@@ -340,9 +357,7 @@ BAYER_FORMATS = {
         "alias": ("SRGGB10",),
         "blen": 4,
         "clen": 2,
-        # this is the depth of the rfun's output
-        "cdepth": 10,
-        "rdepth": 16,
+        "depth": 10,
         "rfun": rfun_10_expanded_to_16,
         "wfun": wfun_10_expanded_to_16,
         "order": "RGgB",
@@ -352,8 +367,7 @@ BAYER_FORMATS = {
         "alias": ("SGRBG10",),
         "blen": 4,
         "clen": 2,
-        "cdepth": 10,
-        "rdepth": 16,
+        "depth": 10,
         "rfun": rfun_10_expanded_to_16,
         "wfun": wfun_10_expanded_to_16,
         "order": "GRBg",
@@ -363,8 +377,7 @@ BAYER_FORMATS = {
         "alias": ("SGBRG10",),
         "blen": 4,
         "clen": 2,
-        "cdepth": 10,
-        "rdepth": 16,
+        "depth": 10,
         "rfun": rfun_10_expanded_to_16,
         "wfun": wfun_10_expanded_to_16,
         "order": "GBRg",
@@ -374,8 +387,7 @@ BAYER_FORMATS = {
         "alias": ("SBGGR10",),
         "blen": 4,
         "clen": 2,
-        "cdepth": 10,
-        "rdepth": 16,
+        "depth": 10,
         "rfun": rfun_10_expanded_to_16,
         "wfun": wfun_10_expanded_to_16,
         "order": "BGgR",
@@ -386,8 +398,7 @@ BAYER_FORMATS = {
         "alias": ("SRGGB10P", "MIPI-RAW10-RGGB"),
         "blen": 5,
         "clen": 4,
-        "cdepth": 10,
-        "rdepth": 16,
+        "depth": 10,
         "rfun": rfun_10_packed_expanded_to_16,
         "wfun": wfun_10_packed_expanded_to_16,
         "order": "RGgB",
@@ -397,8 +408,7 @@ BAYER_FORMATS = {
         "alias": ("SGRBG10P", "MIPI-RAW10-GRBG"),
         "blen": 5,
         "clen": 4,
-        "cdepth": 10,
-        "rdepth": 16,
+        "depth": 10,
         "rfun": rfun_10_packed_expanded_to_16,
         "wfun": wfun_10_packed_expanded_to_16,
         "order": "GRBg",
@@ -408,8 +418,7 @@ BAYER_FORMATS = {
         "alias": ("SGBRG10P", "MIPI-RAW10-GBRG"),
         "blen": 5,
         "clen": 4,
-        "cdepth": 10,
-        "rdepth": 16,
+        "depth": 10,
         "rfun": rfun_10_packed_expanded_to_16,
         "wfun": wfun_10_packed_expanded_to_16,
         "order": "GBRg",
@@ -419,8 +428,7 @@ BAYER_FORMATS = {
         "alias": ("SBGGR10P", "MIPI-RAW10-BGGR"),
         "blen": 5,
         "clen": 4,
-        "cdepth": 10,
-        "rdepth": 16,
+        "depth": 10,
         "rfun": rfun_10_packed_expanded_to_16,
         "wfun": wfun_10_packed_expanded_to_16,
         "order": "BGgR",
@@ -431,8 +439,7 @@ BAYER_FORMATS = {
         "alias": ("SRGGB10ALAW8",),
         "blen": 2,
         "clen": 2,
-        "cdepth": 10,
-        "rdepth": 16,
+        "depth": 10,
         "rfun": rfun_10_alaw_expanded_to_16,
         "wfun": wfun_10_alaw_expanded_to_16,
         "order": "RGgB",
@@ -442,8 +449,7 @@ BAYER_FORMATS = {
         "alias": ("SBGGR10ALAW8",),
         "blen": 2,
         "clen": 2,
-        "cdepth": 10,
-        "rdepth": 16,
+        "depth": 10,
         "rfun": rfun_10_alaw_expanded_to_16,
         "wfun": wfun_10_alaw_expanded_to_16,
         "order": "BGgR",
@@ -453,8 +459,7 @@ BAYER_FORMATS = {
         "alias": ("SGBRG10ALAW8",),
         "blen": 2,
         "clen": 2,
-        "cdepth": 10,
-        "rdepth": 16,
+        "depth": 10,
         "rfun": rfun_10_alaw_expanded_to_16,
         "wfun": wfun_10_alaw_expanded_to_16,
         "order": "GBRg",
@@ -464,8 +469,7 @@ BAYER_FORMATS = {
         "alias": ("SGRBG10ALAW8",),
         "blen": 2,
         "clen": 2,
-        "cdepth": 10,
-        "rdepth": 16,
+        "depth": 10,
         "rfun": rfun_10_alaw_expanded_to_16,
         "wfun": wfun_10_alaw_expanded_to_16,
         "order": "GRBg",
@@ -476,8 +480,7 @@ BAYER_FORMATS = {
         "alias": ("SRGGB10DPCM8",),
         "blen": 2,
         "clen": 2,
-        "cdepth": 10,
-        "rdepth": 16,
+        "depth": 10,
         "rfun": rfun_10_dpcm_expanded_to_16,
         "wfun": wfun_10_dpcm_expanded_to_16,
         "order": "RGgB",
@@ -487,8 +490,7 @@ BAYER_FORMATS = {
         "alias": ("SBGGR10DPCM8",),
         "blen": 2,
         "clen": 2,
-        "cdepth": 10,
-        "rdepth": 16,
+        "depth": 10,
         "rfun": rfun_10_dpcm_expanded_to_16,
         "wfun": wfun_10_dpcm_expanded_to_16,
         "order": "BGgR",
@@ -498,8 +500,7 @@ BAYER_FORMATS = {
         "alias": ("SGBRG10DPCM8",),
         "blen": 2,
         "clen": 2,
-        "cdepth": 10,
-        "rdepth": 16,
+        "depth": 10,
         "rfun": rfun_10_dpcm_expanded_to_16,
         "wfun": wfun_10_dpcm_expanded_to_16,
         "order": "GBRg",
@@ -509,8 +510,7 @@ BAYER_FORMATS = {
         "alias": ("SGRBG10DPCM8",),
         "blen": 2,
         "clen": 2,
-        "cdepth": 10,
-        "rdepth": 16,
+        "depth": 10,
         "rfun": rfun_10_dpcm_expanded_to_16,
         "wfun": wfun_10_dpcm_expanded_to_16,
         "order": "GRBg",
@@ -521,8 +521,7 @@ BAYER_FORMATS = {
         "alias": ("IPU3_SRGGB10",),
         "blen": 32,
         "clen": 25,
-        "cdepth": 10,
-        "rdepth": 16,
+        "depth": 10,
         "rfun": rfun_10_ipu3_expanded_to_16,
         "wfun": wfun_10_ipu3_expanded_to_16,
         "order": "RGgB",
@@ -532,8 +531,7 @@ BAYER_FORMATS = {
         "alias": ("IPU3_SBGGR10",),
         "blen": 32,
         "clen": 25,
-        "cdepth": 10,
-        "rdepth": 16,
+        "depth": 10,
         "rfun": rfun_10_ipu3_expanded_to_16,
         "wfun": wfun_10_ipu3_expanded_to_16,
         "order": "BGgR",
@@ -543,8 +541,7 @@ BAYER_FORMATS = {
         "alias": ("IPU3_SGBRG10",),
         "blen": 32,
         "clen": 25,
-        "cdepth": 10,
-        "rdepth": 16,
+        "depth": 10,
         "rfun": rfun_10_ipu3_expanded_to_16,
         "wfun": wfun_10_ipu3_expanded_to_16,
         "order": "GBRg",
@@ -554,8 +551,7 @@ BAYER_FORMATS = {
         "alias": ("IPU3_SGRBG10",),
         "blen": 32,
         "clen": 25,
-        "cdepth": 10,
-        "rdepth": 16,
+        "depth": 10,
         "rfun": rfun_10_ipu3_expanded_to_16,
         "wfun": wfun_10_ipu3_expanded_to_16,
         "order": "GRBg",
@@ -566,8 +562,7 @@ BAYER_FORMATS = {
         "alias": ("SRGGB12",),
         "blen": 4,
         "clen": 2,
-        "cdepth": 12,
-        "rdepth": 16,
+        "depth": 12,
         "rfun": rfun_12_expanded_to_16,
         "wfun": wfun_12_expanded_to_16,
         "order": "RGgB",
@@ -577,8 +572,7 @@ BAYER_FORMATS = {
         "alias": ("SGRBG12",),
         "blen": 4,
         "clen": 2,
-        "cdepth": 12,
-        "rdepth": 16,
+        "depth": 12,
         "rfun": rfun_12_expanded_to_16,
         "wfun": wfun_12_expanded_to_16,
         "order": "GRBg",
@@ -588,8 +582,7 @@ BAYER_FORMATS = {
         "alias": ("SGBRG12",),
         "blen": 4,
         "clen": 2,
-        "cdepth": 12,
-        "rdepth": 16,
+        "depth": 12,
         "rfun": rfun_12_expanded_to_16,
         "wfun": wfun_12_expanded_to_16,
         "order": "GBRg",
@@ -599,8 +592,7 @@ BAYER_FORMATS = {
         "alias": ("SBGGR12",),
         "blen": 4,
         "clen": 2,
-        "cdepth": 12,
-        "rdepth": 16,
+        "depth": 12,
         "rfun": rfun_12_expanded_to_16,
         "wfun": wfun_12_expanded_to_16,
         "order": "BGgR",
@@ -611,8 +603,7 @@ BAYER_FORMATS = {
         "alias": ("SRGGB12P",),
         "blen": 3,
         "clen": 2,
-        "cdepth": 12,
-        "rdepth": 16,
+        "depth": 12,
         "rfun": rfun_12_packed_expanded_to_16,
         "wfun": wfun_12_packed_expanded_to_16,
         "order": "RGgB",
@@ -622,8 +613,7 @@ BAYER_FORMATS = {
         "alias": ("SGRBG12P",),
         "blen": 3,
         "clen": 2,
-        "cdepth": 12,
-        "rdepth": 16,
+        "depth": 12,
         "rfun": rfun_12_packed_expanded_to_16,
         "wfun": wfun_12_packed_expanded_to_16,
         "order": "GRBg",
@@ -633,8 +623,7 @@ BAYER_FORMATS = {
         "alias": ("SGBRG12P",),
         "blen": 3,
         "clen": 2,
-        "cdepth": 12,
-        "rdepth": 16,
+        "depth": 12,
         "rfun": rfun_12_packed_expanded_to_16,
         "wfun": wfun_12_packed_expanded_to_16,
         "order": "GBRg",
@@ -644,8 +633,7 @@ BAYER_FORMATS = {
         "alias": ("SBGGR12P",),
         "blen": 3,
         "clen": 2,
-        "cdepth": 12,
-        "rdepth": 16,
+        "depth": 12,
         "rfun": rfun_12_packed_expanded_to_16,
         "wfun": wfun_12_packed_expanded_to_16,
         "order": "BGgR",
@@ -656,8 +644,7 @@ BAYER_FORMATS = {
         "alias": ("SRGGB14",),
         "blen": 4,
         "clen": 2,
-        "cdepth": 14,
-        "rdepth": 16,
+        "depth": 14,
         "rfun": rfun_14_expanded_to_16,
         "wfun": wfun_14_expanded_to_16,
         "order": "RGgB",
@@ -667,8 +654,7 @@ BAYER_FORMATS = {
         "alias": ("SGRBG14",),
         "blen": 4,
         "clen": 2,
-        "cdepth": 14,
-        "rdepth": 16,
+        "depth": 14,
         "rfun": rfun_14_expanded_to_16,
         "wfun": wfun_14_expanded_to_16,
         "order": "GRBg",
@@ -678,8 +664,7 @@ BAYER_FORMATS = {
         "alias": ("SGBRG14",),
         "blen": 4,
         "clen": 2,
-        "cdepth": 14,
-        "rdepth": 16,
+        "depth": 14,
         "rfun": rfun_14_expanded_to_16,
         "wfun": wfun_14_expanded_to_16,
         "order": "GBRg",
@@ -689,8 +674,7 @@ BAYER_FORMATS = {
         "alias": ("SBGGR14",),
         "blen": 4,
         "clen": 2,
-        "cdepth": 14,
-        "rdepth": 16,
+        "depth": 14,
         "rfun": rfun_14_expanded_to_16,
         "wfun": wfun_14_expanded_to_16,
         "order": "BGgR",
@@ -701,8 +685,7 @@ BAYER_FORMATS = {
         "alias": ("SRGGB14P",),
         "blen": 7,
         "clen": 4,
-        "cdepth": 14,
-        "rdepth": 16,
+        "depth": 14,
         "rfun": rfun_14_packed_expanded_to_16,
         "wfun": wfun_14_packed_expanded_to_16,
         "order": "RGgB",
@@ -712,8 +695,7 @@ BAYER_FORMATS = {
         "alias": ("SGRBG14P",),
         "blen": 7,
         "clen": 4,
-        "cdepth": 14,
-        "rdepth": 16,
+        "depth": 14,
         "rfun": rfun_14_packed_expanded_to_16,
         "wfun": wfun_14_packed_expanded_to_16,
         "order": "GRBg",
@@ -723,8 +705,7 @@ BAYER_FORMATS = {
         "alias": ("SGBRG14P",),
         "blen": 7,
         "clen": 4,
-        "cdepth": 14,
-        "rdepth": 16,
+        "depth": 14,
         "rfun": rfun_14_packed_expanded_to_16,
         "wfun": wfun_14_packed_expanded_to_16,
         "order": "GBRg",
@@ -734,8 +715,7 @@ BAYER_FORMATS = {
         "alias": ("SBGGR14P",),
         "blen": 7,
         "clen": 4,
-        "cdepth": 14,
-        "rdepth": 16,
+        "depth": 14,
         "rfun": rfun_14_packed_expanded_to_16,
         "wfun": wfun_14_packed_expanded_to_16,
         "order": "BGgR",
@@ -752,8 +732,7 @@ BAYER_FORMATS = {
         "ffmpeg": True,
         "blen": 4,
         "clen": 2,
-        "cdepth": 16,
-        "rdepth": 16,
+        "depth": 16,
         "rfun": rfun_16le,
         "wfun": wfun_16le,
     },
@@ -766,8 +745,7 @@ BAYER_FORMATS = {
         ),
         "blen": 4,
         "clen": 2,
-        "cdepth": 16,
-        "rdepth": 16,
+        "depth": 16,
         "rfun": rfun_16le,
         "wfun": wfun_16le,
     },
@@ -780,8 +758,7 @@ BAYER_FORMATS = {
         "ffmpeg": True,
         "blen": 4,
         "clen": 2,
-        "cdepth": 16,
-        "rdepth": 16,
+        "depth": 16,
         "rfun": rfun_16le,
         "wfun": wfun_16le,
     },
@@ -794,8 +771,7 @@ BAYER_FORMATS = {
         "ffmpeg": True,
         "blen": 4,
         "clen": 2,
-        "cdepth": 16,
-        "rdepth": 16,
+        "depth": 16,
         "rfun": rfun_16le,
         "wfun": wfun_16le,
     },
@@ -804,8 +780,7 @@ BAYER_FORMATS = {
         "ffmpeg": True,
         "blen": 4,
         "clen": 2,
-        "cdepth": 16,
-        "rdepth": 16,
+        "depth": 16,
         "rfun": rfun_16be,
         "wfun": wfun_16be,
     },
@@ -814,8 +789,7 @@ BAYER_FORMATS = {
         "ffmpeg": True,
         "blen": 4,
         "clen": 2,
-        "cdepth": 16,
-        "rdepth": 16,
+        "depth": 16,
         "rfun": rfun_16be,
         "wfun": wfun_16be,
     },
@@ -824,8 +798,7 @@ BAYER_FORMATS = {
         "ffmpeg": True,
         "blen": 4,
         "clen": 2,
-        "cdepth": 16,
-        "rdepth": 16,
+        "depth": 16,
         "rfun": rfun_16be,
         "wfun": wfun_16be,
     },
@@ -834,8 +807,7 @@ BAYER_FORMATS = {
         "ffmpeg": True,
         "blen": 4,
         "clen": 2,
-        "cdepth": 16,
-        "rdepth": 16,
+        "depth": 16,
         "rfun": rfun_16be,
         "wfun": wfun_16be,
     },
@@ -900,7 +872,7 @@ def get_canonical_output_pix_fmt(o_pix_fmt):
 
 def get_depth(pix_fmt):
     i_pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
-    return BAYER_FORMATS[i_pix_fmt]["cdepth"]
+    return BAYER_FORMATS[i_pix_fmt]["depth"]
 
 
 class BayerImage:
@@ -926,13 +898,13 @@ class BayerImage:
             assert self.buffer is not None, "error: invalid buffer"
             # get format info
             pix_fmt = self.pix_fmt
-            rdepth = INPUT_FORMATS[pix_fmt]["rdepth"]
+            depth = INPUT_FORMATS[pix_fmt]["depth"]
             clen = INPUT_FORMATS[pix_fmt]["clen"]
             order = INPUT_FORMATS[pix_fmt]["order"]
             blen = INPUT_FORMATS[pix_fmt]["blen"]
             rfun = INPUT_FORMATS[pix_fmt]["rfun"]
             # create bayer packed image
-            dtype = np.uint16 if rdepth > 8 else np.uint8
+            dtype = np.uint16 if depth > 8 else np.uint8
             self.packed = np.zeros((self.height, self.width), dtype=dtype)
             # fill it up
             row = 0
@@ -952,18 +924,15 @@ class BayerImage:
                 if len(components) < clen:
                     # end of input
                     break
-                # 2. convert component depth (if needed)
-                if rdepth > 8 and rdepth < 16:
-                    components = list(c << (16 - rdepth) for c in components)
                 if self.debug > 1:
                     print(f"debug:  {components=}")
-                # 3. convert component order
+                # 2. convert component order
                 for component in components:
                     self.packed[row][col] = component
                     if self.debug > 1:
                         print(f"debug: {row=} {col=}")
                     col += 1
-                # 5. update input row numbers
+                # 3. update input row numbers
                 if col == self.width:
                     col = 0
                     row += 1
@@ -975,13 +944,13 @@ class BayerImage:
             assert self.buffer is not None, "error: invalid buffer"
             # get format info
             pix_fmt = self.pix_fmt
-            rdepth = INPUT_FORMATS[pix_fmt]["rdepth"]
+            depth = INPUT_FORMATS[pix_fmt]["depth"]
             clen = INPUT_FORMATS[pix_fmt]["clen"]
             order = INPUT_FORMATS[pix_fmt]["order"]
             blen = INPUT_FORMATS[pix_fmt]["blen"]
             rfun = INPUT_FORMATS[pix_fmt]["rfun"]
             # create bayer planar image
-            dtype = np.uint16 if rdepth > 8 else np.uint8
+            dtype = np.uint16 if depth > 8 else np.uint8
             self.planar = {
                 plane_id: np.zeros((self.height // 2, self.width // 2), dtype=dtype)
                 for plane_id in DEFAULT_PLANAR_ORDER
@@ -1004,14 +973,11 @@ class BayerImage:
                 if len(components) < clen:
                     # end of input
                     break
-                # 2. convert component depth (if needed)
-                if rdepth > 8 and rdepth < 16:
-                    components = list(c << (16 - rdepth) for c in components)
                 if self.debug > 1:
                     print(f"debug:  {components=}")
-                # 3. get affected plane IDs
+                # 2. get affected plane IDs
                 plane_ids = self.GetPlaneIds(order, row)
-                # 4. convert component order
+                # 3. convert component order
                 for component in components:
                     plane_id = plane_ids[col % len(plane_ids)]
                     # get planar row and col
@@ -1021,7 +987,7 @@ class BayerImage:
                     if self.debug > 1:
                         print(f"debug: {plane_id=} {prow=} {pcol=}")
                     col += 1
-                # 5. update input row numbers
+                # 4. update input row numbers
                 if col == self.width:
                     col = 0
                     row += 1
@@ -1088,9 +1054,10 @@ class BayerImage:
         # get format info
         height, width = (2 * dim for dim in planar["R"].shape)
         pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
-        rdepth = OUTPUT_FORMATS[pix_fmt]["rdepth"]
+        depth = OUTPUT_FORMATS[pix_fmt]["depth"]
         clen = OUTPUT_FORMATS[pix_fmt]["clen"]
         order = OUTPUT_FORMATS[pix_fmt]["order"]
+        wfun = OUTPUT_FORMATS[pix_fmt]["wfun"]
 
         # make sure the width is OK
         # for Bayer pixel formats, only the width is important
@@ -1117,15 +1084,12 @@ class BayerImage:
                 component = planar[plane_id][prow][pcol]
                 components.append(component)
                 col += 1
-            # 3. convert component depth (if needed)
-            if rdepth > 8 and rdepth < 16:
-                components = list(c >> (16 - rdepth) for c in components)
             if debug > 1:
                 print(f"debug:  {components=}")
-            # 4. write components to the output
-            odata = OUTPUT_FORMATS[pix_fmt]["wfun"](*components[0:clen], debug)
+            # 3. write components to the output
+            odata = wfun(*components[0:clen], debug)
             buffer += odata
-            # 5. update row numbers
+            # 4. update row numbers
             if col == width:
                 col = 0
                 row += 1
@@ -1136,9 +1100,10 @@ class BayerImage:
         # get format info
         height, width = packed.shape
         pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
-        rdepth = OUTPUT_FORMATS[pix_fmt]["rdepth"]
+        depth = OUTPUT_FORMATS[pix_fmt]["depth"]
         clen = OUTPUT_FORMATS[pix_fmt]["clen"]
         order = OUTPUT_FORMATS[pix_fmt]["order"]
+        wfun = OUTPUT_FORMATS[pix_fmt]["wfun"]
 
         # make sure the width is OK
         # for Bayer pixel formats, only the width is important
@@ -1158,15 +1123,12 @@ class BayerImage:
                 component = packed[row][col]
                 components.append(component)
                 col += 1
-            # 2. convert component depth (if needed)
-            if rdepth > 8 and rdepth < 16:
-                components = list(c >> (16 - rdepth) for c in components)
             if debug > 1:
                 print(f"debug:  {components=}")
-            # 3. write components to the output
-            odata = OUTPUT_FORMATS[pix_fmt]["wfun"](*components[0:clen], debug)
+            # 2. write components to the output
+            odata = wfun(*components[0:clen], debug)
             buffer += odata
-            # 5. update row numbers
+            # 3. update row numbers
             if col == width:
                 col = 0
                 row += 1
@@ -1300,10 +1262,24 @@ def convert_image_planar_mode(
 
     # read input image file
     bayer_image = BayerImage.FromFile(infile, i_pix_fmt, width, height, debug)
+    planar = bayer_image.GetPlanar()
+
+    # convert depths
+    i_depth = get_depth(i_pix_fmt)
+    o_depth = get_depth(o_pix_fmt)
+    o_dtype = np.uint16 if o_depth > 8 else np.uint8
+    if i_depth > o_depth:
+        planar = {
+            k: (v >> (i_depth - o_depth)).astype(o_dtype) for k, v in planar.items()
+        }
+    elif i_depth < o_depth:
+        planar = {
+            k: (v.astype(o_dtype) << (o_depth - i_depth)) for k, v in planar.items()
+        }
 
     # write planar into output image file (packed)
     bayer_image_copy = BayerImage.FromPlanar(
-        bayer_image.GetPlanar(),
+        planar,
         o_pix_fmt,
         debug,
     )
