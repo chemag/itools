@@ -895,7 +895,9 @@ def get_depth(pix_fmt):
     return BAYER_FORMATS[i_pix_fmt]["depth"]
 
 
-def bayer_to_rgb(bayer_packed, order, depth):
+# 1. color conversions (Bayer-RGB)
+# demosaic image
+def bayer_packed_to_rgb_cv2_packed(bayer_packed, order, depth):
     # make sure that the packed representation is supported by by opencv
     assert (
         order in OPENCV_BAYER_FROM_CONVERSIONS
@@ -909,21 +911,125 @@ def bayer_to_rgb(bayer_packed, order, depth):
     if depth in (10, 12, 14):
         bayer_packed = bayer_packed << (16 - depth)
     # representation
-    rgb_packed = cv2.cvtColor(bayer_packed, OPENCV_BAYER_FROM_CONVERSIONS[order])
+    rgb_cv2_packed = cv2.cvtColor(bayer_packed, OPENCV_BAYER_FROM_CONVERSIONS[order])
     if depth in (10, 12, 14):
-        rgb_packed = rgb_packed >> (16 - depth)
-    return rgb_packed
+        rgb_cv2_packed = rgb_cv2_packed >> (16 - depth)
+    return rgb_cv2_packed
 
 
-def rgb_to_yuv(rgb_packed, depth):
+# remosaic image
+def rgb_cv2_packed_to_bayer_image(rgb_cv2_packed, pix_fmt):
+    depth = get_depth(pix_fmt)
+    st_dtype = np.uint8 if depth == 8 else np.uint16
+    # 1. convert RGB to BGR
+    bgr_image = cv2.cvtColor(rgb_cv2_packed, cv2.COLOR_RGB2BGR)
+    height, width, _ = bgr_image.shape
+    # 2. create a bayer_packed image
+    bayer_packed = np.zeros((height, width), dtype=st_dtype)
+    for i in range(height):
+        for j in range(width):
+            if (i + j) % 2 == 0:
+                bayer_packed[i, j] = bgr_image[i, j, 0]  # Blue
+            else:
+                if i % 2 == 0:
+                    bayer_packed[i, j] = bgr_image[i, j, 1]  # Green
+                else:
+                    bayer_packed[i, j] = bgr_image[i, j, 2]  # Red
+    return BayerImage.FromPacked(bayer_packed, pix_fmt)
+
+
+def rgb_planar_to_bayer_image(rgb_planar, pix_fmt):
+    rgb_cv2_packed = rgb_planar_to_rgb_cv2_packed(rgb_planar)
+    return rgb_cv2_packed_to_bayer_image(rgb_cv2_packed, pix_fmt)
+
+
+# 2. color conversions (RGB-YUV)
+def rgb_cv2_packed_to_yuv_cv2_packed(rgb_cv2_packed, depth):
     if depth in (10, 12, 14):
-        rgb_packed = rgb_packed << (16 - depth)
+        rgb_cv2_packed = rgb_cv2_packed << (16 - depth)
     # use opencv to do the RGB->YUV conversion from the packed RGB
     # representation
-    yuv_packed = cv2.cvtColor(rgb_packed, cv2.COLOR_RGB2YUV)
+    yuv_cv2_packed = cv2.cvtColor(rgb_cv2_packed, cv2.COLOR_RGB2YUV)
     if depth in (10, 12, 14):
-        yuv_packed = yuv_packed >> (16 - depth)
-    return yuv_packed
+        yuv_cv2_packed = yuv_cv2_packed >> (16 - depth)
+    return yuv_cv2_packed
+
+
+def rgb_planar_to_yuv_planar(rgb_planar, depth):
+    rgb_cv2_packed = rgb_planar_to_rgb_cv2_packed(rgb_planar)
+    yuv_cv2_packed = rgb_cv2_packed_to_yuv_cv2_packed(rgb_cv2_packed, depth)
+    yuv_planar = yuv_cv2_packed_to_yuv_planar(yuv_cv2_packed)
+    return yuv_planar
+
+
+def yuv_planar_to_rgb_planar(yuv_planar, depth):
+    yuv_cv2_packed = yuv_planar_to_yuv_cv2_packed(yuv_planar)
+    rgb_cv2_packed = yuv_cv2_packed_to_rgb_cv2_packed(yuv_cv2_packed, depth)
+    rgb_planar = rgb_cv2_packed_to_rgb_planar(rgb_cv2_packed)
+    return rgb_planar
+
+
+def yuv_cv2_packed_to_rgb_cv2_packed(yuv_cv2_packed, depth):
+    if depth in (10, 12, 14):
+        yuv_cv2_packed = yuv_cv2_packed << (16 - depth)
+    # use opencv to do the YUV->RGB conversion from the packed YUV
+    # representation
+    rgb_cv2_packed = cv2.cvtColor(yuv_cv2_packed, cv2.COLOR_YUV2RGB)
+    if depth in (10, 12, 14):
+        rgb_cv2_packed = rgb_cv2_packed >> (16 - depth)
+    return rgb_cv2_packed
+
+
+# 3. packed-to-planar conversions
+def rgb_cv2_packed_to_rgb_planar(rgb_cv2_packed):
+    rgb_planar = {
+        "r": rgb_cv2_packed[:, :, 0],
+        "g": rgb_cv2_packed[:, :, 1],
+        "b": rgb_cv2_packed[:, :, 2],
+    }
+    return rgb_planar
+
+
+def rgb_planar_to_rgb_cv2_packed(rgb_planar):
+    rgb_cv2_packed = np.dstack((rgb_planar["r"], rgb_planar["g"], rgb_planar["b"]))
+    return rgb_cv2_packed
+
+
+def yuv_cv2_packed_to_yuv_planar(yuv_cv2_packed):
+    yuv_planar = {
+        "y": yuv_cv2_packed[:, :, 0],
+        "u": yuv_cv2_packed[:, :, 1],
+        "v": yuv_cv2_packed[:, :, 2],
+    }
+    return yuv_planar
+
+
+def yuv_planar_to_yuv_cv2_packed(yuv_planar):
+    yuv_cv2_packed = np.dstack((yuv_planar["y"], yuv_planar["u"], yuv_planar["v"]))
+    return yuv_cv2_packed
+
+
+# 4. upsample/downsample conversions
+def upsample_matrix(arr, shape):
+    upsampled_array = np.repeat(np.repeat(arr, 2, axis=0), 2, axis=1)
+    rows, cols = shape
+    height, width = shape
+    return upsampled_array[:height, :width]
+
+
+def yuv_subsample_planar(yuv_planar):
+    yuv_subsampled_planar = yuv_planar.copy()
+    yuv_subsampled_planar["u"] = yuv_subsampled_planar["u"][::2, ::2]
+    yuv_subsampled_planar["v"] = yuv_subsampled_planar["v"][::2, ::2]
+    return yuv_subsampled_planar
+
+
+def yuv_upsample_planar(yuv_subsampled_planar):
+    yuv_planar = yuv_subsampled_planar.copy()
+    original_shape = yuv_planar["y"].shape
+    yuv_planar["u"] = upsample_matrix(yuv_planar["u"], original_shape)
+    yuv_planar["v"] = upsample_matrix(yuv_planar["v"], original_shape)
+    return yuv_planar
 
 
 class BayerImage:
@@ -939,9 +1045,9 @@ class BayerImage:
         pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
         self.depth = INPUT_FORMATS[pix_fmt]["depth"]
         self.debug = debug
-        self.rgb_packed = None
+        self.rgb_cv2_packed = None
         self.rgb_planar = None
-        self.yuv_packed = None
+        self.yuv_cv2_packed = None
         self.yuv_planar = None
 
     # accessors
@@ -968,7 +1074,7 @@ class BayerImage:
         col = 0
         i = 0
         while True:
-            if self.debug > 0:
+            if self.debug > 2:
                 print(f"debug: {row=} {col=}")
             # 1. read components from the input
             components = ()
@@ -981,12 +1087,12 @@ class BayerImage:
             if len(components) < clen:
                 # end of input
                 break
-            if self.debug > 1:
+            if self.debug > 2:
                 print(f"debug:  {components=}")
             # 2. convert component order
             for component in components:
                 self.packed[row][col] = component
-                if self.debug > 1:
+                if self.debug > 3:
                     print(f"debug: {row=} {col=}")
                 col += 1
             # 3. update input row numbers
@@ -1017,7 +1123,7 @@ class BayerImage:
         col = 0
         i = 0
         while True:
-            if self.debug > 0:
+            if self.debug > 2:
                 print(f"debug: {row=} {col=}")
             # 1. read components from the input
             components = ()
@@ -1030,7 +1136,7 @@ class BayerImage:
             if len(components) < clen:
                 # end of input
                 break
-            if self.debug > 1:
+            if self.debug > 2:
                 print(f"debug:  {components=}")
             # 2. get affected plane IDs
             plane_ids = self.GetPlaneIds(order, row)
@@ -1041,7 +1147,7 @@ class BayerImage:
                 prow = row // 2
                 pcol = col // 2
                 self.planar[plane_id][prow][pcol] = component
-                if self.debug > 1:
+                if self.debug > 3:
                     print(f"debug: {plane_id=} {prow=} {pcol=}")
                 col += 1
             # 4. update input row numbers
@@ -1053,45 +1159,41 @@ class BayerImage:
     def GetRGBPlanar(self):
         if self.rgb_planar is not None:
             return self.rgb_planar
-        rgb_packed = self.GetRGBPacked()
-        self.rgb_planar = {
-            "r": rgb_packed[:, :, 0],
-            "g": rgb_packed[:, :, 1],
-            "b": rgb_packed[:, :, 2],
-        }
+        rgb_cv2_packed = self.GetRGBCV2Packed()
+        self.rgb_planar = rgb_cv2_packed_to_rgb_planar(rgb_cv2_packed)
         return self.rgb_planar
 
-    def GetRGBPacked(self):
-        if self.rgb_packed is not None:
-            return self.rgb_packed
+    def GetRGBCV2Packed(self):
+        if self.rgb_cv2_packed is not None:
+            return self.rgb_cv2_packed
         pix_fmt = self.pix_fmt
         order = INPUT_FORMATS[pix_fmt]["order"]
         bayer_packed = self.GetPacked()
-        self.rgb_packed = bayer_to_rgb(bayer_packed, order, self.depth)
-        return self.rgb_packed
+        self.rgb_cv2_packed = bayer_packed_to_rgb_cv2_packed(
+            bayer_packed, order, self.depth
+        )
+        return self.rgb_cv2_packed
 
     def GetYUVPlanar(self):
         if self.yuv_planar is not None:
             return self.yuv_planar
-        yuv_packed = self.GetYUVPacked()
-        self.yuv_planar = {
-            "y": yuv_packed[:, :, 0],
-            "u": yuv_packed[:, :, 1],
-            "v": yuv_packed[:, :, 2],
-        }
+        yuv_cv2_packed = self.GetYUVCV2Packed()
+        self.yuv_planar = yuv_cv2_packed_to_yuv_planar(yuv_cv2_packed)
         return self.yuv_planar
 
-    def GetYUVPacked(self):
-        if self.yuv_packed is not None:
-            return self.yuv_packed
+    def GetYUVCV2Packed(self):
+        if self.yuv_cv2_packed is not None:
+            return self.yuv_cv2_packed
         # cv2 supports (among others) CV_8U and CV_16U types for color
         # conversions. These data types affect the conversions, and are
         # used when the input is an np.uint8 and np.uint16 numpy array,
         # respectively. This means that the color conversion for 10/12/14-bit
         # color need to first scale up to 16-bits.
-        rgb_packed = self.GetRGBPacked()
-        self.yuv_packed = rgb_to_yuv(rgb_packed, self.depth)
-        return self.yuv_packed
+        rgb_cv2_packed = self.GetRGBCV2Packed()
+        self.yuv_cv2_packed = rgb_cv2_packed_to_yuv_cv2_packed(
+            rgb_cv2_packed, self.depth
+        )
+        return self.yuv_cv2_packed
 
     @classmethod
     def GetPlanarOrder(cls, planar_order):
@@ -1150,7 +1252,7 @@ class BayerImage:
         return cls.FromPlanar(planar, pix_fmt)
 
     @classmethod
-    def FromPlanar(cls, planar, pix_fmt, debug=0):
+    def FromPlanar(cls, planar, pix_fmt, infile="", debug=0):
         # get format info
         height, width = (2 * dim for dim in planar["R"].shape)
         pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
@@ -1177,14 +1279,14 @@ class BayerImage:
                 # get planar row and col
                 prow = row // 2
                 pcol = col // 2
-                if debug > 0:
+                if debug > 2:
                     print(f"debug: {plane_id=} {prow=} {pcol=}")
                 # planar a dict of planes
                 component = planar[plane_id][prow][pcol]
                 components.append(component)
                 col += 1
-            if debug > 1:
-                print(f"debug:  {components=}")
+            if debug > 2:
+                print(f"debug: {components=}")
             # 3. write components to the output
             odata = wfun(*components[0:clen], debug)
             buffer += odata
@@ -1192,7 +1294,7 @@ class BayerImage:
             if col == width:
                 col = 0
                 row += 1
-        return BayerImage("", buffer, None, planar, width, height, pix_fmt, debug)
+        return BayerImage(infile, buffer, None, planar, width, height, pix_fmt, debug)
 
     @classmethod
     def FromPacked(cls, packed, pix_fmt, debug=0):
@@ -1216,12 +1318,12 @@ class BayerImage:
             # 1. get components in order
             components = []
             for _ in range(clen):
-                if debug > 0:
+                if debug > 2:
                     print(f"debug: {row=} {col=}")
                 component = packed[row][col]
                 components.append(component)
                 col += 1
-            if debug > 1:
+            if debug > 2:
                 print(f"debug:  {components=}")
             # 2. write components to the output
             odata = wfun(*components[0:clen], debug)

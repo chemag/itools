@@ -215,20 +215,26 @@ class MainTest(unittest.TestCase):
             bayer_image = itools_bayer.BayerImage.FromPacked(
                 bayer_packed_image, pix_fmt
             )
-            bayer_y, bayer_dg, bayer_co, bayer_cg = (
-                itools_bayer_enctools.convert_rg1g2b_to_ydgcocg(
-                    bayer_image,
-                    depth,
-                )
+            bayer_ydgcocg_planar = itools_bayer_enctools.convert_rg1g2b_to_ydgcocg(
+                bayer_image,
+                depth,
             )
             # check the values
-            np.testing.assert_array_equal(test_case["bayer_y"], bayer_y)
-            np.testing.assert_array_equal(test_case["bayer_dg"], bayer_dg)
-            np.testing.assert_array_equal(test_case["bayer_co"], bayer_co)
-            np.testing.assert_array_equal(test_case["bayer_cg"], bayer_cg)
+            np.testing.assert_array_equal(
+                test_case["bayer_y"], bayer_ydgcocg_planar["y"]
+            )
+            np.testing.assert_array_equal(
+                test_case["bayer_dg"], bayer_ydgcocg_planar["dg"]
+            )
+            np.testing.assert_array_equal(
+                test_case["bayer_co"], bayer_ydgcocg_planar["co"]
+            )
+            np.testing.assert_array_equal(
+                test_case["bayer_cg"], bayer_ydgcocg_planar["cg"]
+            )
             # 2. run YDgCoCg to RG1G2B function (reverse)
             bayer_image_prime = itools_bayer_enctools.convert_ydgcocg_to_rg1g2b(
-                bayer_y, bayer_dg, bayer_co, bayer_cg, depth
+                bayer_ydgcocg_planar, depth
             )
             absolute_tolerance = 1
             np.testing.assert_allclose(
