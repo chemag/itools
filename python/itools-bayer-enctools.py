@@ -370,6 +370,8 @@ def process_file_bayer_ydgcocg_array(
     debug,
 ):
     label = "bayer-ydgcocg"
+    if debug > 0:
+        print(f"# {bayer_image.infile}: {label}")
     df = pd.DataFrame(columns=COLUMN_LIST)
     width, height = bayer_image.width, bayer_image.height
     depth = itools_bayer.get_depth(bayer_image.pix_fmt)
@@ -384,6 +386,8 @@ def process_file_bayer_ydgcocg_array(
     bayer_ydgcocg_planar = convert_rg1g2b_to_ydgcocg(bayer_image, depth)
 
     for quality in quality_list:
+        if debug > 1:
+            print(f"# ... {bayer_image.infile}: {label} {quality}")
         # 4. encode and decode the 4 planes
         bayer_ydgcocg_planar_prime, encoded_size_dict = codec_process(
             codec, quality, depth, bayer_ydgcocg_planar, label, debug
@@ -466,6 +470,8 @@ def process_file_bayer_ydgcocg_420_array(
     debug,
 ):
     label = "bayer-ydgcocg-420"
+    if debug > 0:
+        print(f"# {bayer_image.infile}: {label}")
     df = pd.DataFrame(columns=COLUMN_LIST)
     width, height = bayer_image.width, bayer_image.height
     depth = itools_bayer.get_depth(bayer_image.pix_fmt)
@@ -485,6 +491,8 @@ def process_file_bayer_ydgcocg_420_array(
     )
 
     for quality in quality_list:
+        if debug > 1:
+            print(f"# ... {bayer_image.infile}: {label} {quality}")
         # 5. encode and decode the 4 planes
         # encode and decode the 4 planes
         bayer_ydgcocg_subsampled_planar_prime, encoded_size_dict = codec_process(
@@ -573,6 +581,8 @@ def process_file_bayer_single_array(
     debug,
 ):
     label = "bayer-single"
+    if debug > 0:
+        print(f"# {bayer_image.infile}: {label}")
     df = pd.DataFrame(columns=COLUMN_LIST)
     width, height = bayer_image.width, bayer_image.height
     depth = itools_bayer.get_depth(bayer_image.pix_fmt)
@@ -584,6 +594,8 @@ def process_file_bayer_single_array(
     yuv_planar = bayer_image.GetYUVPlanar()
 
     for quality in quality_list:
+        if debug > 1:
+            print(f"# ... {bayer_image.infile}: {label} {quality}")
         # 3. encode and decode the single planes
         bayer_packed_dict = {"bayer": bayer_image.GetPacked()}
         bayer_packed_prime_dict, encoded_size_dict = codec_process(
@@ -668,6 +680,8 @@ def process_file_bayer_rggb_array(
     debug,
 ):
     label = "bayer-rggb"
+    if debug > 0:
+        print(f"# {bayer_image.infile}: {label}")
     df = pd.DataFrame(columns=COLUMN_LIST)
     width, height = bayer_image.width, bayer_image.height
     depth = itools_bayer.get_depth(bayer_image.pix_fmt)
@@ -679,6 +693,8 @@ def process_file_bayer_rggb_array(
     yuv_planar = bayer_image.GetYUVPlanar()
 
     for quality in quality_list:
+        if debug > 1:
+            print(f"# ... {bayer_image.infile}: {label} {quality}")
         # 3. encode and decode the 4 Bayer planes
         bayer_planar_prime, encoded_size_dict = codec_process(
             codec, quality, depth, bayer_image.GetPlanar(), label, debug
@@ -761,6 +777,8 @@ def process_file_yuv444_array(
     debug,
 ):
     label = "yuv444"
+    if debug > 0:
+        print(f"# {bayer_image.infile}: {label}")
     df = pd.DataFrame(columns=COLUMN_LIST)
     width, height = bayer_image.width, bayer_image.height
     depth = itools_bayer.get_depth(bayer_image.pix_fmt)
@@ -772,6 +790,8 @@ def process_file_yuv444_array(
     yuv_planar = bayer_image.GetYUVPlanar()
 
     for quality in quality_list:
+        if debug > 1:
+            print(f"# ... {bayer_image.infile}: {label} {quality}")
         # 3. encode and decode the 3 planes
         yuv_planar_prime, encoded_size_dict = codec_process(
             codec, quality, depth, yuv_planar, label, debug
@@ -854,6 +874,8 @@ def process_file_yuv420_array(
     debug,
 ):
     label = "yuv420"
+    if debug > 0:
+        print(f"# {bayer_image.infile}: {label}")
     df = pd.DataFrame(columns=COLUMN_LIST)
     width, height = bayer_image.width, bayer_image.height
     depth = itools_bayer.get_depth(bayer_image.pix_fmt)
@@ -868,6 +890,8 @@ def process_file_yuv420_array(
     yuv_subsampled_planar = itools_bayer.yuv_subsample_planar(yuv_planar)
 
     for quality in quality_list:
+        if debug > 1:
+            print(f"# ... {bayer_image.infile}: {label} {quality}")
         # 4. encode and decode the planes
         yuv_subsampled_planar_prime, encoded_size_dict = codec_process(
             codec, quality, depth, yuv_subsampled_planar, label, debug
@@ -954,6 +978,8 @@ def process_file_rgb_array(
     debug,
 ):
     label = "rgb"
+    if debug > 0:
+        print(f"# {bayer_image.infile}: {label}")
     df = pd.DataFrame(columns=COLUMN_LIST)
     width, height = bayer_image.width, bayer_image.height
     depth = itools_bayer.get_depth(bayer_image.pix_fmt)
@@ -965,6 +991,8 @@ def process_file_rgb_array(
     yuv_planar = bayer_image.GetYUVPlanar()
 
     for quality in quality_list:
+        if debug > 1:
+            print(f"# ... {bayer_image.infile}: {label} {quality}")
         # 3. encode and decode the 3 planes
         rgb_planar_prime, encoded_size_dict = codec_process(
             codec, quality, depth, rgb_planar, label, debug
