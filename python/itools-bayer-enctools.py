@@ -10,12 +10,15 @@ This is a tool to test Bayer image encoding.
 import argparse
 import cv2
 import importlib
+import io
 import itertools
 import json
 import math
 import numpy as np
 import os
 import pandas as pd
+import PIL
+import pillow_heif
 import re
 import shutil
 import sys
@@ -28,7 +31,7 @@ itools_bayer = importlib.import_module("itools-bayer")
 DEFAULT_QUALITIES = [25, 75, 85, 95, 96, 97, 98, 99]
 DEFAULT_QUALITY_LIST = sorted(set(list(range(0, 101, 10)) + DEFAULT_QUALITIES))
 
-CODEC_LIST = ("jpeg/cv2",)
+CODEC_LIST = ("jpeg/cv2", "heic/libheif")
 
 # dtype operation
 # We use 2x dtype values
@@ -299,16 +302,18 @@ def convert_ydgcocg_to_rg1g2b_components(bayer_y, bayer_dg, bayer_co, bayer_cg, 
 # encoding processing
 def codec_process(codec, quality, depth, planar, label, debug):
     if codec == "jpeg/cv2" and depth == 8:
-        return jpeg_cv2_process(quality, planar, label, debug)
+        return cv2_jpeg_process(quality, planar, label, debug)
+    elif codec == "heic/libheif" and depth == 8:
+        return libheif_heic_process(quality, planar, depth, label, debug)
     raise ValueError(f"Unimplemented {codec=}/{depth=} pair")
 
 
-def jpeg_cv2_process(quality, planar, label, debug):
+def cv2_jpeg_process(quality, planar, label, debug):
     planar_prime = {}
     encoded_size_dict = {}
     for key in planar:
         array = planar[key]
-        # encode array into file
+        # 1. encode array into blob
         success, array_encoded = cv2.imencode(
             ".jpg", array, [cv2.IMWRITE_JPEG_QUALITY, quality]
         )
@@ -319,8 +324,51 @@ def jpeg_cv2_process(quality, planar, label, debug):
             array_encoded.tofile(filename)
 
         encoded_size_dict[key] = len(array_encoded)
-        # decode file into array
+        # 2. decode blob into array
         array_prime = cv2.imdecode(array_encoded, cv2.IMREAD_GRAYSCALE)
+        planar_prime[key] = array_prime
+    return planar_prime, encoded_size_dict
+
+
+def libheif_heic_process(quality, planar, depth, label, debug):
+    planar_prime = {}
+    encoded_size_dict = {}
+    # explicitly register the HEIF format
+    pillow_heif.register_heif_opener()
+    for key in planar:
+        array = planar[key]
+        # 1. encode array into blob
+        height, width = array.shape
+        dtype = array.dtype
+        if depth == 8 and dtype == np.uint8:
+            # grayscale for 8-bit images
+            mode = "L"
+        elif depth == 10 and dtype == np.uint16:
+            # grayscale for 10-bit imags
+            mode = "I;16"
+        else:
+            raise ValueError(f"Invalid image type {depth=}/{dtype=}")
+        # create a PIL Image from the NumPy array
+        pil_image = PIL.Image.fromarray(array, mode=mode)
+        # save the PIL Image to HEIF format in memory
+        output = io.BytesIO()
+        try:
+            pil_image.save(output, format="HEIF", quality=quality)
+            array_encoded = output.getvalue()
+        except Exception as e:
+            raise RuntimeError(f"Error during HEIF encoding: {e}")
+        finally:
+            output.close()
+        if debug > 1:
+            filename = (
+                f"/tmp/itools.bayer.test.{label}.{key}.quality_{quality}.output.heic"
+            )
+            with open(filename, "wb") as fout:
+                fout.write(array_encoded)
+        encoded_size_dict[key] = len(array_encoded)
+        # 2. decode blob into array
+        img = PIL.Image.open(io.BytesIO(array_encoded))
+        array_prime = np.array(img)
         planar_prime[key] = array_prime
     return planar_prime, encoded_size_dict
 
@@ -1242,6 +1290,13 @@ def get_options(argv):
         help="codec",
     )
     parser.add_argument(
+        "--codecs",
+        dest="list_codecs",
+        action="store_true",
+        default=False,
+        help="List available codecs and exit",
+    )
+    parser.add_argument(
         "--quality-list",
         action="store",
         type=str,
@@ -1321,6 +1376,10 @@ def get_options(argv):
     )
     # do the parsing
     options = parser.parse_args(argv[1:])
+    # parse quick options
+    if options.list_codecs:
+        print(f"list of valid codecs: {CODEC_LIST}")
+        sys.exit()
     return options
 
 
