@@ -303,7 +303,7 @@ def convert_ydgcocg_to_rg1g2b_components(bayer_y, bayer_dg, bayer_co, bayer_cg, 
 def codec_process(codec, quality, depth, planar, label, debug):
     if codec == "jpeg/cv2" and depth == 8:
         return cv2_jpeg_process(quality, planar, label, debug)
-    elif codec == "heic/libheif" and depth == 8:
+    elif codec == "heic/libheif" and depth in (8, 10):
         return libheif_heic_process(quality, planar, depth, label, debug)
     raise ValueError(f"Unimplemented {codec=}/{depth=} pair")
 
