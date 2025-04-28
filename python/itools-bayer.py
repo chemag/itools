@@ -1052,14 +1052,40 @@ class BayerImage:
 
     # accessors
     def GetBuffer(self):
-        assert self.buffer is not None, "error: invalid buffer"
+        if self.buffer is not None:
+            pass
+        elif self.packed is not None:
+            self.buffer = self.GetBufferFromPacked()
+        elif self.planar is not None:
+            self.buffer = self.GetBufferFromPlanar()
+        else:
+            raise AssertionError("error: invalid BayerImage")
         return self.buffer
 
     def GetPacked(self):
         if self.packed is not None:
-            return self.packed
+            pass
+        elif self.buffer is not None:
+            self.packed = self.GetPackedFromBuffer()
+        elif self.planar is not None:
+            self.packed = self.GetPackedFromPlanar()
+        else:
+            raise AssertionError("error: invalid BayerImage")
+        return self.packed
+
+    def GetPlanar(self):
+        if self.planar is not None:
+            pass
+        elif self.buffer is not None:
+            self.planar = self.GetPlanarFromBuffer()
+        elif self.packed is not None:
+            self.planar = self.GetPlanarFromPacked()
+        else:
+            raise AssertionError("error: invalid BayerImage")
+        return self.planar
+
+    def GetPackedFromBuffer(self):
         # convert buffer to packed
-        assert self.buffer is not None, "error: invalid buffer"
         # get format info
         pix_fmt = self.pix_fmt
         clen = INPUT_FORMATS[pix_fmt]["clen"]
@@ -1101,11 +1127,8 @@ class BayerImage:
                 row += 1
         return self.packed
 
-    def GetPlanar(self):
-        if self.planar is not None:
-            return self.planar
+    def GetPlanarFromBuffer(self):
         # convert buffer to planar
-        assert self.buffer is not None, "error: invalid buffer"
         # get format info
         pix_fmt = self.pix_fmt
         clen = INPUT_FORMATS[pix_fmt]["clen"]
@@ -1257,21 +1280,24 @@ class BayerImage:
         height, width = (2 * dim for dim in planar["R"].shape)
         pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
         clen = OUTPUT_FORMATS[pix_fmt]["clen"]
-        order = OUTPUT_FORMATS[pix_fmt]["order"]
-        wfun = OUTPUT_FORMATS[pix_fmt]["wfun"]
-
         # make sure the width is OK
         # for Bayer pixel formats, only the width is important
         assert (
             width % clen == 0
         ), f"error: invalid width ({width}) as clen: {clen} for {pix_fmt}"
+        return BayerImage(infile, None, None, planar, width, height, pix_fmt, debug)
 
+    def GetBufferFromPlanar(self):
+        clen = OUTPUT_FORMATS[self.pix_fmt]["clen"]
+        order = OUTPUT_FORMATS[self.pix_fmt]["order"]
+        wfun = OUTPUT_FORMATS[self.pix_fmt]["wfun"]
+        # build the buffer
         row = 0
         col = 0
         buffer = b""
-        while row < height:
+        while row < self.height:
             # 1. get affected plane IDs
-            plane_ids = cls.GetPlaneIds(order, row)
+            plane_ids = self.GetPlaneIds(order, row)
             # 2. get components in order
             components = []
             for _ in range(clen):
@@ -1279,22 +1305,22 @@ class BayerImage:
                 # get planar row and col
                 prow = row // 2
                 pcol = col // 2
-                if debug > 2:
+                if self.debug > 2:
                     print(f"debug: {plane_id=} {prow=} {pcol=}")
                 # planar a dict of planes
-                component = planar[plane_id][prow][pcol]
+                component = self.planar[plane_id][prow][pcol]
                 components.append(component)
                 col += 1
-            if debug > 2:
+            if self.debug > 2:
                 print(f"debug: {components=}")
             # 3. write components to the output
-            odata = wfun(*components[0:clen], debug)
+            odata = wfun(*components[0:clen], self.debug)
             buffer += odata
             # 4. update row numbers
-            if col == width:
+            if col == self.width:
                 col = 0
                 row += 1
-        return BayerImage(infile, buffer, None, planar, width, height, pix_fmt, debug)
+        return buffer
 
     @classmethod
     def FromPacked(cls, packed, pix_fmt, debug=0):
@@ -1302,37 +1328,61 @@ class BayerImage:
         height, width = packed.shape
         pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
         clen = OUTPUT_FORMATS[pix_fmt]["clen"]
-        order = OUTPUT_FORMATS[pix_fmt]["order"]
-        wfun = OUTPUT_FORMATS[pix_fmt]["wfun"]
 
         # make sure the width is OK
         # for Bayer pixel formats, only the width is important
         assert (
             width % clen == 0
         ), f"error: invalid width ({width}) as clen: {clen} for {pix_fmt}"
+        return BayerImage("", None, packed, None, width, height, pix_fmt, debug)
 
+    def GetBufferFromPacked(self):
+        clen = OUTPUT_FORMATS[self.pix_fmt]["clen"]
+        order = OUTPUT_FORMATS[self.pix_fmt]["order"]
+        wfun = OUTPUT_FORMATS[self.pix_fmt]["wfun"]
         row = 0
         col = 0
         buffer = b""
-        while row < height:
+        while row < self.height:
             # 1. get components in order
             components = []
             for _ in range(clen):
-                if debug > 2:
+                if self.debug > 2:
                     print(f"debug: {row=} {col=}")
-                component = packed[row][col]
+                component = self.packed[row][col]
                 components.append(component)
                 col += 1
-            if debug > 2:
+            if self.debug > 2:
                 print(f"debug:  {components=}")
             # 2. write components to the output
-            odata = wfun(*components[0:clen], debug)
+            odata = wfun(*components[0:clen], self.debug)
             buffer += odata
             # 3. update row numbers
-            if col == width:
+            if col == self.width:
                 col = 0
                 row += 1
-        return BayerImage("", buffer, packed, None, width, height, pix_fmt, debug)
+        return buffer
+
+    def GetPackedFromPlanar(self):
+        order = OUTPUT_FORMATS[self.pix_fmt]["order"]
+        height, width = self.planar[order[0]].shape
+        dtype = self.planar[order[0]].dtype
+        packed = np.zeros((height * 2, width * 2), dtype=dtype)
+        packed[0::2, 0::2] = self.planar[order[0]]
+        packed[0::2, 1::2] = self.planar[order[1]]
+        packed[1::2, 0::2] = self.planar[order[2]]
+        packed[1::2, 1::2] = self.planar[order[3]]
+        return packed
+
+    def GetPlanarFromPacked(self):
+        order = OUTPUT_FORMATS[self.pix_fmt]["order"]
+        planar = {
+            order[0]: self.packed[0::2, 0::2],
+            order[1]: self.packed[0::2, 1::2],
+            order[2]: self.packed[1::2, 0::2],
+            order[3]: self.packed[1::2, 1::2],
+        }
+        return planar
 
 
 def get_options(argv):
@@ -1517,7 +1567,6 @@ def main(argv):
         options.height,
         options.outfile,
         options.o_pix_fmt,
-        DEFAULT_PLANAR_ORDER,
         options.debug,
     )
 
