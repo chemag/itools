@@ -25,7 +25,9 @@ import sys
 import tempfile
 
 itools_version = importlib.import_module("itools-version")
+itools_common = importlib.import_module("itools-common")
 itools_bayer = importlib.import_module("itools-bayer")
+itools_y4m = importlib.import_module("itools-y4m")
 
 
 DEFAULT_QUALITIES = [25, 75, 85, 95, 96, 97, 98, 99]
@@ -410,6 +412,20 @@ def process_file_bayer_ydgcocg(
         quality_list,
         debug,
     )
+
+
+def yuv_planar_to_yvu(yuv_planar):
+    plane_yvu = np.stack((yuv_planar["y"], yuv_planar["v"], yuv_planar["u"]), axis=-1)
+    return plane_yvu
+
+
+def write_y4m(yuv_planar, label, depth, colorrange=itools_common.ColorRange.full):
+    yuv_yvu = yuv_planar_to_yvu(yuv_planar)
+    y4mfile = tempfile.NamedTemporaryFile(
+        prefix=f"itools-bayer-enctools.{label}.", suffix=".y4m"
+    ).name
+    colorspace = "444" if depth == 8 else "444p10"
+    itools_y4m.write_y4m(y4mfile, yuv_yvu, colorspace=colorspace, colorrange=colorrange)
 
 
 def process_file_bayer_ydgcocg_array(
