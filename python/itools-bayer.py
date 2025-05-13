@@ -50,6 +50,9 @@ def rfun_8(data, debug):
 
 # 2 bytes -> 2 components
 def wfun_8(c0, c1, debug):
+    # make sure all the values are integers
+    c0 = int(c0)
+    c1 = int(c1)
     return int(c0).to_bytes(1, "big") + int(c1).to_bytes(1, "big")
 
 
@@ -69,6 +72,9 @@ def rfun_10_expanded_to_16(data, debug):
 
 # 2 bytes -> 2 components
 def wfun_10_expanded_to_16(c0, c1, debug):
+    # make sure all the values are integers
+    c0 = int(c0)
+    c1 = int(c1)
     return int(c0).to_bytes(2, "little") + int(c1).to_bytes(2, "little")
 
 
@@ -92,6 +98,11 @@ def rfun_10_packed_expanded_to_16(data, debug):
 
 
 def wfun_10_packed_expanded_to_16(c0, c1, c2, c3, debug):
+    # make sure all the values are integers
+    c0 = int(c0)
+    c1 = int(c1)
+    c2 = int(c2)
+    c3 = int(c3)
     main = ((c0 >> 2) << 24) | ((c1 >> 2) << 16) | ((c2 >> 2) << 8) | ((c3 >> 2) << 0)
     remaining = (
         ((c3 & 0x03) << 6)
@@ -228,10 +239,16 @@ def rfun_16be(data, debug):
 
 # 4 bytes -> 2 components
 def wfun_16be(c0, c1, debug):
+    # make sure all the values are integers
+    c0 = int(c0)
+    c1 = int(c1)
     return int(c0).to_bytes(2, "big") + int(c1).to_bytes(2, "big")
 
 
 def wfun_16le(c0, c1, debug):
+    # make sure all the values are integers
+    c0 = int(c0)
+    c1 = int(c1)
     return int(c0).to_bytes(2, "little") + int(c1).to_bytes(2, "little")
 
 

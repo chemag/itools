@@ -384,9 +384,9 @@ processImageTestCases = [
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14",
         "bayer_planar_image": {
+            "R": np.array([[0x005, 0x00C], [0x02F, 0x034]], dtype=np.uint16),
             "G": np.array([[0x009, 0x010], [0x033, 0x038]], dtype=np.uint16),
             "g": np.array([[0x01A, 0x020], [0x040, 0x049]], dtype=np.uint16),
-            "R": np.array([[0x005, 0x00C], [0x02F, 0x034]], dtype=np.uint16),
             "B": np.array([[0x01E, 0x024], [0x045, 0x04C]], dtype=np.uint16),
         },
         "bayer_packed_image": np.array(
@@ -693,7 +693,7 @@ class MainTest(unittest.TestCase):
                 f"error on forward test {test_case['name']}",
             )
 
-            # 2. run output loop conversion
+            # 2. run output loop conversion (convert output to output)
             _ = itools_bayer.convert_image_planar_mode(
                 outfile,
                 o_pix_fmt,
@@ -713,7 +713,7 @@ class MainTest(unittest.TestCase):
                 f"error on output loop test {test_case['name']}",
             )
 
-            # 3. run input loop conversion
+            # 3. run input loop conversion (convert input to input)
             _ = itools_bayer.convert_image_planar_mode(
                 infile,
                 i_pix_fmt,
