@@ -313,6 +313,7 @@ def write_header(width, height, colorspace, colorrange):
 def write_y4m(
     outfile, outyvu, colorspace="420", colorrange=itools_common.ColorRange.full
 ):
+    assert colorspace in ("420", "444"), f"error: unsupported {colorspace=}"
     with open(outfile, "wb") as fout:
         # write header
         height, width, _ = outyvu.shape
@@ -326,9 +327,15 @@ def write_y4m(
         fout.write(ya.flatten())
         # write u (implementing chroma subsample)
         ua_full = outyvu[:, :, 2]
-        ua = itools_common.chroma_subsample_direct(ua_full, colorspace)
+        if colorspace == "420":
+            ua = itools_common.chroma_subsample_direct(ua_full, colorspace)
+        elif colorspace == "444":
+            ua = ua_full
         fout.write(ua.flatten())
         # write v (implementing chroma subsample)
         va_full = outyvu[:, :, 1]
-        va = itools_common.chroma_subsample_direct(va_full, colorspace)
+        if colorspace == "420":
+            va = itools_common.chroma_subsample_direct(va_full, colorspace)
+        elif colorspace == "444":
+            va = va_full
         fout.write(va.flatten())
