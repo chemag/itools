@@ -125,6 +125,14 @@ COLORSPACES = {
         ChromaSubsample.chroma_420,
         ColorDepth.depth_10,
     ),
+    "422p10": (
+        ChromaSubsample.chroma_422,
+        ColorDepth.depth_10,
+    ),
+    "444p10": (
+        ChromaSubsample.chroma_444,
+        ColorDepth.depth_10,
+    ),
 }
 
 
