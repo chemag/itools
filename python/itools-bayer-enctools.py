@@ -54,12 +54,38 @@ CV2_OPERATION_PIX_FMT_DICT = {
 }
 
 
+EXPERIMENT_DICT = {
+    "bayer-ydgcocg": {
+        "name": "Bayer-ydgcocg",
+    },
+    "bayer-ydgcocg-420": {
+        "name": "Bayer-ydgcocg-subsampled",
+    },
+    "yuv444": {
+        "name": "YUV444",
+    },
+    "yuv420": {
+        "name": "YUV420",
+    },
+    "rgb": {
+        "name": "RGB",
+    },
+    "bayer-single": {
+        "name": "Bayer-single",
+    },
+    "bayer-rggb": {
+        "name": "Bayer-rggb",
+    },
+}
+
+
 default_values = {
     "debug": 0,
     "dry_run": False,
     "cleanup": 1,
     "codec": "jpeg/cv2",
     "quality_list": ",".join(str(v) for v in DEFAULT_QUALITY_LIST),
+    "experiment_list": ",".join(str(k) for k in EXPERIMENT_DICT.keys()),
     "workdir": tempfile.gettempdir(),
     "width": -1,
     "height": -1,
@@ -395,6 +421,21 @@ def read_bayer_image(infile, pix_fmt, width, height, debug):
     return bayer_image_cv2
 
 
+# debug functions
+def yuv_planar_to_yvu(yuv_planar):
+    plane_yvu = np.stack((yuv_planar["y"], yuv_planar["v"], yuv_planar["u"]), axis=-1)
+    return plane_yvu
+
+
+def write_y4m(yuv_planar, label, depth, colorrange=itools_common.ColorRange.full):
+    yuv_yvu = yuv_planar_to_yvu(yuv_planar)
+    y4mfile = tempfile.NamedTemporaryFile(
+        prefix=f"itools-bayer-enctools.{label}.", suffix=".y4m"
+    ).name
+    colorspace = "444" if depth == 8 else "444p10"
+    itools_y4m.write_y4m(y4mfile, yuv_yvu, colorspace=colorspace, colorrange=colorrange)
+
+
 # Bayer processing stack
 def process_file_bayer_ydgcocg(
     infile,
@@ -412,20 +453,6 @@ def process_file_bayer_ydgcocg(
         quality_list,
         debug,
     )
-
-
-def yuv_planar_to_yvu(yuv_planar):
-    plane_yvu = np.stack((yuv_planar["y"], yuv_planar["v"], yuv_planar["u"]), axis=-1)
-    return plane_yvu
-
-
-def write_y4m(yuv_planar, label, depth, colorrange=itools_common.ColorRange.full):
-    yuv_yvu = yuv_planar_to_yvu(yuv_planar)
-    y4mfile = tempfile.NamedTemporaryFile(
-        prefix=f"itools-bayer-enctools.{label}.", suffix=".y4m"
-    ).name
-    colorspace = "444" if depth == 8 else "444p10"
-    itools_y4m.write_y4m(y4mfile, yuv_yvu, colorspace=colorspace, colorrange=colorrange)
 
 
 def process_file_bayer_ydgcocg_array(
@@ -1186,6 +1213,7 @@ def get_average_results(df):
 
 def process_data(
     infile_list,
+    experiment_list,
     codec,
     quality_list,
     width,
@@ -1197,55 +1225,33 @@ def process_data(
     debug,
 ):
     df = None
-    # 1. get infile/quality parameters
-    quality_list = list(int(v) for v in quality_list.split(","))
 
-    # 2. run the camera pipelines
+    # 1. run the camera pipelines
     for infile in infile_list:
-        # 2.1. run the Bayer-ydgcocg encoding pipeline
-        tmp_df = process_file_bayer_ydgcocg(
-            infile, width, height, pix_fmt, codec, quality_list, debug
-        )
-        df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
-        # 2.2. run the YUV444 encoding pipeline
-        tmp_df = process_file_yuv444(
-            infile, width, height, pix_fmt, codec, quality_list, debug
-        )
-        df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
-        # 2.3. run the RGB-encoding pipeline
-        tmp_df = process_file_rgb(
-            infile, width, height, pix_fmt, codec, quality_list, debug
-        )
-        df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
-        # 2.4. run the traditional YUV-encoding pipeline (4:2:0)
-        tmp_df = process_file_yuv420(
-            infile, width, height, pix_fmt, codec, quality_list, debug
-        )
-        df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
-        # 2.5. run the Bayer-single-encoding pipeline
-        tmp_df = process_file_bayer_single(
-            infile, width, height, pix_fmt, codec, quality_list, debug
-        )
-        df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
-        # 2.6. run the Bayer-subsampled-encoding pipeline
-        tmp_df = process_file_bayer_ydgcocg_420(
-            infile, width, height, pix_fmt, codec, quality_list, debug
-        )
-        df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
-        # 2.7. run the Bayer-rggb-encoding pipeline
-        tmp_df = process_file_bayer_rggb(
-            infile, width, height, pix_fmt, codec, quality_list, debug
-        )
-        df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
+        for experiment in experiment_list:
+            process_file_fun = {
+                "ydgcocg": process_file_bayer_ydgcocg,
+                "ydgcocg_420": process_file_bayer_ydgcocg_420,
+                "yuv444": process_file_yuv444,
+                "yuv420": process_file_yuv420,
+                "rgb": process_file_rgb,
+                "bayer_single": process_file_bayer_single,
+                "bayer_rggb": process_file_bayer_rggb,
+            }
+            # run the specific encoding pipeline
+            tmp_df = process_file_fun[experiment](
+                infile, width, height, pix_fmt, codec, quality_list, debug
+            )
+            df = tmp_df if df is None else pd.concat([df, tmp_df], ignore_index=True)
 
-    # 3. reindex per-file dataframe
+    # 2. reindex per-file dataframe
     df = df.reindex()
 
-    # 4. get average results
+    # 3. get average results
     derived_df = get_average_results(df)
     df = pd.concat([df, derived_df], ignore_index=True, axis=0)
 
-    # 5. write the results
+    # 4. write the results
     df.to_csv(outfile, index=False)
 
 
@@ -1334,11 +1340,26 @@ def get_options(argv):
         help="codec",
     )
     parser.add_argument(
-        "--codecs",
-        dest="list_codecs",
+        "--codec-list",
+        dest="show_codec_list",
         action="store_true",
         default=False,
         help="List available codecs and exit",
+    )
+    parser.add_argument(
+        "--experiment",
+        action="store",
+        type=str,
+        dest="experiment_list",
+        default=default_values["experiment_list"],
+        help="Experiment list (comma-separated list)",
+    )
+    parser.add_argument(
+        "--experiment-list",
+        action="store_true",
+        dest="show_experiment_list",
+        default=False,
+        help="Show the full experiment list",
     )
     parser.add_argument(
         "--quality-list",
@@ -1421,8 +1442,11 @@ def get_options(argv):
     # do the parsing
     options = parser.parse_args(argv[1:])
     # parse quick options
-    if options.list_codecs:
+    if options.show_codec_list:
         print(f"list of valid codecs: {CODEC_LIST}")
+        sys.exit()
+    elif options.show_experiment_list:
+        print(f"list of valid experiments: {list(EXPERIMENT_DICT.keys())}")
         sys.exit()
     return options
 
@@ -1440,9 +1464,14 @@ def main(argv):
     # print results
     if options.debug > 0:
         print(f"debug: {options}")
+    # fix comma-separated lists
+    options.experiment_list = options.experiment_list.split(",")
+    options.experiment_list.sort()
+    options.quality_list = list(int(v) for v in options.quality_list.split(","))
     # process infile
     process_data(
         options.infile_list,
+        options.experiment_list,
         options.codec,
         options.quality_list,
         options.width,
