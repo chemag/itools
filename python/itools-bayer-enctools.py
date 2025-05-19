@@ -83,6 +83,7 @@ default_values = {
     "debug": 0,
     "dry_run": False,
     "add_average": True,
+    "psnr_infinity": True,
     "cleanup": 1,
     "codec": "jpeg/cv2",
     "quality_list": ",".join(str(v) for v in DEFAULT_QUALITY_LIST),
@@ -136,10 +137,18 @@ def calculate_psnr(obj1, obj2, depth):
 
 
 def calculate_psnr_planar(plane1, plane2, depth):
+    global psnr_infinity
+
     # Calculate the mean squared error (MSE)
     mse = np.mean((plane1 - plane2) ** 2)
     # Calculate the maximum possible value (peak)
     max_value = (2**depth) * 1.0 - 1.0
+    # in order to allow plotting the results, we will replace the
+    # actual PSNR (infinity) with the maximum possible PSNR, which
+    # occurs when a single value in the plane changes by 1 unit.
+    if not psnr_infinity and mse == 0:
+        height, width = plane1.shape
+        mse = 1.0 / (width * height)
     # Calculate the PSNR
     if mse == 0:
         psnr = float("inf")
@@ -1249,6 +1258,21 @@ def get_options(argv):
         % (" [default]" if not default_values["add_average"] else ""),
     )
     parser.add_argument(
+        "--psnr-infinity",
+        action="store_true",
+        dest="psnr_infinity",
+        default=default_values["psnr_infinity"],
+        help="Use infinity in PSNR%s"
+        % (" [default]" if default_values["psnr_infinity"] else ""),
+    )
+    parser.add_argument(
+        "--no-psnr-infinity",
+        action="store_false",
+        dest="psnr_infinity",
+        help="Do not use infinity in PSNR%s"
+        % (" [default]" if not default_values["psnr_infinity"] else ""),
+    )
+    parser.add_argument(
         "--cleanup",
         action="store_const",
         dest="cleanup",
@@ -1402,6 +1426,8 @@ def get_options(argv):
 
 
 def main(argv):
+    global psnr_infinity
+
     # parse options
     options = get_options(argv)
     # set workdir
@@ -1419,6 +1445,7 @@ def main(argv):
     options.experiment_list.sort()
     options.quality_list = list(int(v) for v in options.quality_list.split(","))
     # process infile
+    psnr_infinity = options.psnr_infinity
     process_data(
         options.infile_list,
         options.experiment_list,
