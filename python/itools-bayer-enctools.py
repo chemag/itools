@@ -349,17 +349,20 @@ def codec_process(codec, quality, depth, planar, experiment, debug):
 
 
 def nocodec_process(quality, planar, depth, experiment, debug):
+    codec = "nocodec"
     planar_prime = {}
     encoded_size_dict = {}
     for key in planar:
         array = planar[key]
+        if debug > 1:
+            write_single_plane_to_y4m(
+                array,
+                f"experiment_{experiment}.quality_{quality}.codec_{codec}.plane_{key}",
+                depth,
+            )
         # 1. encode array into blob
         height, width = array.shape
         encoded_size_dict[key] = height * width * (1 if depth == 8 else 2)
-        if debug > 1:
-            write_single_plane_to_y4m(
-                array, f"{experiment}.codec_nocodec.plane_{key}", depth
-            )
         # 2. decode blob into array
         array_prime = array.copy()
         planar_prime[key] = array_prime
@@ -367,32 +370,52 @@ def nocodec_process(quality, planar, depth, experiment, debug):
 
 
 def cv2_jpeg_process(quality, planar, experiment, debug):
+    codec = "jpeg"
     planar_prime = {}
     encoded_size_dict = {}
     for key in planar:
         array = planar[key]
+        if debug > 1:
+            write_single_plane_to_y4m(
+                array,
+                f"experiment_{experiment}.quality_{quality}.codec_{codec}.plane_{key}.before",
+                depth,
+            )
         # 1. encode array into blob
         success, array_encoded = cv2.imencode(
             ".jpg", array, [cv2.IMWRITE_JPEG_QUALITY, quality]
         )
         if debug > 1:
-            filename = f"/tmp/itools.bayer.test.{experiment}.{key}.quality_{quality}.output.jpg"
+            filename = f"/tmp/itools.bayer.test.experiment_{experiment}.quality_{quality}.codec_{codec}.plane_{key}.quality_{quality}.output.jpg"
             array_encoded.tofile(filename)
 
         encoded_size_dict[key] = len(array_encoded)
         # 2. decode blob into array
         array_prime = cv2.imdecode(array_encoded, cv2.IMREAD_GRAYSCALE)
+        if debug > 1:
+            write_single_plane_to_y4m(
+                array_prime,
+                f"experiment_{experiment}.quality_{quality}.codec_{codec}.plane_{key}.after",
+                depth,
+            )
         planar_prime[key] = array_prime
     return planar_prime, encoded_size_dict
 
 
 def libheif_heic_process(quality, planar, depth, experiment, debug):
+    codec = "heic"
     planar_prime = {}
     encoded_size_dict = {}
     # explicitly register the HEIF format
     pillow_heif.register_heif_opener()
     for key in planar:
         array = planar[key]
+        if debug > 1:
+            write_single_plane_to_y4m(
+                array,
+                f"experiment_{experiment}.quality_{quality}.codec_{codec}.plane_{key}.before",
+                depth,
+            )
         # 1. encode array into blob
         height, width = array.shape
         dtype = array.dtype
@@ -416,13 +439,19 @@ def libheif_heic_process(quality, planar, depth, experiment, debug):
         finally:
             output.close()
         if debug > 1:
-            filename = f"/tmp/itools.bayer.test.{experiment}.{key}.quality_{quality}.output.heic"
+            filename = f"/tmp/itools.bayer.test.experiment_{experiment}.quality_{quality}.codec_{codec}.plane_{key}.quality_{quality}.output.heic"
             with open(filename, "wb") as fout:
                 fout.write(array_encoded)
         encoded_size_dict[key] = len(array_encoded)
         # 2. decode blob into array
         img = PIL.Image.open(io.BytesIO(array_encoded))
         array_prime = np.array(img)
+        if debug > 1:
+            write_single_plane_to_y4m(
+                array_prime,
+                f"experiment_{experiment}.quality_{quality}.codec_{codec}.plane_{key}.after",
+                depth,
+            )
         planar_prime[key] = array_prime
     return planar_prime, encoded_size_dict
 
@@ -458,7 +487,7 @@ def write_yuv_planar_to_y4m(
 ):
     yuv_yvu = yuv_planar_to_yvu(yuv_planar)
     y4mfile = tempfile.NamedTemporaryFile(
-        prefix=f"itools-bayer-enctools.{experiment}.", suffix=".y4m"
+        prefix=f"itools-bayer-enctools.experiment_{experiment}.", suffix=".y4m"
     ).name
     colorspace = "444" if depth == 8 else "444p10"
     itools_y4m.write_y4m(y4mfile, yuv_yvu, colorspace=colorspace, colorrange=colorrange)
@@ -468,7 +497,7 @@ def write_single_plane_to_y4m(
     array, experiment, depth, colorrange=itools_common.ColorRange.full
 ):
     y4mfile = tempfile.NamedTemporaryFile(
-        prefix=f"itools-bayer-enctools.{experiment}.", suffix=".y4m"
+        prefix=f"itools-bayer-enctools.experiment_{experiment}.", suffix=".y4m"
     ).name
     colorspace = "mono" if depth == 8 else "mono10"
     itools_y4m.write_y4m(y4mfile, array, colorspace=colorspace, colorrange=colorrange)
@@ -494,7 +523,9 @@ def process_file_bayer_ydgcocg_array(
     # 2. convert RGB to YUV
     yuv_planar = bayer_image.GetYUVPlanar()
     if debug > 1:
-        write_yuv_planar_to_y4m(yuv_planar, f"{experiment}.yuv_planar", depth)
+        write_yuv_planar_to_y4m(
+            yuv_planar, f"experiment_{experiment}.yuv_planar", depth
+        )
 
     # 3. demosaic Bayer image to YDgCoCg
     bayer_ydgcocg_planar = convert_rg1g2b_to_ydgcocg(bayer_image, depth)
@@ -517,7 +548,9 @@ def process_file_bayer_ydgcocg_array(
         yuv_planar_prime = bayer_image_prime.GetYUVPlanar()
         if debug > 1:
             write_yuv_planar_to_y4m(
-                yuv_planar, f"{experiment}.yuv_planar_prime.quality_{quality}", depth
+                yuv_planar,
+                f"experiment_{experiment}.yuv_planar_prime.quality_{quality}",
+                depth,
             )
 
         # 8. calculate results
@@ -582,7 +615,9 @@ def process_file_bayer_ydgcocg_420_array(
     # 2. convert RGB to YUV
     yuv_planar = bayer_image.GetYUVPlanar()
     if debug > 1:
-        write_yuv_planar_to_y4m(yuv_planar, f"{experiment}.yuv_planar", depth)
+        write_yuv_planar_to_y4m(
+            yuv_planar, f"experiment_{experiment}.yuv_planar", depth
+        )
 
     # 3. demosaic Bayer image to YDgCoCg
     bayer_ydgcocg_planar = convert_rg1g2b_to_ydgcocg(bayer_image, depth)
@@ -616,7 +651,9 @@ def process_file_bayer_ydgcocg_420_array(
         yuv_planar_prime = bayer_image_prime.GetYUVPlanar()
         if debug > 1:
             write_yuv_planar_to_y4m(
-                yuv_planar, f"{experiment}.yuv_planar_prime.quality_{quality}", depth
+                yuv_planar,
+                f"experiment_{experiment}.yuv_planar_prime.quality_{quality}",
+                depth,
             )
 
         # 10. calculate results
@@ -681,7 +718,9 @@ def process_file_bayer_single_array(
     # 2. convert RGB to YUV
     yuv_planar = bayer_image.GetYUVPlanar()
     if debug > 1:
-        write_yuv_planar_to_y4m(yuv_planar, f"{experiment}.yuv_planar", depth)
+        write_yuv_planar_to_y4m(
+            yuv_planar, f"experiment_{experiment}.yuv_planar", depth
+        )
 
     for quality in quality_list:
         if debug > 1:
@@ -703,7 +742,9 @@ def process_file_bayer_single_array(
         yuv_planar_prime = bayer_image_prime.GetYUVPlanar()
         if debug > 1:
             write_yuv_planar_to_y4m(
-                yuv_planar, f"{experiment}.yuv_planar_prime.quality_{quality}", depth
+                yuv_planar,
+                f"experiment_{experiment}.yuv_planar_prime.quality_{quality}",
+                depth,
             )
 
         # 7. calculate results
@@ -768,7 +809,9 @@ def process_file_bayer_rggb_array(
     # 2. convert RGB to YUV
     yuv_planar = bayer_image.GetYUVPlanar()
     if debug > 1:
-        write_yuv_planar_to_y4m(yuv_planar, f"{experiment}.yuv_planar", depth)
+        write_yuv_planar_to_y4m(
+            yuv_planar, f"experiment_{experiment}.yuv_planar", depth
+        )
 
     for quality in quality_list:
         if debug > 1:
@@ -788,7 +831,9 @@ def process_file_bayer_rggb_array(
         yuv_planar_prime = bayer_image_prime.GetYUVPlanar()
         if debug > 1:
             write_yuv_planar_to_y4m(
-                yuv_planar, f"{experiment}.yuv_planar_prime.quality_{quality}", depth
+                yuv_planar,
+                f"experiment_{experiment}.yuv_planar_prime.quality_{quality}",
+                depth,
             )
 
         # 7. calculate results
@@ -853,7 +898,9 @@ def process_file_yuv444_array(
     # 2. convert RGB to YUV
     yuv_planar = bayer_image.GetYUVPlanar()
     if debug > 1:
-        write_yuv_planar_to_y4m(yuv_planar, f"{experiment}.yuv_planar", depth)
+        write_yuv_planar_to_y4m(
+            yuv_planar, f"experiment_{experiment}.yuv_planar", depth
+        )
 
     for quality in quality_list:
         if debug > 1:
@@ -864,7 +911,9 @@ def process_file_yuv444_array(
         )
         if debug > 1:
             write_yuv_planar_to_y4m(
-                yuv_planar, f"{experiment}.yuv_planar_prime.quality_{quality}", depth
+                yuv_planar,
+                f"experiment_{experiment}.yuv_planar_prime.quality_{quality}",
+                depth,
             )
 
         # 4. convert YUV image back to RGB
@@ -939,7 +988,9 @@ def process_file_yuv420_array(
     # 2. convert RGB to YUV
     yuv_planar = bayer_image.GetYUVPlanar()
     if debug > 1:
-        write_yuv_planar_to_y4m(yuv_planar, f"{experiment}.yuv_planar", depth)
+        write_yuv_planar_to_y4m(
+            yuv_planar, f"experiment_{experiment}.yuv_planar", depth
+        )
 
     # 3. subsample the chromas
     yuv_subsampled_planar = itools_bayer.yuv_subsample_planar(yuv_planar)
@@ -956,7 +1007,9 @@ def process_file_yuv420_array(
         yuv_planar_prime = itools_bayer.yuv_upsample_planar(yuv_subsampled_planar_prime)
         if debug > 1:
             write_yuv_planar_to_y4m(
-                yuv_planar, f"{experiment}.yuv_planar_prime.quality_{quality}", depth
+                yuv_planar,
+                f"experiment_{experiment}.yuv_planar_prime.quality_{quality}",
+                depth,
             )
 
         # 6. convert YUV image back to RGB
@@ -1031,7 +1084,9 @@ def process_file_rgb_array(
     # 2. convert RGB to YUV
     yuv_planar = bayer_image.GetYUVPlanar()
     if debug > 1:
-        write_yuv_planar_to_y4m(yuv_planar, f"{experiment}.yuv_planar", depth)
+        write_yuv_planar_to_y4m(
+            yuv_planar, f"experiment_{experiment}.yuv_planar", depth
+        )
 
     for quality in quality_list:
         if debug > 1:
@@ -1047,7 +1102,9 @@ def process_file_rgb_array(
         )
         if debug > 1:
             write_yuv_planar_to_y4m(
-                yuv_planar, f"{experiment}.yuv_planar_prime.quality_{quality}", depth
+                yuv_planar,
+                f"experiment_{experiment}.yuv_planar_prime.quality_{quality}",
+                depth,
             )
 
         # 5. remosaic RGB image back to raw
