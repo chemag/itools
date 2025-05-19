@@ -82,6 +82,7 @@ EXPERIMENT_DICT = {
 default_values = {
     "debug": 0,
     "dry_run": False,
+    "add_average": True,
     "cleanup": 1,
     "codec": "jpeg/cv2",
     "quality_list": ",".join(str(v) for v in DEFAULT_QUALITY_LIST),
@@ -1157,6 +1158,7 @@ def process_data(
     pix_fmt,
     workdir,
     outfile,
+    add_average,
     cleanup,
     debug,
 ):
@@ -1181,8 +1183,9 @@ def process_data(
     df = df.reindex()
 
     # 3. get average results
-    derived_df = get_average_results(df)
-    df = pd.concat([df, derived_df], ignore_index=True, axis=0)
+    if add_average:
+        derived_df = get_average_results(df)
+        df = pd.concat([df, derived_df], ignore_index=True, axis=0)
 
     # 4. write the results
     df.to_csv(outfile, index=False)
@@ -1230,6 +1233,20 @@ def get_options(argv):
         dest="dry_run",
         default=default_values["dry_run"],
         help="Dry run",
+    )
+    parser.add_argument(
+        "--add-average",
+        action="store_true",
+        dest="add_average",
+        default=default_values["add_average"],
+        help="Add average%s" % (" [default]" if default_values["add_average"] else ""),
+    )
+    parser.add_argument(
+        "--no-add-average",
+        action="store_false",
+        dest="add_average",
+        help="Do not add average%s"
+        % (" [default]" if not default_values["add_average"] else ""),
     )
     parser.add_argument(
         "--cleanup",
@@ -1412,6 +1429,7 @@ def main(argv):
         options.pix_fmt,
         options.workdir,
         options.outfile,
+        options.add_average,
         options.cleanup,
         options.debug,
     )
