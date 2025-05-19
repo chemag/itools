@@ -33,7 +33,7 @@ itools_y4m = importlib.import_module("itools-y4m")
 DEFAULT_QUALITIES = [25, 75, 85, 95, 96, 97, 98, 99]
 DEFAULT_QUALITY_LIST = sorted(set(list(range(0, 101, 10)) + DEFAULT_QUALITIES))
 
-CODEC_LIST = ("jpeg/cv2", "heic/libheif")
+CODEC_LIST = ("nocodec", "jpeg/cv2", "heic/libheif")
 
 # dtype operation
 # We use 2x dtype values
@@ -329,11 +329,31 @@ def convert_ydgcocg_to_rg1g2b_components(bayer_y, bayer_dg, bayer_co, bayer_cg, 
 
 # encoding processing
 def codec_process(codec, quality, depth, planar, experiment, debug):
-    if codec == "jpeg/cv2" and depth == 8:
+    if codec == "nocodec":
+        return nocodec_process(quality, planar, depth, experiment, debug)
+    elif codec == "jpeg/cv2" and depth == 8:
         return cv2_jpeg_process(quality, planar, experiment, debug)
     elif codec == "heic/libheif" and depth in (8, 10):
         return libheif_heic_process(quality, planar, depth, experiment, debug)
     raise ValueError(f"Unimplemented {codec=}/{depth=} pair")
+
+
+def nocodec_process(quality, planar, depth, experiment, debug):
+    planar_prime = {}
+    encoded_size_dict = {}
+    for key in planar:
+        array = planar[key]
+        # 1. encode array into blob
+        height, width = array.shape
+        encoded_size_dict[key] = height * width * (1 if depth == 8 else 2)
+        if debug > 1:
+            write_single_plane_to_y4m(
+                array, f"{experiment}.codec_nocodec.plane_{key}", depth
+            )
+        # 2. decode blob into array
+        array_prime = array.copy()
+        planar_prime[key] = array_prime
+    return planar_prime, encoded_size_dict
 
 
 def cv2_jpeg_process(quality, planar, experiment, debug):
@@ -432,6 +452,16 @@ def write_yuv_planar_to_y4m(
     ).name
     colorspace = "444" if depth == 8 else "444p10"
     itools_y4m.write_y4m(y4mfile, yuv_yvu, colorspace=colorspace, colorrange=colorrange)
+
+
+def write_single_plane_to_y4m(
+    array, experiment, depth, colorrange=itools_common.ColorRange.full
+):
+    y4mfile = tempfile.NamedTemporaryFile(
+        prefix=f"itools-bayer-enctools.{experiment}.", suffix=".y4m"
+    ).name
+    colorspace = "mono" if depth == 8 else "mono10"
+    itools_y4m.write_y4m(y4mfile, array, colorspace=colorspace, colorrange=colorrange)
 
 
 # Bayer processing stack

@@ -314,19 +314,28 @@ def write_y4m(
     outfile, outyvu, colorspace="420", colorrange=itools_common.ColorRange.full
 ):
     assert colorspace in (
+        "mono",
         "420",
         "444",
+        "mono10",
         "420p10",
         "444p10",
     ), f"error: unsupported {colorspace=}"
     with open(outfile, "wb") as fout:
         # write header
-        height, width, _ = outyvu.shape
+        try:
+            height, width, _ = outyvu.shape
+        except ValueError:
+            height, width = outyvu.shape
         header = write_header(width, height, colorspace, colorrange)
         fout.write(header.encode("utf-8"))
         # write frame line
         frame = "FRAME\n"
         fout.write(frame.encode("utf-8"))
+        # write grayscale
+        if colorspace in ("mono", "mono10"):
+            fout.write(outyvu.flatten())
+            return
         # write y
         ya = outyvu[:, :, 0]
         fout.write(ya.flatten())
