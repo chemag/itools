@@ -83,7 +83,7 @@ default_values = {
     "debug": 0,
     "dry_run": False,
     "add_average": True,
-    "psnr_infinity": True,
+    "psnr_infinity": False,
     "cleanup": 1,
     "codec": "jpeg/cv2",
     "quality_list": ",".join(str(v) for v in DEFAULT_QUALITY_LIST),
