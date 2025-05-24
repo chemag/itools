@@ -77,16 +77,6 @@ def encode_default(yarray, colorspace, block_size, debug):
     for i in range(0, height, block_size):
         for j in range(0, width, block_size):
             block = yarray[i : i + block_size, j : j + block_size]
-            # extend the block if needed
-            bh, bw = block.shape
-            if bh < block_size:
-                last_col = block[-1:, :]
-                repeats = np.repeat(last_col, (block_size - bh), axis=0)
-                block = np.concatenate((block, repeats), axis=0)
-            if bw < block_size:
-                last_col = block[:, -1:]
-                repeats = np.repeat(last_col, (block_size - bw), axis=1)
-                block = np.concatenate((block, repeats), axis=1)
             # encode the block
             if np.all(block == 0):
                 stream.append("0b00")
@@ -131,11 +121,7 @@ def decode_default(width, height, block_size, stream, debug):
         else:
             print(f"error: invalid bitstream: 0b11")
             sys.exit(-1)
-        # chop the block if needed
-        if j + block_size > width:
-            block = block[:, : width - j]
-        if i + block_size > height:
-            block = block[: height - i, :]
+        # copy the block into the array
         yarray[i : i + 8, j : j + 8] = block
         j += 8
         if j >= width:
@@ -162,16 +148,6 @@ def encode_bitmap(yarray, colorspace, block_size, debug):
     for i in range(0, height, block_size):
         for j in range(0, width, block_size):
             block = yarray[i : i + block_size, j : j + block_size]
-            # extend the block if needed
-            bh, bw = block.shape
-            if bh < block_size:
-                last_col = block[-1:, :]
-                repeats = np.repeat(last_col, (block_size - bh), axis=0)
-                block = np.concatenate((block, repeats), axis=0)
-            if bw < block_size:
-                last_col = block[:, -1:]
-                repeats = np.repeat(last_col, (block_size - bw), axis=1)
-                block = np.concatenate((block, repeats), axis=1)
             # encode the block
             if np.all(block == 0):
                 stream.append("0b00")
@@ -223,14 +199,7 @@ def decode_bitmap(width, height, block_size, stream, debug):
             if debug > 0:
                 block_str = block2string(block)
                 print(f"debug: interesting block at {i},{j}: {block_str}")
-        else:
-            print(f"error: invalid bitstream: 0b11")
-            sys.exit(-1)
-        # chop the block if needed
-        if j + block_size > width:
-            block = block[:, : width - j]
-        if i + block_size > height:
-            block = block[: height - i, :]
+        # copy the block into the array
         yarray[i : i + 8, j : j + 8] = block
         j += 8
         if j >= width:
@@ -261,12 +230,23 @@ def encode_file(infile, outfile, codec, block_size, debug):
     height, width = yarray.shape
     colorspace = "mono"
 
-    # 2. encode the luminance
+    # 2. ensure block_size-alignment
+    if height % block_size != 0:
+        last_row = yarray[-1:, :]
+        last_rows = np.repeat(last_row, (block_size - (height % 8)), axis=0)
+        yarray = np.concatenate((yarray, last_rows), axis=0)
+    if width % block_size != 0:
+        last_col = yarray[:, -1:]
+        last_cols = np.repeat(last_col, (block_size - (width % 8)), axis=1)
+        yarray = np.concatenate((yarray, last_cols), axis=1)
+
+    # 3. encode the luminance
     if codec == "default":
         stream = encode_default(yarray, colorspace, block_size, debug)
     elif codec == "bitmap":
         stream = encode_bitmap(yarray, colorspace, block_size, debug)
-    # write encoded alpha channel to file
+
+    # 4. write encoded alpha channel to file
     with open(outfile, "wb") as fout:
         # write a small header
         header = write_header(width, height, colorspace, codec, block_size)
@@ -285,11 +265,24 @@ def decode_file(infile, outfile, debug):
     stream = bitstring.ConstBitStream(data)
 
     # 2. decode the encoded file into a luminance plane
+    effective_width = ((width + (block_size - 1)) // block_size) * block_size
+    effective_height = ((height + (block_size - 1)) // block_size) * block_size
     if codec == "default":
-        yarray = decode_default(width, height, block_size, stream, debug)
+        yarray = decode_default(
+            effective_width, effective_height, block_size, stream, debug
+        )
     elif codec == "bitmap":
-        yarray = decode_bitmap(width, height, block_size, stream, debug)
-    # write the array into a y4m file
+        yarray = decode_bitmap(
+            effective_width, effective_height, block_size, stream, debug
+        )
+
+    # 3. chop the array if needed
+    if effective_width > width:
+        yarray = yarray[:, :width]
+    if effective_height > height:
+        yarray = yarray[:height, :]
+
+    # 4. write the array into a y4m file
     itools_y4m.write_y4m(outfile, yarray, colorspace)
 
 
