@@ -84,13 +84,14 @@ def encode_default(yarray, colorspace, block_size, debug):
     # a BitStream
     height, width = yarray.shape
     stream = bitstring.BitStream()
+    max_value = itools_common.COLORSPACES[colorspace]["depth"].get_max()
     for i in range(0, height, block_size):
         for j in range(0, width, block_size):
             block = yarray[i : i + block_size, j : j + block_size]
             # encode the block
             if np.all(block == 0):
                 stream.append("0b00")
-            elif np.all(block == 255):
+            elif np.all(block == max_value):
                 stream.append("0b01")
             else:
                 stream.append("0b10")
@@ -103,12 +104,13 @@ def encode_default(yarray, colorspace, block_size, debug):
     return stream
 
 
-def decode_default(width, height, block_size, stream, debug):
+def decode_default(width, height, colorspace, block_size, stream, debug):
     # allocate space for the whole image
     yarray = np.zeros((height, width), dtype=np.uint8)
     i = 0
     j = 0
     elements = block_size * block_size
+    max_value = itools_common.COLORSPACES[colorspace]["depth"].get_max()
     while True:
         # decode the block
         try:
@@ -120,8 +122,8 @@ def decode_default(width, height, block_size, stream, debug):
             # create an all-zero block
             block = np.full((block_size, block_size), 0, dtype=np.uint8)
         elif val == 0b01:
-            # create an all-255 block
-            block = np.full((block_size, block_size), 255, dtype=np.uint8)
+            # create an all-max_value block
+            block = np.full((block_size, block_size), max_value, dtype=np.uint8)
         elif val == 0b10:
             # read the full block
             bits = stream.read(f"bytes:{elements}")
@@ -155,6 +157,7 @@ def encode_bitmap(yarray, colorspace, block_size, debug):
     # loop though each block_size block, and add the bits into
     # a BitStream
     height, width = yarray.shape
+    max_value = itools_common.COLORSPACES[colorspace]["depth"].get_max()
     stream = bitstring.BitStream()
     for i in range(0, height, block_size):
         for j in range(0, width, block_size):
@@ -162,12 +165,12 @@ def encode_bitmap(yarray, colorspace, block_size, debug):
             # encode the block
             if np.all(block == 0):
                 stream.append("0b00")
-            elif np.all(block == 255):
+            elif np.all(block == max_value):
                 stream.append("0b01")
-            elif np.all(np.isin(block, [0, 255])):
+            elif np.all(np.isin(block, [0, max_value])):
                 stream.append("0b11")
                 # normalize block to 0/1
-                block = (block // 255).astype(np.uint8)
+                block = (block // max_value).astype(np.uint8)
                 binary_stream = "0b" + "".join(str(b) for b in block.flatten())
                 stream.append(binary_stream)
             else:
@@ -181,12 +184,13 @@ def encode_bitmap(yarray, colorspace, block_size, debug):
     return stream
 
 
-def decode_bitmap(width, height, block_size, stream, debug):
+def decode_bitmap(width, height, colorspace, block_size, stream, debug):
     # allocate space for the whole image
     yarray = np.zeros((height, width), dtype=np.uint8)
     i = 0
     j = 0
     elements = block_size * block_size
+    max_value = itools_common.COLORSPACES[colorspace]["depth"].get_max()
     while True:
         # decode the block
         try:
@@ -198,12 +202,12 @@ def decode_bitmap(width, height, block_size, stream, debug):
             # create an all-zero block
             block = np.full((block_size, block_size), 0, dtype=np.uint8)
         elif val == 0b01:
-            # create an all-255 block
-            block = np.full((block_size, block_size), 255, dtype=np.uint8)
+            # create an all-max_value block
+            block = np.full((block_size, block_size), max_value, dtype=np.uint8)
         elif val == 0b11:
             bits = stream.read(f"bits:{elements}")
             bit_list = [int(bits.read("bool")) for _ in range(elements)]
-            block = (np.array(bit_list, dtype=np.uint8) * 255).reshape(
+            block = (np.array(bit_list, dtype=np.uint8) * max_value).reshape(
                 (block_size, block_size)
             )
         elif val == 0b10:
@@ -233,43 +237,46 @@ def decode_bitmap(width, height, block_size, stream, debug):
 
 # resolution-* encoder
 def encode_resolution(codec, yarray, colorspace, block_size, debug):
-    depth = int(codec.split("-")[1])
+    codec_depth = int(codec.split("-")[1])
     # loop though each block_size block, and add the bits into
     # a BitStream
     height, width = yarray.shape
     stream = bitstring.BitStream()
-    max_value = ((1 << depth) - 1) << (8 - depth)
+    depth = itools_common.COLORSPACES[colorspace]["depth"].get_depth()
+    max_encoded_value = ((1 << codec_depth) - 1) << (depth - codec_depth)
     for i in range(0, height, block_size):
         for j in range(0, width, block_size):
             block = yarray[i : i + block_size, j : j + block_size]
             # reduce the actual depth
-            block = (block >> (8 - depth)).astype(np.uint8)
+            block = (block >> (depth - codec_depth)).astype(np.uint8)
             # encode the block
             if np.all(block == 0):
                 stream.append("0b00")
-            elif np.all(block == max_value):
+            elif np.all(block == max_encoded_value):
                 stream.append("0b01")
-            elif np.all(np.isin(block, [0, max_value])):
+            elif np.all(np.isin(block, [0, max_encoded_value])):
                 stream.append("0b11")
                 # normalize block to 0/1
-                block = (block // max_value).astype(np.uint8)
+                block = (block // max_encoded_value).astype(np.uint8)
                 binary_stream = "0b" + "".join(str(b) for b in block.flatten())
                 stream.append(binary_stream)
             else:
                 stream.append("0b10")
                 for val in block.flatten():
-                    stream.append(f"uint:{depth}={val}")
+                    stream.append(f"uint:{codec_depth}={val}")
     return stream
 
 
-def decode_resolution(codec, width, height, block_size, stream, debug):
-    depth = int(codec.split("-")[1])
+def decode_resolution(codec, width, height, colorspace, block_size, stream, debug):
+    codec_depth = int(codec.split("-")[1])
     # allocate space for the whole image
     yarray = np.zeros((height, width), dtype=np.uint8)
     i = 0
     j = 0
     elements = block_size * block_size
-    max_value = ((1 << depth) - 1) << (8 - depth)
+    max_value = itools_common.COLORSPACES[colorspace]["depth"].get_max()
+    depth = itools_common.COLORSPACES[colorspace]["depth"].get_depth()
+    max_encoded_value = ((1 << codec_depth) - 1) << (depth - codec_depth)
     while True:
         # decode the block
         try:
@@ -281,23 +288,23 @@ def decode_resolution(codec, width, height, block_size, stream, debug):
             # create an all-zero block
             block = np.full((block_size, block_size), 0, dtype=np.uint8)
         elif val == 0b01:
-            # create an all-<max_value> block
-            block = np.full((block_size, block_size), max_value, dtype=np.uint8)
+            # create an all-<max_encoded_value> block
+            block = np.full((block_size, block_size), max_encoded_value, dtype=np.uint8)
         elif val == 0b11:
             bits = stream.read(f"bits:{elements}")
             bit_list = [int(bits.read("bool")) for _ in range(elements)]
-            block = (np.array(bit_list, dtype=np.uint8) * max_value).reshape(
+            block = (np.array(bit_list, dtype=np.uint8) * max_encoded_value).reshape(
                 (block_size, block_size)
             )
         elif val == 0b10:
-            bits_read = elements * depth
+            bits_read = elements * codec_depth
             bits = stream.read(f"bits:{bits_read}")
-            values = [bits.read(f"uint:{depth}") for _ in range(elements)]
+            values = [bits.read(f"uint:{codec_depth}") for _ in range(elements)]
             block = np.array(values, dtype=np.uint8).reshape((block_size, block_size))
         # unnormalize block to the MSB
-        block = block << (8 - depth)
-        # replace all the max values with 255
-        block[block == max_value] = 255
+        block = block << (depth - codec_depth)
+        # replace all the max values with max_value
+        block[block == max_encoded_value] = max_value
         # copy the block into the array
         yarray[i : i + block_size, j : j + block_size] = block
         j += block_size
@@ -370,15 +377,21 @@ def decode_file(infile, outfile, debug):
     effective_height = ((height + (block_size - 1)) // block_size) * block_size
     if codec == "default":
         yarray = decode_default(
-            effective_width, effective_height, block_size, stream, debug
+            effective_width, effective_height, colorspace, block_size, stream, debug
         )
     elif codec == "bitmap":
         yarray = decode_bitmap(
-            effective_width, effective_height, block_size, stream, debug
+            effective_width, effective_height, colorspace, block_size, stream, debug
         )
     elif codec.startswith("resolution-"):
         yarray = decode_resolution(
-            codec, effective_width, effective_height, block_size, stream, debug
+            codec,
+            effective_width,
+            effective_height,
+            colorspace,
+            block_size,
+            stream,
+            debug,
         )
 
     # 3. chop the array if needed
