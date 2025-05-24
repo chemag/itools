@@ -267,7 +267,6 @@ def get_options(argv):
         type=str,
         dest="codec_list",
         default=default_values["codec_list"],
-        choices=list(itools_alpha.CODEC_LIST),
         metavar="[%s]"
         % (
             " | ".join(
