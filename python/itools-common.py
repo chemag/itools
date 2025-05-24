@@ -274,6 +274,43 @@ def chroma_subsample_direct(in_chroma_matrix, colorspace):
     return out_chroma_matrix
 
 
+# PSNR calculation
+def calculate_psnr(obj1, obj2, depth, use_infinity):
+    if type(obj1) == dict and type(obj2) == dict:
+        # a. check if the dictionaries have the same keys
+        assert set(obj1.keys()) == set(
+            obj2.keys()
+        ), "calculate_psnr: Dicts with different keys"
+        # b. check if the numpy arrays have the same values
+        psnr_dict = {}
+        for key in obj1:
+            psnr_dict[key] = calculate_psnr_planar(
+                obj1[key], obj2[key], depth, use_infinity
+            )
+        return psnr_dict
+    else:
+        return calculate_psnr_planar(obj1, obj2, depth, use_infinity)
+
+
+def calculate_psnr_planar(plane1, plane2, depth, use_infinity):
+    # Calculate the mean squared error (MSE)
+    mse = np.mean((plane1 - plane2) ** 2)
+    # Calculate the maximum possible value (peak)
+    max_value = (2**depth) * 1.0 - 1.0
+    # in order to allow plotting the results, we will replace the
+    # actual PSNR (infinity) with the maximum possible PSNR, which
+    # occurs when a single value in the plane changes by 1 unit.
+    if not use_infinity and mse == 0:
+        height, width = plane1.shape
+        mse = 1.0 / (width * height)
+    # Calculate the PSNR
+    if mse == 0:
+        psnr = float("inf")
+    else:
+        psnr = 10 * np.log10((max_value**2) / mse)
+    return float(psnr)
+
+
 class Config:
     DEFAULT_VALUES = {
         "read_image_components": True,

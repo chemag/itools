@@ -121,42 +121,6 @@ COLUMN_LIST = [
 ]
 
 
-def calculate_psnr(obj1, obj2, depth):
-    if type(obj1) == dict and type(obj2) == dict:
-        # a. check if the dictionaries have the same keys
-        assert set(obj1.keys()) == set(
-            obj2.keys()
-        ), "calculate_psnr: Dicts with different keys"
-        # b. check if the numpy arrays have the same values
-        psnr = {}
-        for key in obj1:
-            psnr[key] = calculate_psnr_planar(obj1[key], obj2[key], depth)
-        return psnr
-    else:
-        return calculate_psnr_planar(obj1, obj2, depth)
-
-
-def calculate_psnr_planar(plane1, plane2, depth):
-    global psnr_infinity
-
-    # Calculate the mean squared error (MSE)
-    mse = np.mean((plane1 - plane2) ** 2)
-    # Calculate the maximum possible value (peak)
-    max_value = (2**depth) * 1.0 - 1.0
-    # in order to allow plotting the results, we will replace the
-    # actual PSNR (infinity) with the maximum possible PSNR, which
-    # occurs when a single value in the plane changes by 1 unit.
-    if not psnr_infinity and mse == 0:
-        height, width = plane1.shape
-        mse = 1.0 / (width * height)
-    # Calculate the PSNR
-    if mse == 0:
-        psnr = float("inf")
-    else:
-        psnr = 10 * np.log10((max_value**2) / mse)
-    return float(psnr)
-
-
 def bayer_ydgcocg_subsample_planar(bayer_ydgcocg_planar):
     bayer_ydgcocg_subsampled_planar = bayer_ydgcocg_planar.copy()
     bayer_ydgcocg_subsampled_planar["co"] = bayer_ydgcocg_subsampled_planar["co"][
@@ -559,14 +523,19 @@ def process_file_bayer_ydgcocg_array(
         encoded_bpp = (encoded_size * 8.0) / (width * height)
         # psnr values
         # psnr values: YUV
-        psnr_yuv_dict = calculate_psnr(yuv_planar, yuv_planar_prime, depth)
+        global psnr_infinity
+        psnr_yuv_dict = itools_common.calculate_psnr(
+            yuv_planar, yuv_planar_prime, depth, psnr_infinity
+        )
         psnr_yuv = np.mean(list(psnr_yuv_dict.values()))
         # psnr values: RGB
-        psnr_rgb_dict = calculate_psnr(rgb_planar, rgb_planar_prime, depth)
+        psnr_rgb_dict = itools_common.calculate_psnr(
+            rgb_planar, rgb_planar_prime, depth, psnr_infinity
+        )
         psnr_rgb = np.mean(list(psnr_rgb_dict.values()))
         # psnr values: Bayer
-        psnr_bayer = calculate_psnr(
-            bayer_image.GetPacked(), bayer_image_prime.GetPacked(), depth
+        psnr_bayer = itools_common.calculate_psnr(
+            bayer_image.GetPacked(), bayer_image_prime.GetPacked(), depth, psnr_infinity
         )
         # add new element
         df.loc[df.size] = (
@@ -662,14 +631,19 @@ def process_file_bayer_ydgcocg_420_array(
         encoded_bpp = (encoded_size * 8.0) / (width * height)
         # psnr values
         # psnr values: YUV
-        psnr_yuv_dict = calculate_psnr(yuv_planar, yuv_planar_prime, depth)
+        global psnr_infinity
+        psnr_yuv_dict = itools_common.calculate_psnr(
+            yuv_planar, yuv_planar_prime, depth, psnr_infinity
+        )
         psnr_yuv = np.mean(list(psnr_yuv_dict.values()))
         # psnr values: RGB
-        psnr_rgb_dict = calculate_psnr(rgb_planar, rgb_planar_prime, depth)
+        psnr_rgb_dict = itools_common.calculate_psnr(
+            rgb_planar, rgb_planar_prime, depth, psnr_infinity
+        )
         psnr_rgb = np.mean(list(psnr_rgb_dict.values()))
         # psnr values: Bayer
-        psnr_bayer = calculate_psnr(
-            bayer_image.GetPacked(), bayer_image_prime.GetPacked(), depth
+        psnr_bayer = itools_common.calculate_psnr(
+            bayer_image.GetPacked(), bayer_image_prime.GetPacked(), depth, psnr_infinity
         )
         # add new element
         df.loc[df.size] = (
@@ -753,14 +727,19 @@ def process_file_bayer_single_array(
         encoded_bpp = (encoded_size * 8.0) / (width * height)
         # psnr values
         # psnr values: YUV
-        psnr_yuv_dict = calculate_psnr(yuv_planar, yuv_planar_prime, depth)
+        global psnr_infinity
+        psnr_yuv_dict = itools_common.calculate_psnr(
+            yuv_planar, yuv_planar_prime, depth, psnr_infinity
+        )
         psnr_yuv = np.mean(list(psnr_yuv_dict.values()))
         # psnr values: RGB
-        psnr_rgb_dict = calculate_psnr(rgb_planar, rgb_planar_prime, depth)
+        psnr_rgb_dict = itools_common.calculate_psnr(
+            rgb_planar, rgb_planar_prime, depth, psnr_infinity
+        )
         psnr_rgb = np.mean(list(psnr_rgb_dict.values()))
         # psnr values: Bayer
-        psnr_bayer = calculate_psnr(
-            bayer_image.GetPacked(), bayer_image_prime.GetPacked(), depth
+        psnr_bayer = itools_common.calculate_psnr(
+            bayer_image.GetPacked(), bayer_image_prime.GetPacked(), depth, psnr_infinity
         )
         # add new element
         df.loc[df.size] = (
@@ -842,14 +821,19 @@ def process_file_bayer_rggb_array(
         encoded_bpp = (encoded_size * 8.0) / (width * height)
         # psnr values
         # psnr values: YUV
-        psnr_yuv_dict = calculate_psnr(yuv_planar, yuv_planar_prime, depth)
+        global psnr_infinity
+        psnr_yuv_dict = itools_common.calculate_psnr(
+            yuv_planar, yuv_planar_prime, depth, psnr_infinity
+        )
         psnr_yuv = np.mean(list(psnr_yuv_dict.values()))
         # psnr values: RGB
-        psnr_rgb_dict = calculate_psnr(rgb_planar, rgb_planar_prime, depth)
+        psnr_rgb_dict = itools_common.calculate_psnr(
+            rgb_planar, rgb_planar_prime, depth, psnr_infinity
+        )
         psnr_rgb = np.mean(list(psnr_rgb_dict.values()))
         # psnr values: Bayer
-        psnr_bayer = calculate_psnr(
-            bayer_image.GetPacked(), bayer_image_prime.GetPacked(), depth
+        psnr_bayer = itools_common.calculate_psnr(
+            bayer_image.GetPacked(), bayer_image_prime.GetPacked(), depth, psnr_infinity
         )
         # add new element
         df.loc[df.size] = (
@@ -932,14 +916,19 @@ def process_file_yuv444_array(
         encoded_bpp = (encoded_size * 8.0) / (width * height)
         # psnr values
         # psnr values: YUV
-        psnr_yuv_dict = calculate_psnr(yuv_planar, yuv_planar_prime, depth)
+        global psnr_infinity
+        psnr_yuv_dict = itools_common.calculate_psnr(
+            yuv_planar, yuv_planar_prime, depth, psnr_infinity
+        )
         psnr_yuv = np.mean(list(psnr_yuv_dict.values()))
         # psnr values: RGB
-        psnr_rgb_dict = calculate_psnr(rgb_planar, rgb_planar_prime, depth)
+        psnr_rgb_dict = itools_common.calculate_psnr(
+            rgb_planar, rgb_planar_prime, depth, psnr_infinity
+        )
         psnr_rgb = np.mean(list(psnr_rgb_dict.values()))
         # psnr values: Bayer
-        psnr_bayer = calculate_psnr(
-            bayer_image.GetPacked(), bayer_image_prime.GetPacked(), depth
+        psnr_bayer = itools_common.calculate_psnr(
+            bayer_image.GetPacked(), bayer_image_prime.GetPacked(), depth, psnr_infinity
         )
         # add new element
         df.loc[df.size] = (
@@ -1028,14 +1017,19 @@ def process_file_yuv420_array(
         encoded_bpp = (encoded_size * 8.0) / (width * height)
         # psnr values
         # psnr values: YUV
-        psnr_yuv_dict = calculate_psnr(yuv_planar, yuv_planar_prime, depth)
+        global psnr_infinity
+        psnr_yuv_dict = itools_common.calculate_psnr(
+            yuv_planar, yuv_planar_prime, depth, psnr_infinity
+        )
         psnr_yuv = np.mean(list(psnr_yuv_dict.values()))
         # psnr values: RGB
-        psnr_rgb_dict = calculate_psnr(rgb_planar, rgb_planar_prime, depth)
+        psnr_rgb_dict = itools_common.calculate_psnr(
+            rgb_planar, rgb_planar_prime, depth, psnr_infinity
+        )
         psnr_rgb = np.mean(list(psnr_rgb_dict.values()))
         # psnr values: Bayer
-        psnr_bayer = calculate_psnr(
-            bayer_image.GetPacked(), bayer_image_prime.GetPacked(), depth
+        psnr_bayer = itools_common.calculate_psnr(
+            bayer_image.GetPacked(), bayer_image_prime.GetPacked(), depth, psnr_infinity
         )
         # add new element
         df.loc[df.size] = (
@@ -1118,14 +1112,19 @@ def process_file_rgb_array(
         encoded_bpp = (encoded_size * 8.0) / (width * height)
         # psnr values
         # psnr values: YUV
-        psnr_yuv_dict = calculate_psnr(yuv_planar, yuv_planar_prime, depth)
+        global psnr_infinity
+        psnr_yuv_dict = itools_common.calculate_psnr(
+            yuv_planar, yuv_planar_prime, depth, psnr_infinity
+        )
         psnr_yuv = np.mean(list(psnr_yuv_dict.values()))
         # psnr values: RGB
-        psnr_rgb_dict = calculate_psnr(rgb_planar, rgb_planar_prime, depth)
+        psnr_rgb_dict = itools_common.calculate_psnr(
+            rgb_planar, rgb_planar_prime, depth, psnr_infinity
+        )
         psnr_rgb = np.mean(list(psnr_rgb_dict.values()))
         # psnr values: Bayer
-        psnr_bayer = calculate_psnr(
-            bayer_image.GetPacked(), bayer_image_prime.GetPacked(), depth
+        psnr_bayer = itools_common.calculate_psnr(
+            bayer_image.GetPacked(), bayer_image_prime.GetPacked(), depth, psnr_infinity
         )
         # add new element
         df.loc[df.size] = (
