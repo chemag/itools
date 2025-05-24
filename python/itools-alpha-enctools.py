@@ -333,7 +333,6 @@ def main(argv):
         print(f"debug: {options}")
     # fix comma-separated lists
     options.codec_list = options.codec_list.split(",")
-    options.codec_list.sort()
     # process infile
     process_data(
         options.infile_list,
