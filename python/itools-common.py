@@ -95,53 +95,59 @@ class ColorDepth(enum.Enum):
         elif self == self.depth_10:
             return 1023
 
+    def get_depth(self):
+        if self == self.depth_8:
+            return 8
+        elif self == self.depth_10:
+            return 10
 
-# "colorspace": (ChromaSubsample, ColorDepth),
+
+# "colorspace"
 COLORSPACES = {
-    "mono": (
-        ChromaSubsample.chroma_400,
-        ColorDepth.depth_8,
-    ),
-    "mono10": (
-        ChromaSubsample.chroma_400,
-        ColorDepth.depth_10,
-    ),
-    "420": (
-        ChromaSubsample.chroma_420,
-        ColorDepth.depth_8,
-    ),
-    "420jpeg": (
-        ChromaSubsample.chroma_420,
-        ColorDepth.depth_8,
-    ),
-    "420paldv": (
-        ChromaSubsample.chroma_420,
-        ColorDepth.depth_8,
-    ),
-    "420mpeg2": (
-        ChromaSubsample.chroma_420,
-        ColorDepth.depth_8,
-    ),
-    "422": (
-        ChromaSubsample.chroma_422,
-        ColorDepth.depth_8,
-    ),
-    "444": (
-        ChromaSubsample.chroma_444,
-        ColorDepth.depth_8,
-    ),
-    "420p10": (
-        ChromaSubsample.chroma_420,
-        ColorDepth.depth_10,
-    ),
-    "422p10": (
-        ChromaSubsample.chroma_422,
-        ColorDepth.depth_10,
-    ),
-    "444p10": (
-        ChromaSubsample.chroma_444,
-        ColorDepth.depth_10,
-    ),
+    "mono": {
+        "chroma_subsample": ChromaSubsample.chroma_400,
+        "depth": ColorDepth.depth_8,
+    },
+    "mono10": {
+        "chroma_subsample": ChromaSubsample.chroma_400,
+        "depth": ColorDepth.depth_10,
+    },
+    "420": {
+        "chroma_subsample": ChromaSubsample.chroma_420,
+        "depth": ColorDepth.depth_8,
+    },
+    "420jpeg": {
+        "chroma_subsample": ChromaSubsample.chroma_420,
+        "depth": ColorDepth.depth_8,
+    },
+    "420paldv": {
+        "chroma_subsample": ChromaSubsample.chroma_420,
+        "depth": ColorDepth.depth_8,
+    },
+    "420mpeg2": {
+        "chroma_subsample": ChromaSubsample.chroma_420,
+        "depth": ColorDepth.depth_8,
+    },
+    "422": {
+        "chroma_subsample": ChromaSubsample.chroma_422,
+        "depth": ColorDepth.depth_8,
+    },
+    "444": {
+        "chroma_subsample": ChromaSubsample.chroma_444,
+        "depth": ColorDepth.depth_8,
+    },
+    "420p10": {
+        "chroma_subsample": ChromaSubsample.chroma_420,
+        "depth": ColorDepth.depth_10,
+    },
+    "422p10": {
+        "chroma_subsample": ChromaSubsample.chroma_422,
+        "depth": ColorDepth.depth_10,
+    },
+    "444p10": {
+        "chroma_subsample": ChromaSubsample.chroma_444,
+        "depth": ColorDepth.depth_10,
+    },
 }
 
 
@@ -215,7 +221,7 @@ def run(command, **kwargs):
 # Algo is very simple (just dup values)
 def chroma_subsample_reverse(in_luma_matrix, in_chroma_matrix, colorspace):
     in_w, in_h = in_chroma_matrix.shape
-    chroma_subsample = COLORSPACES[colorspace][0]
+    chroma_subsample = COLORSPACES[colorspace]["chroma_subsample"]
     if chroma_subsample == ChromaSubsample.chroma_420:
         out_w = in_w << 1
         out_h = in_h << 1
@@ -247,7 +253,7 @@ def chroma_subsample_reverse(in_luma_matrix, in_chroma_matrix, colorspace):
 # Algo is very simple (just average values)
 def chroma_subsample_direct(in_chroma_matrix, colorspace):
     in_w, in_h = in_chroma_matrix.shape
-    chroma_subsample = COLORSPACES[colorspace][0]
+    chroma_subsample = COLORSPACES[colorspace]["chroma_subsample"]
     if chroma_subsample == ChromaSubsample.chroma_420:
         out_w = in_w >> 1
         out_h = in_h >> 1

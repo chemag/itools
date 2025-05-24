@@ -84,7 +84,7 @@ def do_range_conversion(inarr, srcmin, srcmax, dstmin, dstmax, dt):
 
 
 def luma_range_conversion(ya, colorspace, src, dst):
-    color_depth = itools_common.COLORSPACES[colorspace][1]
+    color_depth = itools_common.COLORSPACES[colorspace]["depth"]
     if color_depth == itools_common.ColorDepth.depth_10:
         srcmin, srcmax = (0, 1023) if src.name == "full" else (64, 940)
         dstmin, dstmax = (0, 1023) if dst.name == "full" else (64, 940)
@@ -96,7 +96,7 @@ def luma_range_conversion(ya, colorspace, src, dst):
 
 
 def chroma_range_conversion(va, colorspace, src, dst):
-    color_depth = itools_common.COLORSPACES[colorspace][1]
+    color_depth = itools_common.COLORSPACES[colorspace]["depth"]
     if color_depth == itools_common.ColorDepth.depth_10:
         srcmin, srcmax = (0, 1023) if src.name == "full" else (64, 960)
         dstmin, dstmax = (0, 1023) if dst.name == "full" else (64, 960)
@@ -201,7 +201,9 @@ class Y4MHeader:
         luma_size_pixels = self.width * self.height
 
         # process chroma subsampling
-        chroma_subsample = itools_common.COLORSPACES[self.colorspace][0]
+        chroma_subsample = itools_common.COLORSPACES[self.colorspace][
+            "chroma_subsample"
+        ]
         if chroma_subsample == itools_common.ChromaSubsample.chroma_420:
             chroma_w_pixels = self.width >> 1
             chroma_h_pixels = self.height >> 1
@@ -217,7 +219,7 @@ class Y4MHeader:
         chroma_size_pixels = chroma_w_pixels * chroma_h_pixels
 
         # process pixel depth
-        input_colordepth = itools_common.COLORSPACES[self.colorspace][1]
+        input_colordepth = itools_common.COLORSPACES[self.colorspace]["depth"]
         if input_colordepth == itools_common.ColorDepth.depth_8:
             dt = np.dtype(np.uint8)
             luma_size = luma_size_pixels
