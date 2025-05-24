@@ -18,6 +18,7 @@ __version__ = "0.1"
 
 CODEC_LIST = [
     "default",
+    "bitmap",
 ]
 
 FUNC_CHOICES = {
@@ -67,6 +68,7 @@ def block2string(block):
     return block_str
 
 
+# default encoder
 def encode_default(yarray, colorspace, block_size, debug):
     # loop though each block_size block, and add the bits into
     # a BitStream
@@ -151,6 +153,101 @@ def decode_default(width, height, block_size, stream, debug):
     return yarray
 
 
+# bitmap encoder
+def encode_bitmap(yarray, colorspace, block_size, debug):
+    # loop though each block_size block, and add the bits into
+    # a BitStream
+    height, width = yarray.shape
+    stream = bitstring.BitStream()
+    for i in range(0, height, block_size):
+        for j in range(0, width, block_size):
+            block = yarray[i : i + block_size, j : j + block_size]
+            # extend the block if needed
+            bh, bw = block.shape
+            if bh < block_size:
+                last_col = block[-1:, :]
+                repeats = np.repeat(last_col, (block_size - bh), axis=0)
+                block = np.concatenate((block, repeats), axis=0)
+            if bw < block_size:
+                last_col = block[:, -1:]
+                repeats = np.repeat(last_col, (block_size - bw), axis=1)
+                block = np.concatenate((block, repeats), axis=1)
+            # encode the block
+            if np.all(block == 0):
+                stream.append("0b00")
+            elif np.all(block == 255):
+                stream.append("0b01")
+            elif np.all(np.isin(block, [0, 255])):
+                stream.append("0b11")
+                # normalize block to 0/1
+                block = (block // 255).astype(np.uint8)
+                binary_stream = "0b" + "".join(str(b) for b in block.flatten())
+                stream.append(binary_stream)
+            else:
+                stream.append("0b10")
+                if debug > 0:
+                    block_str = block2string(block)
+                    print(f"debug: interesting block at {i},{j}: {block_str}")
+                # flatten array to 1D and convert to 64 bytes
+                byte_data = block.flatten().tobytes()
+                stream.append(byte_data)
+    return stream
+
+
+def decode_bitmap(width, height, block_size, stream, debug):
+    # allocate space for the whole image
+    yarray = np.zeros((height, width), dtype=np.uint8)
+    i = 0
+    j = 0
+    while True:
+        # decode the block
+        try:
+            val = stream.read("uint:2")
+        except bitstring.ReadError:
+            # end of stream or not enough bits to read 2 bits
+            break
+        if val == 0b00:
+            # create an all-zero block
+            block = np.full((block_size, block_size), 0, dtype=np.uint8)
+        elif val == 0b01:
+            # create an all-255 block
+            block = np.full((block_size, block_size), 255, dtype=np.uint8)
+        elif val == 0b11:
+            bits = stream.read("bits:64")
+            bit_list = [int(bits.read("bool")) for _ in range(64)]
+            block = (np.array(bit_list, dtype=np.uint8) * 255).reshape((8, 8))
+        elif val == 0b10:
+            # read the 64-byte block
+            bits = stream.read("bytes:64")
+            block = np.frombuffer(bits, dtype=np.uint8).reshape(block_size, block_size)
+            if debug > 0:
+                block_str = block2string(block)
+                print(f"debug: interesting block at {i},{j}: {block_str}")
+        else:
+            print(f"error: invalid bitstream: 0b11")
+            sys.exit(-1)
+        # chop the block if needed
+        if j + block_size > width:
+            block = block[:, : width - j]
+        if i + block_size > height:
+            block = block[: height - i, :]
+        yarray[i : i + 8, j : j + 8] = block
+        j += 8
+        if j >= width:
+            i += 8
+            if i >= height:
+                i = height
+                # ensure there are no bytes left
+                if (stream.len - stream.pos) >= 8:
+                    print(f"warning: there are {stream.len - stream.pos} bits left")
+                break
+            j = 0
+    # check that we have covered all the matrix
+    if j < width or i < height:
+        print(f"warning: only read {j}x{i} on a {width}x{height} image")
+    return yarray
+
+
 def encode_file(infile, outfile, codec, block_size, debug):
     # 1. read y4m input as numpy array
     outyvu, _, _, _ = itools_y4m.read_y4m(
@@ -167,6 +264,8 @@ def encode_file(infile, outfile, codec, block_size, debug):
     # 2. encode the luminance
     if codec == "default":
         stream = encode_default(yarray, colorspace, block_size, debug)
+    elif codec == "bitmap":
+        stream = encode_bitmap(yarray, colorspace, block_size, debug)
     # write encoded alpha channel to file
     with open(outfile, "wb") as fout:
         # write a small header
@@ -186,7 +285,10 @@ def decode_file(infile, outfile, debug):
     stream = bitstring.ConstBitStream(data)
 
     # 2. decode the encoded file into a luminance plane
-    yarray = decode_default(width, height, block_size, stream, debug)
+    if codec == "default":
+        yarray = decode_default(width, height, block_size, stream, debug)
+    elif codec == "bitmap":
+        yarray = decode_bitmap(width, height, block_size, stream, debug)
     # write the array into a y4m file
     itools_y4m.write_y4m(outfile, yarray, colorspace)
 
