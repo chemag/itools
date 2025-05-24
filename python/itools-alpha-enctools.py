@@ -54,6 +54,7 @@ COLUMN_LIST = [
     "encoded_cr",
     "psnr",
     "aepp",
+    "stats",
 ]
 
 
@@ -113,7 +114,7 @@ def process_data(
         out_y4m_file = tempfile.NamedTemporaryFile(
             prefix=f"itools-alpha-enctools.codec_{codec}.", suffix=".alpha.y4m"
         ).name
-        itools_alpha.decode_file(alpha_file, out_y4m_file, debug)
+        stats = itools_alpha.decode_file(alpha_file, out_y4m_file, debug)
         # 3. calculate the error
         outyvu1, _, _, _ = itools_y4m.read_y4m(
             infile,
@@ -140,6 +141,7 @@ def process_data(
         encoded_size = os.path.getsize(alpha_file)
         encoded_bpp = 8.0 * encoded_size / (width1 * height1)
         encoded_cr = raw_size / encoded_size
+        stats_str = ":".join(str(count) for count in stats.values())
         df.loc[df.size] = (
             infile,
             width1,
@@ -152,6 +154,7 @@ def process_data(
             encoded_cr,
             psnr,
             aepp,
+            stats_str,
         )
 
     # 2. get average results

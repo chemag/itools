@@ -111,6 +111,7 @@ def decode_default(width, height, colorspace, block_size, stream, debug):
     j = 0
     elements = block_size * block_size
     max_value = itools_common.COLORSPACES[colorspace]["depth"].get_max()
+    stats = {k: 0 for k in ["00", "01", "10", "11"]}
     while True:
         # decode the block
         try:
@@ -119,12 +120,15 @@ def decode_default(width, height, colorspace, block_size, stream, debug):
             # end of stream or not enough bits to read 2 bits
             break
         if val == 0b00:
+            stats["00"] += 1
             # create an all-zero block
             block = np.full((block_size, block_size), 0, dtype=np.uint8)
         elif val == 0b01:
+            stats["01"] += 1
             # create an all-max_value block
             block = np.full((block_size, block_size), max_value, dtype=np.uint8)
         elif val == 0b10:
+            stats["10"] += 1
             # read the full block
             bits = stream.read(f"bytes:{elements}")
             block = np.frombuffer(bits, dtype=np.uint8).reshape(block_size, block_size)
@@ -149,7 +153,7 @@ def decode_default(width, height, colorspace, block_size, stream, debug):
     # check that we have covered all the matrix
     if j < width or i < height:
         print(f"warning: only read {j}x{i} on a {width}x{height} image")
-    return yarray
+    return yarray, stats
 
 
 # bitmap encoder
@@ -191,6 +195,7 @@ def decode_bitmap(width, height, colorspace, block_size, stream, debug):
     j = 0
     elements = block_size * block_size
     max_value = itools_common.COLORSPACES[colorspace]["depth"].get_max()
+    stats = {k: 0 for k in ["00", "01", "10", "11"]}
     while True:
         # decode the block
         try:
@@ -199,18 +204,22 @@ def decode_bitmap(width, height, colorspace, block_size, stream, debug):
             # end of stream or not enough bits to read 2 bits
             break
         if val == 0b00:
+            stats["00"] += 1
             # create an all-zero block
             block = np.full((block_size, block_size), 0, dtype=np.uint8)
         elif val == 0b01:
+            stats["01"] += 1
             # create an all-max_value block
             block = np.full((block_size, block_size), max_value, dtype=np.uint8)
         elif val == 0b11:
+            stats["11"] += 1
             bits = stream.read(f"bits:{elements}")
             bit_list = [int(bits.read("bool")) for _ in range(elements)]
             block = (np.array(bit_list, dtype=np.uint8) * max_value).reshape(
                 (block_size, block_size)
             )
         elif val == 0b10:
+            stats["10"] += 1
             # read the <elements>-byte block
             bits = stream.read(f"bytes:{elements}")
             block = np.frombuffer(bits, dtype=np.uint8).reshape(block_size, block_size)
@@ -232,7 +241,7 @@ def decode_bitmap(width, height, colorspace, block_size, stream, debug):
     # check that we have covered all the matrix
     if j < width or i < height:
         print(f"warning: only read {j}x{i} on a {width}x{height} image")
-    return yarray
+    return yarray, stats
 
 
 # resolution-* encoder
@@ -277,6 +286,7 @@ def decode_resolution(codec, width, height, colorspace, block_size, stream, debu
     max_value = itools_common.COLORSPACES[colorspace]["depth"].get_max()
     depth = itools_common.COLORSPACES[colorspace]["depth"].get_depth()
     max_encoded_value = ((1 << codec_depth) - 1) << (depth - codec_depth)
+    stats = {k: 0 for k in ["00", "01", "10", "11"]}
     while True:
         # decode the block
         try:
@@ -285,18 +295,22 @@ def decode_resolution(codec, width, height, colorspace, block_size, stream, debu
             # end of stream or not enough bits to read 2 bits
             break
         if val == 0b00:
+            stats["00"] += 1
             # create an all-zero block
             block = np.full((block_size, block_size), 0, dtype=np.uint8)
         elif val == 0b01:
+            stats["01"] += 1
             # create an all-<max_encoded_value> block
             block = np.full((block_size, block_size), max_encoded_value, dtype=np.uint8)
         elif val == 0b11:
+            stats["11"] += 1
             bits = stream.read(f"bits:{elements}")
             bit_list = [int(bits.read("bool")) for _ in range(elements)]
             block = (np.array(bit_list, dtype=np.uint8) * max_encoded_value).reshape(
                 (block_size, block_size)
             )
         elif val == 0b10:
+            stats["10"] += 1
             bits_read = elements * codec_depth
             bits = stream.read(f"bits:{bits_read}")
             values = [bits.read(f"uint:{codec_depth}") for _ in range(elements)]
@@ -320,7 +334,7 @@ def decode_resolution(codec, width, height, colorspace, block_size, stream, debu
     # check that we have covered all the matrix
     if j < width or i < height:
         print(f"warning: only read {j}x{i} on a {width}x{height} image")
-    return yarray
+    return yarray, stats
 
 
 def encode_file(infile, outfile, codec, block_size, debug):
@@ -376,15 +390,15 @@ def decode_file(infile, outfile, debug):
     effective_width = ((width + (block_size - 1)) // block_size) * block_size
     effective_height = ((height + (block_size - 1)) // block_size) * block_size
     if codec == "default":
-        yarray = decode_default(
+        yarray, stats = decode_default(
             effective_width, effective_height, colorspace, block_size, stream, debug
         )
     elif codec == "bitmap":
-        yarray = decode_bitmap(
+        yarray, stats = decode_bitmap(
             effective_width, effective_height, colorspace, block_size, stream, debug
         )
     elif codec.startswith("resolution-"):
-        yarray = decode_resolution(
+        yarray, stats = decode_resolution(
             codec,
             effective_width,
             effective_height,
@@ -402,6 +416,7 @@ def decode_file(infile, outfile, debug):
 
     # 4. write the array into a y4m file
     itools_y4m.write_y4m(outfile, yarray, colorspace)
+    return stats
 
 
 def get_options(argv):
