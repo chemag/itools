@@ -38,6 +38,9 @@ default_values = {
 }
 
 
+BITS_PER_BYTE = 8
+
+
 def write_header(width, height, colorspace, codec, block_size):
     header = f"ALPHA {width} {height} {colorspace} {codec} {block_size}\n"
     return header
@@ -87,7 +90,7 @@ def encode_default(yarray, colorspace, block_size, debug):
                 if debug > 0:
                     block_str = block2string(block)
                     print(f"debug: interesting block at {i},{j}: {block_str}")
-                # flatten array to 1D and convert to 64 bytes
+                # flatten array to 1D and convert to <elements> bytes
                 byte_data = block.flatten().tobytes()
                 stream.append(byte_data)
     return stream
@@ -98,6 +101,7 @@ def decode_default(width, height, block_size, stream, debug):
     yarray = np.zeros((height, width), dtype=np.uint8)
     i = 0
     j = 0
+    elements = block_size * block_size
     while True:
         # decode the block
         try:
@@ -112,8 +116,8 @@ def decode_default(width, height, block_size, stream, debug):
             # create an all-255 block
             block = np.full((block_size, block_size), 255, dtype=np.uint8)
         elif val == 0b10:
-            # read the 64-byte block
-            bits = stream.read("bytes:64")
+            # read the full block
+            bits = stream.read(f"bytes:{elements}")
             block = np.frombuffer(bits, dtype=np.uint8).reshape(block_size, block_size)
             if debug > 0:
                 block_str = block2string(block)
@@ -122,14 +126,14 @@ def decode_default(width, height, block_size, stream, debug):
             print(f"error: invalid bitstream: 0b11")
             sys.exit(-1)
         # copy the block into the array
-        yarray[i : i + 8, j : j + 8] = block
-        j += 8
+        yarray[i : i + block_size, j : j + block_size] = block
+        j += block_size
         if j >= width:
-            i += 8
+            i += block_size
             if i >= height:
                 i = height
                 # ensure there are no bytes left
-                if (stream.len - stream.pos) >= 8:
+                if (stream.len - stream.pos) >= BITS_PER_BYTE:
                     print(f"warning: there are {stream.len - stream.pos} bits left")
                 break
             j = 0
@@ -164,7 +168,7 @@ def encode_bitmap(yarray, colorspace, block_size, debug):
                 if debug > 0:
                     block_str = block2string(block)
                     print(f"debug: interesting block at {i},{j}: {block_str}")
-                # flatten array to 1D and convert to 64 bytes
+                # flatten array to 1D and convert to <element> bytes
                 byte_data = block.flatten().tobytes()
                 stream.append(byte_data)
     return stream
@@ -175,6 +179,7 @@ def decode_bitmap(width, height, block_size, stream, debug):
     yarray = np.zeros((height, width), dtype=np.uint8)
     i = 0
     j = 0
+    elements = block_size * block_size
     while True:
         # decode the block
         try:
@@ -189,25 +194,27 @@ def decode_bitmap(width, height, block_size, stream, debug):
             # create an all-255 block
             block = np.full((block_size, block_size), 255, dtype=np.uint8)
         elif val == 0b11:
-            bits = stream.read("bits:64")
-            bit_list = [int(bits.read("bool")) for _ in range(64)]
-            block = (np.array(bit_list, dtype=np.uint8) * 255).reshape((8, 8))
+            bits = stream.read(f"bits:{elements}")
+            bit_list = [int(bits.read("bool")) for _ in range(elements)]
+            block = (np.array(bit_list, dtype=np.uint8) * 255).reshape(
+                (block_size, block_size)
+            )
         elif val == 0b10:
-            # read the 64-byte block
-            bits = stream.read("bytes:64")
+            # read the <elements>-byte block
+            bits = stream.read(f"bytes:{elements}")
             block = np.frombuffer(bits, dtype=np.uint8).reshape(block_size, block_size)
             if debug > 0:
                 block_str = block2string(block)
                 print(f"debug: interesting block at {i},{j}: {block_str}")
         # copy the block into the array
-        yarray[i : i + 8, j : j + 8] = block
-        j += 8
+        yarray[i : i + block_size, j : j + block_size] = block
+        j += block_size
         if j >= width:
-            i += 8
+            i += block_size
             if i >= height:
                 i = height
                 # ensure there are no bytes left
-                if (stream.len - stream.pos) >= 8:
+                if (stream.len - stream.pos) >= BITS_PER_BYTE:
                     print(f"warning: there are {stream.len - stream.pos} bits left")
                 break
             j = 0
@@ -233,11 +240,11 @@ def encode_file(infile, outfile, codec, block_size, debug):
     # 2. ensure block_size-alignment
     if height % block_size != 0:
         last_row = yarray[-1:, :]
-        last_rows = np.repeat(last_row, (block_size - (height % 8)), axis=0)
+        last_rows = np.repeat(last_row, (block_size - (height % block_size)), axis=0)
         yarray = np.concatenate((yarray, last_rows), axis=0)
     if width % block_size != 0:
         last_col = yarray[:, -1:]
-        last_cols = np.repeat(last_col, (block_size - (width % 8)), axis=1)
+        last_cols = np.repeat(last_col, (block_size - (width % block_size)), axis=1)
         yarray = np.concatenate((yarray, last_cols), axis=1)
 
     # 3. encode the luminance
