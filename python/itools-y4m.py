@@ -299,7 +299,7 @@ def read_y4m(infile, output_colorrange=None, cleanup=0, logfd=sys.stdout, debug=
 
 
 def write_header(width, height, colorspace, colorrange):
-    header = f"YUV4MPEG2 W{width} H{height} F30000:1001 Ip C{colorspace}"
+    header = f"YUV4MPEG2 W{width} H{height} F25:1 Ip A0:0 C{colorspace}"
     if colorrange in (
         itools_common.ColorRange.limited,
         itools_common.ColorRange.full,
