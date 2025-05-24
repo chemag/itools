@@ -29,18 +29,11 @@ itools_alpha = importlib.import_module("itools-alpha")
 itools_y4m = importlib.import_module("itools-y4m")
 
 
-CODEC_DICT = {
-    "default": {
-        "name": "Default Meta",
-    },
-}
-
-
 default_values = {
     "debug": 0,
     "dry_run": False,
     "cleanup": 1,
-    "codec_list": ",".join(str(k) for k in CODEC_DICT.keys()),
+    "codec_list": ",".join(str(k) for k in itools_alpha.CODEC_LIST),
     "workdir": tempfile.gettempdir(),
     "add_average": True,
     "psnr_infinity": True,
@@ -274,11 +267,11 @@ def get_options(argv):
         type=str,
         dest="codec_list",
         default=default_values["codec_list"],
-        choices=list(CODEC_DICT.keys()),
+        choices=list(itools_alpha.CODEC_LIST),
         metavar="[%s]"
         % (
             " | ".join(
-                list(CODEC_DICT.keys()),
+                list(itools_alpha.CODEC_LIST),
             )
         ),
         help="codec",
@@ -321,7 +314,7 @@ def get_options(argv):
     options = parser.parse_args(argv[1:])
     # parse quick options
     if options.show_codec_list:
-        print(f"list of valid codecs: {CODEC_LIST}")
+        print(f"list of valid codecs: {itools_alpha.CODEC_LIST}")
         sys.exit()
     return options
 
