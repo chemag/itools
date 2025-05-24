@@ -19,6 +19,13 @@ __version__ = "0.1"
 CODEC_LIST = [
     "default",
     "bitmap",
+    "resolution-7",
+    "resolution-6",
+    "resolution-5",
+    "resolution-4",
+    "resolution-3",
+    "resolution-2",
+    "resolution-1",
 ]
 
 FUNC_CHOICES = {
@@ -224,6 +231,91 @@ def decode_bitmap(width, height, block_size, stream, debug):
     return yarray
 
 
+# resolution-* encoder
+def encode_resolution(codec, yarray, colorspace, block_size, debug):
+    depth = int(codec.split("-")[1])
+    # loop though each block_size block, and add the bits into
+    # a BitStream
+    height, width = yarray.shape
+    stream = bitstring.BitStream()
+    max_value = ((1 << depth) - 1) << (8 - depth)
+    for i in range(0, height, block_size):
+        for j in range(0, width, block_size):
+            block = yarray[i : i + block_size, j : j + block_size]
+            # reduce the actual depth
+            block = (block >> (8 - depth)).astype(np.uint8)
+            # encode the block
+            if np.all(block == 0):
+                stream.append("0b00")
+            elif np.all(block == max_value):
+                stream.append("0b01")
+            elif np.all(np.isin(block, [0, max_value])):
+                stream.append("0b11")
+                # normalize block to 0/1
+                block = (block // max_value).astype(np.uint8)
+                binary_stream = "0b" + "".join(str(b) for b in block.flatten())
+                stream.append(binary_stream)
+            else:
+                stream.append("0b10")
+                for val in block.flatten():
+                    stream.append(f"uint:{depth}={val}")
+    return stream
+
+
+def decode_resolution(codec, width, height, block_size, stream, debug):
+    depth = int(codec.split("-")[1])
+    # allocate space for the whole image
+    yarray = np.zeros((height, width), dtype=np.uint8)
+    i = 0
+    j = 0
+    elements = block_size * block_size
+    max_value = ((1 << depth) - 1) << (8 - depth)
+    while True:
+        # decode the block
+        try:
+            val = stream.read("uint:2")
+        except bitstring.ReadError:
+            # end of stream or not enough bits to read 2 bits
+            break
+        if val == 0b00:
+            # create an all-zero block
+            block = np.full((block_size, block_size), 0, dtype=np.uint8)
+        elif val == 0b01:
+            # create an all-<max_value> block
+            block = np.full((block_size, block_size), max_value, dtype=np.uint8)
+        elif val == 0b11:
+            bits = stream.read(f"bits:{elements}")
+            bit_list = [int(bits.read("bool")) for _ in range(elements)]
+            block = (np.array(bit_list, dtype=np.uint8) * max_value).reshape(
+                (block_size, block_size)
+            )
+        elif val == 0b10:
+            bits_read = elements * depth
+            bits = stream.read(f"bits:{bits_read}")
+            values = [bits.read(f"uint:{depth}") for _ in range(elements)]
+            block = np.array(values, dtype=np.uint8).reshape((block_size, block_size))
+        # unnormalize block to the MSB
+        block = block << (8 - depth)
+        # replace all the max values with 255
+        block[block == max_value] = 255
+        # copy the block into the array
+        yarray[i : i + block_size, j : j + block_size] = block
+        j += block_size
+        if j >= width:
+            i += block_size
+            if i >= height:
+                i = height
+                # ensure there are no bytes left
+                if (stream.len - stream.pos) >= BITS_PER_BYTE:
+                    print(f"warning: there are {stream.len - stream.pos} bits left")
+                break
+            j = 0
+    # check that we have covered all the matrix
+    if j < width or i < height:
+        print(f"warning: only read {j}x{i} on a {width}x{height} image")
+    return yarray
+
+
 def encode_file(infile, outfile, codec, block_size, debug):
     # 1. read y4m input as numpy array
     outyvu, _, _, _ = itools_y4m.read_y4m(
@@ -252,6 +344,8 @@ def encode_file(infile, outfile, codec, block_size, debug):
         stream = encode_default(yarray, colorspace, block_size, debug)
     elif codec == "bitmap":
         stream = encode_bitmap(yarray, colorspace, block_size, debug)
+    elif codec.startswith("resolution-"):
+        stream = encode_resolution(codec, yarray, colorspace, block_size, debug)
 
     # 4. write encoded alpha channel to file
     with open(outfile, "wb") as fout:
@@ -281,6 +375,10 @@ def decode_file(infile, outfile, debug):
     elif codec == "bitmap":
         yarray = decode_bitmap(
             effective_width, effective_height, block_size, stream, debug
+        )
+    elif codec.startswith("resolution-"):
+        yarray = decode_resolution(
+            codec, effective_width, effective_height, block_size, stream, debug
         )
 
     # 3. chop the array if needed
