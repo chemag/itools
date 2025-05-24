@@ -311,6 +311,14 @@ def calculate_psnr_planar(plane1, plane2, depth, use_infinity):
     return float(psnr)
 
 
+# AEPP: average (absolute) error per pixel
+def calculate_aepp_planar(plane1, plane2):
+    # calculate the absolute error
+    absolute_error = np.abs(plane1.astype(np.int16) - plane2.astype(np.int16))
+    aepp = np.mean(absolute_error)
+    return aepp
+
+
 class Config:
     DEFAULT_VALUES = {
         "read_image_components": True,
