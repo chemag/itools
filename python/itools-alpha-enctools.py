@@ -43,6 +43,7 @@ default_values = {
     "codec_list": ",".join(str(k) for k in CODEC_DICT.keys()),
     "workdir": tempfile.gettempdir(),
     "add_average": True,
+    "psnr_infinity": True,
     "infile_list": None,
     "outfile": None,
 }
@@ -58,6 +59,7 @@ COLUMN_LIST = [
     "encoded_size",
     "encoded_bpp",
     "encoded_cr",
+    "psnr",
 ]
 
 
@@ -83,6 +85,7 @@ def get_average_results(df):
             "encoded_size",
             "encoded_bpp",
             "encoded_cr",
+            "psnr",
         )
         for key in COLUMNS_MEAN:
             derived_dict[key] = tmp_df[key].mean()
@@ -96,6 +99,7 @@ def process_data(
     workdir,
     outfile,
     add_average,
+    psnr_infinity,
     cleanup,
     debug,
 ):
@@ -115,7 +119,7 @@ def process_data(
             prefix=f"itools-alpha-enctools.codec_{codec}.", suffix=".alpha.y4m"
         ).name
         itools_alpha.decode_file(alpha_file, out_y4m_file, debug)
-        # 3. check the error
+        # 3. calculate the error
         outyvu1, _, _, _ = itools_y4m.read_y4m(
             infile,
             output_colorrange=itools_common.ColorRange.full,
@@ -132,7 +136,9 @@ def process_data(
         )
         yarray2 = outyvu2[:, :, 0]
         height2, width2 = yarray2.shape
-        assert np.all((yarray1 - yarray2) == 0), f"error: non-zero error in {infile}"
+        psnr = itools_common.calculate_psnr_planar(
+            yarray1, yarray2, depth, psnr_infinity
+        )
         # 4. calculate results
         raw_size = os.path.getsize(infile)
         encoded_size = os.path.getsize(alpha_file)
@@ -148,6 +154,7 @@ def process_data(
             encoded_size,
             encoded_bpp,
             encoded_cr,
+            psnr,
         )
 
     # 2. get average results
@@ -215,6 +222,21 @@ def get_options(argv):
         dest="add_average",
         help="Do not add average%s"
         % (" [default]" if not default_values["add_average"] else ""),
+    )
+    parser.add_argument(
+        "--psnr-infinity",
+        action="store_true",
+        dest="psnr_infinity",
+        default=default_values["psnr_infinity"],
+        help="Use infinity in PSNR%s"
+        % (" [default]" if default_values["psnr_infinity"] else ""),
+    )
+    parser.add_argument(
+        "--no-psnr-infinity",
+        action="store_false",
+        dest="psnr_infinity",
+        help="Do not use infinity in PSNR%s"
+        % (" [default]" if not default_values["psnr_infinity"] else ""),
     )
     parser.add_argument(
         "--cleanup",
@@ -323,6 +345,7 @@ def main(argv):
         options.workdir,
         options.outfile,
         options.add_average,
+        options.psnr_infinity,
         options.cleanup,
         options.debug,
     )
