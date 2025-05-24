@@ -211,6 +211,9 @@ class Y4MHeader:
         elif chroma_subsample == itools_common.ChromaSubsample.chroma_444:
             chroma_w_pixels = self.width
             chroma_h_pixels = self.height
+        elif chroma_subsample == itools_common.ChromaSubsample.chroma_400:
+            chroma_w_pixels = 0
+            chroma_h_pixels = 0
         chroma_size_pixels = chroma_w_pixels * chroma_h_pixels
 
         # process pixel depth
@@ -240,8 +243,8 @@ class Y4MHeader:
         offset += chroma_size
         # 4. combine the color components
         # undo chroma subsample in order to combine same-size matrices
-        ua_full = itools_common.chroma_subsample_reverse(ua, self.colorspace)
-        va_full = itools_common.chroma_subsample_reverse(va, self.colorspace)
+        ua_full = itools_common.chroma_subsample_reverse(ya, ua, self.colorspace)
+        va_full = itools_common.chroma_subsample_reverse(ya, va, self.colorspace)
         # 5. fix color range
         input_colorrange = itools_common.ColorRange.parse(
             self.comment.get("COLORRANGE")
