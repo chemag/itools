@@ -270,7 +270,12 @@ def get_options(argv):
         metavar="[%s]"
         % (
             " | ".join(
-                list(itools_alpha.CODEC_LIST),
+                list(
+                    itools_alpha.CODEC_LIST
+                    + [
+                        "all",
+                    ]
+                ),
             )
         ),
         help="codec",
@@ -333,6 +338,8 @@ def main(argv):
         print(f"debug: {options}")
     # fix comma-separated lists
     options.codec_list = options.codec_list.split(",")
+    if "all" in options.codec_list:
+        options.codec_list = itools_alpha.CODEC_LIST
     # process infile
     process_data(
         options.infile_list,
