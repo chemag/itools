@@ -60,6 +60,7 @@ COLUMN_LIST = [
     "encoded_bpp",
     "encoded_cr",
     "psnr",
+    "aepp",
 ]
 
 
@@ -86,6 +87,7 @@ def get_average_results(df):
             "encoded_bpp",
             "encoded_cr",
             "psnr",
+            "aepp",
         )
         for key in COLUMNS_MEAN:
             derived_dict[key] = tmp_df[key].mean()
@@ -139,6 +141,7 @@ def process_data(
         psnr = itools_common.calculate_psnr_planar(
             yarray1, yarray2, depth, psnr_infinity
         )
+        aepp = itools_common.calculate_aepp_planar(yarray1, yarray2)
         # 4. calculate results
         raw_size = os.path.getsize(infile)
         encoded_size = os.path.getsize(alpha_file)
@@ -155,6 +158,7 @@ def process_data(
             encoded_bpp,
             encoded_cr,
             psnr,
+            aepp,
         )
 
     # 2. get average results
