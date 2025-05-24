@@ -252,7 +252,7 @@ def encode_resolution(codec, yarray, colorspace, block_size, debug):
     height, width = yarray.shape
     stream = bitstring.BitStream()
     depth = itools_common.COLORSPACES[colorspace]["depth"].get_depth()
-    max_encoded_value = ((1 << codec_depth) - 1) << (depth - codec_depth)
+    max_encoded_value = (1 << codec_depth) - 1
     for i in range(0, height, block_size):
         for j in range(0, width, block_size):
             block = yarray[i : i + block_size, j : j + block_size]
@@ -285,7 +285,7 @@ def decode_resolution(codec, width, height, colorspace, block_size, stream, debu
     elements = block_size * block_size
     max_value = itools_common.COLORSPACES[colorspace]["depth"].get_max()
     depth = itools_common.COLORSPACES[colorspace]["depth"].get_depth()
-    max_encoded_value = ((1 << codec_depth) - 1) << (depth - codec_depth)
+    max_encoded_value = (1 << codec_depth) - 1
     stats = {k: 0 for k in ["00", "01", "10", "11"]}
     while True:
         # decode the block
