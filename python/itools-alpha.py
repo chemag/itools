@@ -17,7 +17,7 @@ itools_y4m = importlib.import_module("itools-y4m")
 __version__ = "0.1"
 
 CODEC_LIST = [
-    "default",
+    "warhol",
     "bitmap",
     "resolution-7",
     "resolution-6",
@@ -37,7 +37,7 @@ FUNC_CHOICES = {
 default_values = {
     "debug": 0,
     "dry_run": False,
-    "codec": "default",
+    "codec": "warhol",
     "block_size": 8,
     "func": "help",
     "infile": None,
@@ -78,8 +78,8 @@ def block2string(block):
     return block_str
 
 
-# default encoder
-def encode_default(yarray, colorspace, block_size, debug):
+# warhol encoder
+def encode_warhol(yarray, colorspace, block_size, debug):
     # loop though each block_size block, and add the bits into
     # a BitStream
     height, width = yarray.shape
@@ -104,7 +104,7 @@ def encode_default(yarray, colorspace, block_size, debug):
     return stream
 
 
-def decode_default(width, height, colorspace, block_size, stream, debug):
+def decode_warhol(width, height, colorspace, block_size, stream, debug):
     # allocate space for the whole image
     yarray = np.zeros((height, width), dtype=np.uint8)
     i = 0
@@ -361,8 +361,8 @@ def encode_file(infile, outfile, codec, block_size, debug):
         yarray = np.concatenate((yarray, last_cols), axis=1)
 
     # 3. encode the luminance
-    if codec == "default":
-        stream = encode_default(yarray, colorspace, block_size, debug)
+    if codec == "warhol":
+        stream = encode_warhol(yarray, colorspace, block_size, debug)
     elif codec == "bitmap":
         stream = encode_bitmap(yarray, colorspace, block_size, debug)
     elif codec.startswith("resolution-"):
@@ -389,8 +389,8 @@ def decode_file(infile, outfile, debug):
     # 2. decode the encoded file into a luminance plane
     effective_width = ((width + (block_size - 1)) // block_size) * block_size
     effective_height = ((height + (block_size - 1)) // block_size) * block_size
-    if codec == "default":
-        yarray, stats = decode_default(
+    if codec == "warhol":
+        yarray, stats = decode_warhol(
             effective_width, effective_height, colorspace, block_size, stream, debug
         )
     elif codec == "bitmap":
