@@ -14,6 +14,7 @@ import sys
 itools_common = importlib.import_module("itools-common")
 itools_exiftool = importlib.import_module("itools-exiftool")
 itools_heif = importlib.import_module("itools-heif")
+itools_jpeg = importlib.import_module("itools-jpeg")
 itools_jxl = importlib.import_module("itools-jxl")
 itools_rgb = importlib.import_module("itools-rgb")
 itools_y4m = importlib.import_module("itools-y4m")
@@ -58,19 +59,30 @@ def read_image_file(
     elif infile_extension == ".jxl":
         outyvu, status = itools_jxl.read_jxl(infile, config_dict, cleanup, logfd, debug)
 
+    elif infile_extension in (".jpg", ".jpeg"):
+        status = {}
+        if proc_color == itools_common.ProcColor.bgr:
+            outbgr = cv2.imread(cv2.samples.findFile(infile, flags))
+        elif proc_color == itools_common.ProcColor.yvu:
+            outyvu = itools_jpeg.read_jpeg(infile, config_dict, cleanup, logfd, debug)
+
     else:
+        status = {}
         outbgr = cv2.imread(cv2.samples.findFile(infile, flags))
-        # use exiftool to get the metadata
-        status = itools_exiftool.get_exiftool(
-            infile,
-            short=True,
-            config_dict=config_dict,
-            cleanup=cleanup,
-            logfd=logfd,
-            debug=debug,
-        )
-        if infile_extension in (".jpg", ".jpeg"):
-            status["colorrange"] = itools_common.ColorRange.full
+
+    # append the exiftool metadata
+    exif_status = itools_exiftool.get_exiftool(
+        infile,
+        short=True,
+        config_dict=config_dict,
+        cleanup=cleanup,
+        logfd=logfd,
+        debug=debug,
+    )
+    status.update(exif_status)
+
+    if infile_extension in (".jpg", ".jpeg"):
+        status["colorrange"] = itools_common.ColorRange.full
 
     read_image_components = config_dict.get("read_image_components")
     if not read_image_components:
