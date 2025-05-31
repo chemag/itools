@@ -107,6 +107,7 @@ default_values = {
     "infile": None,
     "infile2": None,
     "outfile": None,
+    "cleanup": True,
     "logfile": None,
 }
 
