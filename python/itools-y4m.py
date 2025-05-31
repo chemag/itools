@@ -295,12 +295,12 @@ def read_y4m(infile, output_colorrange=None, cleanup=0, logfd=sys.stdout, debug=
     with open(infile, "rb") as fin:
         # read y4m header
         data = fin.read()
-        header, offset = Y4MHeader.read(data)
-        # read y4m frame
-        frame, offset, status = header.read_frame(
-            data[offset:], output_colorrange, logfd, debug
-        )
-        return frame, header, offset, status
+    header, offset = Y4MHeader.read(data)
+    # read y4m frame
+    frame, offset, status = header.read_frame(
+        data[offset:], output_colorrange, logfd, debug
+    )
+    return frame, header, offset, status
 
 
 def write_header(width, height, colorspace, colorrange):
