@@ -59,7 +59,7 @@ def get_components(infile, roi, roi_dump, config_dict, cleanup, logfd, debug):
     inbgr, inyvu, status = itools_io.read_image_file(
         infile,
         config_dict,
-        return_type=itools_common.ProcColor.both,
+        proc_color=itools_common.ProcColor.both,
         cleanup=cleanup,
         logfd=logfd,
         debug=debug,

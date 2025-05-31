@@ -24,7 +24,7 @@ def read_image_file(
     infile,
     config_dict,
     flags=None,
-    return_type=itools_common.ProcColor.bgr,
+    proc_color=itools_common.ProcColor.bgr,
     iinfo=None,
     cleanup=1,
     logfd=sys.stdout,
@@ -74,19 +74,19 @@ def read_image_file(
 
     read_image_components = config_dict.get("read_image_components")
     if not read_image_components:
-        if return_type == itools_common.ProcColor.both:
+        if proc_color == itools_common.ProcColor.both:
             return None, None, status
         else:
             return None, status
 
-    if return_type == itools_common.ProcColor.yvu:
+    if proc_color == itools_common.ProcColor.yvu:
         if outyvu is None:
             outyvu = cv2.cvtColor(outbgr, cv2.COLOR_BGR2YCrCb)
             return outyvu, status
         else:
             return outyvu, status
 
-    elif return_type == itools_common.ProcColor.bgr:
+    elif proc_color == itools_common.ProcColor.bgr:
         if outbgr is None:
             # TODO(chema): conversions only work in dt.uint8
             outbgr = cv2.cvtColor(outyvu, cv2.COLOR_YCrCb2BGR)
@@ -94,7 +94,7 @@ def read_image_file(
         else:
             return outbgr, status
 
-    else:  # if return_type == itools_common.ProcColor.both:
+    else:  # if proc_color == itools_common.ProcColor.both:
         if outyvu is None:
             outyvu = cv2.cvtColor(outbgr, cv2.COLOR_BGR2YCrCb)
         elif outbgr is None:
@@ -120,23 +120,21 @@ def read_colorrange(infile, cleanup, logfd, debug):
     return itools_common.ColorRange.parse(status["colorrange"])
 
 
-def write_image_file(
-    outfile, outimg, return_type=itools_common.ProcColor.bgr, **kwargs
-):
+def write_image_file(outfile, outimg, proc_color=itools_common.ProcColor.bgr, **kwargs):
     outfile_extension = os.path.splitext(outfile)[1]
     if outfile_extension == ".y4m":
         # y4m writer requires YVU
-        if return_type == itools_common.ProcColor.yvu:
+        if proc_color == itools_common.ProcColor.yvu:
             outyvu = outimg
-        elif return_type == itools_common.ProcColor.bgr:
+        elif proc_color == itools_common.ProcColor.bgr:
             outyvu = cv2.cvtColor(outimg, cv2.COLOR_BGR2YCrCb)
         colorspace = "420"
         colorrange = kwargs.get("colorrange", itools_common.ColorRange.get_default())
         itools_y4m.write_y4m(outfile, outyvu, colorspace, colorrange)
     else:
         # cv2 writer requires BGR
-        if return_type == itools_common.ProcColor.yvu:
+        if proc_color == itools_common.ProcColor.yvu:
             outbgr = cv2.cvtColor(outimg, cv2.COLOR_YCrCb2BGR)
-        elif return_type == itools_common.ProcColor.bgr:
+        elif proc_color == itools_common.ProcColor.bgr:
             outbgr = outimg
         cv2.imwrite(outfile, outbgr)
