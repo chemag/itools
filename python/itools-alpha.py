@@ -18,6 +18,7 @@ __version__ = "0.1"
 
 CODEC_LIST = [
     "warhol",
+    "warhol2",
     "bitmap",
     "resolution-7",
     "resolution-6",
@@ -153,6 +154,24 @@ def decode_warhol(width, height, colorspace, block_size, stream, debug):
     # check that we have covered all the matrix
     if j < width or i < height:
         print(f"warning: only read {j}x{i} on a {width}x{height} image")
+    return yarray, stats
+
+
+# warhol2 encoder
+def encode_warhol2(yarray, colorspace, block_size, debug):
+    # preprocess the yarray to replace Y=254 with Y=255
+    height, width = yarray.shape
+    for i in range(0, height):
+        for j in range(0, width):
+            if yarray[i, j] == 254:
+                yarray[i, j] = 255
+            elif yarray[i, j] == 1:
+                yarray[i, j] = 0
+    return encode_warhol(yarray, colorspace, block_size, debug)
+
+
+def decode_warhol2(width, height, colorspace, block_size, stream, debug):
+    yarray, stats = decode_warhol(width, height, colorspace, block_size, stream, debug)
     return yarray, stats
 
 
@@ -363,6 +382,8 @@ def encode_file(infile, outfile, codec, block_size, debug):
     # 3. encode the luminance
     if codec == "warhol":
         stream = encode_warhol(yarray, colorspace, block_size, debug)
+    elif codec == "warhol2":
+        stream = encode_warhol2(yarray, colorspace, block_size, debug)
     elif codec == "bitmap":
         stream = encode_bitmap(yarray, colorspace, block_size, debug)
     elif codec.startswith("resolution-"):
@@ -391,6 +412,10 @@ def decode_file(infile, outfile, debug):
     effective_height = ((height + (block_size - 1)) // block_size) * block_size
     if codec == "warhol":
         yarray, stats = decode_warhol(
+            effective_width, effective_height, colorspace, block_size, stream, debug
+        )
+    elif codec == "warhol2":
+        yarray, stats = decode_warhol2(
             effective_width, effective_height, colorspace, block_size, stream, debug
         )
     elif codec == "bitmap":
