@@ -246,7 +246,9 @@ def chroma_subsample_reverse(in_luma_matrix, in_chroma_matrix, colorspace):
         out_h = in_h
         out_w = in_w
         out_chroma_matrix = np.full((out_h, out_w), 128, dtype=np.uint8)
-    return out_chroma_matrix
+    # enforce the luminance size
+    in_h, in_w = in_luma_matrix.shape
+    return out_chroma_matrix[:in_h, :in_w]
 
 
 # converts a non-chroma-subsampled matrix into a chroma subsampled one
