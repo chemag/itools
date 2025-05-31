@@ -33,6 +33,7 @@ EXIFTOOL_KEYS = {
     "Composite": "ignore",
     "MakerNotes": "ignore",
     "QuickTime": "ignore",
+    "MPF": "ignore",
 }
 
 
