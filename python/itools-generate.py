@@ -21,8 +21,8 @@ default_values = {
     "dry_run": False,
     "json_output": False,
     "pattern": "kwrgb",
-    "width": 16,
     "height": 16,
+    "width": 16,
     "outfile": None,
 }
 
@@ -103,7 +103,7 @@ PATTERN_LIST = PATTERN_COLORS.keys()
 
 
 # MIPI-RAW10-RGGB generator (SGRBG10P, pgAA)
-def generate_bayer_pgAA(outfile, width, height, pattern, debug):
+def generate_bayer_pgAA(outfile, height, width, pattern, debug):
     with open(outfile, "wb") as fout:
         num_bands = len(PATTERN_COLORS[pattern])
         delta_rows = height // num_bands
@@ -128,7 +128,7 @@ def generate_bayer_pgAA(outfile, width, height, pattern, debug):
             row += 1
 
 
-def generate_planar(width, height, pattern, debug):
+def generate_planar(height, width, pattern, debug):
     # create planar image
     planar_image = np.zeros((3, height, width), dtype=np.uint16)
     num_bands = len(PATTERN_COLORS[pattern])
@@ -272,8 +272,8 @@ def main(argv):
     # do something
     generate_bayer_raw10_rggb(
         options.outfile,
-        options.width,
         options.height,
+        options.width,
         options.pattern,
         options.debug,
     )

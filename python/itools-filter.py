@@ -169,13 +169,13 @@ default_values = {
     "mix_definition": "y1y2y2",
     "x": 10,
     "y": 20,
-    "iwidth": 0,
     "iheight": 0,
+    "iwidth": 0,
     "istride": None,
     "iscanline": None,
     "icolorrange": itools_common.ColorRange.get_default(),
-    "width": 0,
     "height": 0,
+    "width": 0,
     "a00": 1,
     "a01": 0,
     "a10": 0,
@@ -272,8 +272,8 @@ def tint_extremes(
     )
     assert inyvu is not None, f"error: cannot read {infile}"
     # tint the chromas for almost-black and almost-white values
-    width, height, components = inyvu.shape
-    outyvu = np.zeros((width, height, components), dtype=inyvu.dtype)
+    height, width, components = inyvu.shape
+    outyvu = np.zeros((height, width, components), dtype=inyvu.dtype)
     for i in range(0, height):
         for j in range(0, width):
             y, v, u = inyvu[j][i]
@@ -535,9 +535,9 @@ def diff_images(
         yd = 255 - yd
     if not diff_color:
         # use gray chromas for visualization
-        width, height = yd.shape
-        ud = np.full((width, height), 128, dtype=np.uint8)
-        vd = np.full((width, height), 128, dtype=np.uint8)
+        height, width = yd.shape
+        ud = np.full((height, width), 128, dtype=np.uint8)
+        vd = np.full((height, width), 128, dtype=np.uint8)
     else:
         # use color chromas for visualization
         global DIFF_COLOR_FACTOR
@@ -578,7 +578,7 @@ def mse_image(
     # TODO(chema): use instatus to deal with color ranges
     # calculate the (1 - luma) mse
     luma = inyvu[:, :, 0].astype(np.int32)
-    width, height = luma.shape
+    height, width = luma.shape
     colordepth = instatus.get("colordepth", itools_common.ColorDepth.depth_8)
     if mse_invert:
         mse = ((colordepth.get_max() - luma) ** 2).mean()
@@ -692,10 +692,10 @@ def compose_images(
     assert inbgr2 is not None, f"error: cannot read {infile2}"
     # TODO(chema): use status (_) to deal with color ranges
     # compose them
-    width1, height1, _ = inbgr1.shape
-    width2, height2, _ = inbgr2.shape
-    assert xloc + width2 < width1
+    height1, width1, _ = inbgr1.shape
+    height2, width2, _ = inbgr2.shape
     assert yloc + height2 < height1
+    assert xloc + width2 < width1
     if inbgr2.shape[2] == 3:
         # no alpha channel: just use 50% ((im1 + im2) / 2)
         outbgr = inbgr1.astype(np.int16)
@@ -753,7 +753,7 @@ def match_images(
         # TODO(chema): replace random-composed luma with alpha-channel-based
         # matchTemplate() function.
         luma2rand = np.random.randint(256, size=inluma2.shape).astype(np.int16)
-        width2, height2 = inluma2.shape
+        height2, width2 = inluma2.shape
         alpha_channel2 = inbgr2[:, :, 3]
         # TODO(chema): replace this loop with alpha-channel line
         for x2, y2 in itertools.product(range(width2), range(height2)):
@@ -772,8 +772,8 @@ def match_images(
         print(f"{x0 = } {y0 = }", file=logfd)
     # prepare the output
     outbgr = inbgr1.astype(np.int16)
-    xwidth, ywidth, _ = inbgr2.shape
-    x1, y1 = x0 + xwidth, y0 + ywidth
+    xheight, ywidth, _ = inbgr2.shape
+    x1, y1 = x0 + xheight, y0 + ywidth
     # substract the needle from the haystack
     # this replaces black with black: Not very useful
     # outbgr[y0:y1, x0:x1] -= inbgr2[:,:,:3]
@@ -794,8 +794,8 @@ def affine_transformation_matrix(
     infile,
     iinfo,
     outfile,
-    width,
     height,
+    width,
     a00,
     a01,
     a10,
@@ -818,9 +818,11 @@ def affine_transformation_matrix(
     transform_matrix = np.array([m0, m1]).astype(np.float32)
     if debug > 0:
         print(f"{transform_matrix = }", file=logfd)
-    width = width if width != 0 else inbgr.shape[1]
     height = height if height != 0 else inbgr.shape[0]
-    outbgr = cv2.warpAffine(inbgr, transform_matrix, (width, height))
+    width = width if width != 0 else inbgr.shape[1]
+    # dsize parameter in warpAffine is (width, height)
+    dsize = (width, height)
+    outbgr = cv2.warpAffine(inbgr, transform_matrix, dsize)
     # store the output image
     itools_io.write_image_file(outfile, outbgr, **status)
 
@@ -829,8 +831,8 @@ def affine_transformation_points(
     infile,
     iinfo,
     outfile,
-    width,
     height,
+    width,
     s0x,
     s0y,
     s1x,
@@ -865,9 +867,11 @@ def affine_transformation_points(
     transform_matrix = cv2.getAffineTransform(src_trio, dst_trio)
     if debug > 0:
         print(f"{transform_matrix = }", file=logfd)
-    width = width if width != 0 else inbgr.shape[1]
     height = height if height != 0 else inbgr.shape[0]
-    outbgr = cv2.warpAffine(inbgr, transform_matrix, (width, height))
+    width = width if width != 0 else inbgr.shape[1]
+    # dsize parameter in warpAffine is (width, height)
+    dsize = (width, height)
+    outbgr = cv2.warpAffine(inbgr, transform_matrix, dsize)
     # store the output image
     itools_io.write_image_file(outfile, outbgr, **status)
 
@@ -1129,20 +1133,20 @@ def get_options(argv):
         help=("input COLORRANGE"),
     )
     parser.add_argument(
-        "--width",
-        action="store",
-        type=int,
-        dest="width",
-        default=default_values["width"],
-        help="Output Width",
-    )
-    parser.add_argument(
         "--height",
         action="store",
         type=int,
         dest="height",
         default=default_values["height"],
         help="Output height",
+    )
+    parser.add_argument(
+        "--width",
+        action="store",
+        type=int,
+        dest="width",
+        default=default_values["width"],
+        help="Output Width",
     )
     parser.add_argument(
         "--rotate-angle",
@@ -1423,8 +1427,8 @@ def main(argv):
         print(f"debug: {options}")
 
     iinfo = itools_common.ImageInfo(
-        options.iwidth,
         options.iheight,
+        options.iwidth,
         options.istride,
         options.iscanline,
         itools_common.ColorRange.parse(options.icolorrange),
@@ -1607,8 +1611,8 @@ def main(argv):
             options.infile,
             iinfo,
             options.outfile,
-            options.width,
             options.height,
+            options.width,
             options.a00,
             options.a01,
             options.a10,
@@ -1627,8 +1631,8 @@ def main(argv):
             options.infile,
             iinfo,
             options.outfile,
-            options.width,
             options.height,
+            options.width,
             options.s0x,
             options.s0y,
             options.s1x,

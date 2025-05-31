@@ -69,8 +69,8 @@ default_values = {
 COLUMN_LIST = [
     "infile",
     "outfile",
-    "width",
     "height",
+    "width",
     "codec",
     "preset",
     "quality",
@@ -83,10 +83,11 @@ COLUMN_LIST = [
 
 
 def get_video_dimensions(infile, logfd, debug):
-    command = f"ffprobe -v 0 -of csv='p=0' -select_streams v:0 -show_entries stream=width,height {infile}"
+    command = f"ffprobe -v 0 -of csv='p=0' -select_streams v:0 -show_entries stream=height,width {infile}"
     returncode, out, err = itools_common.run(command, logfd=logfd, debug=debug)
     assert returncode == 0, f"error: {out = } {err = }"
-    return [int(v) for v in out.decode("ascii").strip().split(",")]
+    height, width = [int(v) for v in out.decode("ascii").strip().split(",")]
+    return height, width
 
 
 VMAF_RE = "VMAF score: ([0-9.]*)"
@@ -240,7 +241,7 @@ def escape_float(f):
 # encoding backends
 # 1. heif-enc
 def heif_enc_encode_fun(
-    infile, width, height, codec, preset, quality, outfile, cleanup, logfd, debug
+    infile, height, width, codec, preset, quality, outfile, cleanup, logfd, debug
 ):
     return itools_heif.encode_heif(
         infile, codec, preset, quality, outfile, cleanup, logfd, debug
@@ -249,7 +250,7 @@ def heif_enc_encode_fun(
 
 # 2. libjpeg
 def libjpeg_encode_fun(
-    infile, width, height, codec, preset, quality, outfile, cleanup, logfd, debug
+    infile, height, width, codec, preset, quality, outfile, cleanup, logfd, debug
 ):
     return itools_jpeg.encode_libjpeg(
         infile, codec, preset, quality, outfile, cleanup, logfd, debug
@@ -257,7 +258,7 @@ def libjpeg_encode_fun(
 
 
 def jpegli_encode_fun(
-    infile, width, height, codec, preset, quality, outfile, cleanup, logfd, debug
+    infile, height, width, codec, preset, quality, outfile, cleanup, logfd, debug
 ):
     return itools_jpeg.encode_jpegli(
         infile, codec, preset, quality, outfile, cleanup, logfd, debug
@@ -266,7 +267,7 @@ def jpegli_encode_fun(
 
 # 3. jxl
 def jxl_encode_fun(
-    infile, width, height, codec, preset, quality, outfile, cleanup, logfd, debug
+    infile, height, width, codec, preset, quality, outfile, cleanup, logfd, debug
 ):
     return itools_jxl.encode_jxl(
         infile, codec, preset, quality, outfile, cleanup, logfd, debug
@@ -361,16 +362,16 @@ def process_file(
     )
     vertical_alignment = vertical_alignment if vertical_alignment is not None else va
     # 2. crop input to alignment in vertical and horizontal
-    width, height = get_video_dimensions(infile, logfd, debug)
-    width = (
-        width
-        if (horizontal_alignment is None or width % horizontal_alignment == 0)
-        else (horizontal_alignment * math.floor(width / horizontal_alignment))
-    )
+    height, width = get_video_dimensions(infile, logfd, debug)
     height = (
         height
         if (vertical_alignment is None or height % vertical_alignment == 0)
         else (vertical_alignment * math.floor(height / vertical_alignment))
+    )
+    width = (
+        width
+        if (horizontal_alignment is None or width % horizontal_alignment == 0)
+        else (horizontal_alignment * math.floor(width / horizontal_alignment))
     )
     ref_basename = f"{os.path.basename(infile)}.{width}x{height}.codec_{codec}.y4m"
     ref_path = os.path.join(workdir, ref_basename)
@@ -401,8 +402,8 @@ def process_file(
             try:
                 stats = encode_fun(
                     exp_path,
-                    width,
                     height,
+                    width,
                     codec,
                     preset,
                     quality,
@@ -494,8 +495,8 @@ def process_file(
         df.loc[df.size] = (
             infile,
             enc_path,
-            width,
             height,
+            width,
             codec,
             preset_name,
             quality,
@@ -552,8 +553,8 @@ def get_average_results(df):
         stats_keys = list(key for key in df.columns.values if key.startswith("stats:"))
         mean_keys = (
             [
-                "width",
                 "height",
+                "width",
                 "encoded_size",
                 "encoded_bpp",
                 "psnr",

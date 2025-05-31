@@ -89,8 +89,8 @@ default_values = {
     "quality_list": ",".join(str(v) for v in DEFAULT_QUALITY_LIST),
     "experiment_list": ",".join(str(k) for k in EXPERIMENT_DICT.keys()),
     "workdir": tempfile.gettempdir(),
-    "width": -1,
     "height": -1,
+    "width": -1,
     "pix_fmt": "bayer_rggb8",
     "infile_list": None,
     "outfile": None,
@@ -99,8 +99,8 @@ default_values = {
 
 COLUMN_LIST = [
     "infile",
-    "width",
     "height",
+    "width",
     "pix_fmt",
     "depth",
     "approach",
@@ -421,11 +421,11 @@ def libheif_heic_process(quality, planar, depth, experiment, debug):
 
 
 # read a Bayer image, and make sure the packed version is opencv-friendly
-def read_bayer_image(infile, pix_fmt, width, height, debug):
+def read_bayer_image(infile, pix_fmt, height, width, debug):
     pix_fmt = itools_bayer.get_canonical_input_pix_fmt(pix_fmt)
 
     # read the input image
-    bayer_image = itools_bayer.BayerImage.FromFile(infile, pix_fmt, width, height)
+    bayer_image = itools_bayer.BayerImage.FromFile(infile, pix_fmt, height, width)
     depth = itools_bayer.get_depth(bayer_image.pix_fmt)
 
     # convert to a same-depth format that is opencv-friendly
@@ -478,7 +478,7 @@ def process_file_bayer_ydgcocg_array(
     if debug > 0:
         print(f"# {bayer_image.infile}: {experiment}")
     df = pd.DataFrame(columns=COLUMN_LIST)
-    width, height = bayer_image.width, bayer_image.height
+    height, width = bayer_image.height, bayer_image.width
     depth = itools_bayer.get_depth(bayer_image.pix_fmt)
 
     # 1. demosaic raw image to RGB
@@ -540,8 +540,8 @@ def process_file_bayer_ydgcocg_array(
         # add new element
         df.loc[df.size] = (
             bayer_image.infile,
-            bayer_image.width,
             bayer_image.height,
+            bayer_image.width,
             bayer_image.pix_fmt,
             bayer_image.depth,
             experiment,
@@ -575,7 +575,7 @@ def process_file_bayer_ydgcocg_420_array(
     if debug > 0:
         print(f"# {bayer_image.infile}: {experiment}")
     df = pd.DataFrame(columns=COLUMN_LIST)
-    width, height = bayer_image.width, bayer_image.height
+    height, width = bayer_image.height, bayer_image.width
     depth = itools_bayer.get_depth(bayer_image.pix_fmt)
 
     # 1. demosaic raw image to RGB
@@ -648,8 +648,8 @@ def process_file_bayer_ydgcocg_420_array(
         # add new element
         df.loc[df.size] = (
             bayer_image.infile,
-            bayer_image.width,
             bayer_image.height,
+            bayer_image.width,
             bayer_image.pix_fmt,
             bayer_image.depth,
             experiment,
@@ -683,7 +683,7 @@ def process_file_bayer_single_array(
     if debug > 0:
         print(f"# {bayer_image.infile}: {experiment}")
     df = pd.DataFrame(columns=COLUMN_LIST)
-    width, height = bayer_image.width, bayer_image.height
+    height, width = bayer_image.height, bayer_image.width
     depth = itools_bayer.get_depth(bayer_image.pix_fmt)
 
     # 1. demosaic raw image to RGB
@@ -744,8 +744,8 @@ def process_file_bayer_single_array(
         # add new element
         df.loc[df.size] = (
             bayer_image.infile,
-            bayer_image.width,
             bayer_image.height,
+            bayer_image.width,
             bayer_image.pix_fmt,
             bayer_image.depth,
             experiment,
@@ -779,7 +779,7 @@ def process_file_bayer_rggb_array(
     if debug > 0:
         print(f"# {bayer_image.infile}: {experiment}")
     df = pd.DataFrame(columns=COLUMN_LIST)
-    width, height = bayer_image.width, bayer_image.height
+    height, width = bayer_image.height, bayer_image.width
     depth = itools_bayer.get_depth(bayer_image.pix_fmt)
 
     # 1. demosaic raw image to RGB
@@ -838,8 +838,8 @@ def process_file_bayer_rggb_array(
         # add new element
         df.loc[df.size] = (
             bayer_image.infile,
-            bayer_image.width,
             bayer_image.height,
+            bayer_image.width,
             bayer_image.pix_fmt,
             bayer_image.depth,
             experiment,
@@ -873,7 +873,7 @@ def process_file_yuv444_array(
     if debug > 0:
         print(f"# {bayer_image.infile}: {experiment}")
     df = pd.DataFrame(columns=COLUMN_LIST)
-    width, height = bayer_image.width, bayer_image.height
+    height, width = bayer_image.height, bayer_image.width
     depth = itools_bayer.get_depth(bayer_image.pix_fmt)
 
     # 1. demosaic raw image to RGB
@@ -933,8 +933,8 @@ def process_file_yuv444_array(
         # add new element
         df.loc[df.size] = (
             bayer_image.infile,
-            bayer_image.width,
             bayer_image.height,
+            bayer_image.width,
             bayer_image.pix_fmt,
             bayer_image.depth,
             experiment,
@@ -968,7 +968,7 @@ def process_file_yuv420_array(
     if debug > 0:
         print(f"# {bayer_image.infile}: {experiment}")
     df = pd.DataFrame(columns=COLUMN_LIST)
-    width, height = bayer_image.width, bayer_image.height
+    height, width = bayer_image.height, bayer_image.width
     depth = itools_bayer.get_depth(bayer_image.pix_fmt)
 
     # 1. demosaic raw image to RGB
@@ -1034,8 +1034,8 @@ def process_file_yuv420_array(
         # add new element
         df.loc[df.size] = (
             bayer_image.infile,
-            bayer_image.width,
             bayer_image.height,
+            bayer_image.width,
             bayer_image.pix_fmt,
             bayer_image.depth,
             experiment,
@@ -1069,7 +1069,7 @@ def process_file_rgb_array(
     if debug > 0:
         print(f"# {bayer_image.infile}: {experiment}")
     df = pd.DataFrame(columns=COLUMN_LIST)
-    width, height = bayer_image.width, bayer_image.height
+    height, width = bayer_image.height, bayer_image.width
     depth = itools_bayer.get_depth(bayer_image.pix_fmt)
 
     # 1. demosaic raw image to RGB
@@ -1129,8 +1129,8 @@ def process_file_rgb_array(
         # add new element
         df.loc[df.size] = (
             bayer_image.infile,
-            bayer_image.width,
             bayer_image.height,
+            bayer_image.width,
             bayer_image.pix_fmt,
             bayer_image.depth,
             experiment,
@@ -1193,8 +1193,8 @@ def get_average_results(df):
         derived_dict["encoded_size_breakdown"] = ""
         # average a few columns
         COLUMNS_MEAN = (
-            "width",
             "height",
+            "width",
             "encoded_size",
             "encoded_bpp",
             "psnr_bayer",
@@ -1218,8 +1218,8 @@ def process_data(
     experiment_list,
     codec,
     quality_list,
-    width,
     height,
+    width,
     pix_fmt,
     workdir,
     outfile,
@@ -1232,7 +1232,7 @@ def process_data(
     # 1. run the camera pipelines
     for infile in infile_list:
         # 1.1. read input image
-        bayer_image = read_bayer_image(infile, pix_fmt, width, height, debug)
+        bayer_image = read_bayer_image(infile, pix_fmt, height, width, debug)
         for experiment in experiment_list:
             # 1.2. run experiment
             tmp_df = process_file_array(
@@ -1507,8 +1507,8 @@ def main(argv):
         options.experiment_list,
         options.codec,
         options.quality_list,
-        options.width,
         options.height,
+        options.width,
         options.pix_fmt,
         options.workdir,
         options.outfile,

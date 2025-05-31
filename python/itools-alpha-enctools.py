@@ -44,8 +44,8 @@ default_values = {
 
 COLUMN_LIST = [
     "infile",
-    "width",
     "height",
+    "width",
     "depth",
     "codec",
     "raw_size",
@@ -73,8 +73,8 @@ def get_average_results(df):
         derived_dict["codec"] = codec
         # average a few columns
         COLUMNS_MEAN = (
-            "width",
             "height",
+            "width",
             "depth",
             "raw_size",
             "encoded_size",
@@ -144,8 +144,8 @@ def process_data(
         stats_str = ":".join(str(count) for count in stats.values())
         df.loc[df.size] = (
             infile,
-            width1,
             height1,
+            width1,
             depth,
             codec,
             raw_size,

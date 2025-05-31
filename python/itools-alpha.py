@@ -49,8 +49,8 @@ default_values = {
 BITS_PER_BYTE = 8
 
 
-def write_header(width, height, colorspace, codec, block_size):
-    header = f"ALPHA {width} {height} {colorspace} {codec} {block_size}\n"
+def write_header(height, width, colorspace, codec, block_size):
+    header = f"ALPHA {height} {width} {colorspace} {codec} {block_size}\n"
     return header
 
 
@@ -59,15 +59,15 @@ def read_header(header_line):
     assert parameters[0] == "ALPHA", "invalid alpha file: starts with {parameters[0]}"
     assert len(parameters) == 6, f"error: invalid header: '{header_line}'"
     try:
-        width = int(parameters[1])
-        height = int(parameters[2])
+        height = int(parameters[1])
+        width = int(parameters[2])
         colorspace = parameters[3].strip()
         codec = parameters[4].strip()
         block_size = int(parameters[5].strip())
     except:
         print(f"error: invalid header: '{header_line}'")
         sys.exit(-1)
-    return width, height, colorspace, codec, block_size
+    return height, width, colorspace, codec, block_size
 
 
 def block2string(block):
@@ -105,7 +105,7 @@ def encode_warhol(yarray, colorspace, block_size, debug):
     return stream
 
 
-def decode_warhol(width, height, colorspace, block_size, stream, debug):
+def decode_warhol(height, width, colorspace, block_size, stream, debug):
     # allocate space for the whole image
     yarray = np.zeros((height, width), dtype=np.uint8)
     i = 0
@@ -170,8 +170,8 @@ def encode_warhol2(yarray, colorspace, block_size, debug):
     return encode_warhol(yarray, colorspace, block_size, debug)
 
 
-def decode_warhol2(width, height, colorspace, block_size, stream, debug):
-    yarray, stats = decode_warhol(width, height, colorspace, block_size, stream, debug)
+def decode_warhol2(height, width, colorspace, block_size, stream, debug):
+    yarray, stats = decode_warhol(height, width, colorspace, block_size, stream, debug)
     return yarray, stats
 
 
@@ -207,7 +207,7 @@ def encode_bitmap(yarray, colorspace, block_size, debug):
     return stream
 
 
-def decode_bitmap(width, height, colorspace, block_size, stream, debug):
+def decode_bitmap(height, width, colorspace, block_size, stream, debug):
     # allocate space for the whole image
     yarray = np.zeros((height, width), dtype=np.uint8)
     i = 0
@@ -295,7 +295,7 @@ def encode_resolution(codec, yarray, colorspace, block_size, debug):
     return stream
 
 
-def decode_resolution(codec, width, height, colorspace, block_size, stream, debug):
+def decode_resolution(codec, height, width, colorspace, block_size, stream, debug):
     codec_depth = int(codec.split("-")[1])
     # allocate space for the whole image
     yarray = np.zeros((height, width), dtype=np.uint8)
@@ -392,7 +392,7 @@ def encode_file(infile, outfile, codec, block_size, debug):
     # 4. write encoded alpha channel to file
     with open(outfile, "wb") as fout:
         # write a small header
-        header = write_header(width, height, colorspace, codec, block_size)
+        header = write_header(height, width, colorspace, codec, block_size)
         fout.write(header.encode("utf-8"))
         stream.tofile(fout)
 
@@ -402,31 +402,31 @@ def decode_file(infile, outfile, debug):
     with open(infile, "rb") as f:
         # read the header
         header_line = f.readline()
-        width, height, colorspace, codec, block_size = read_header(header_line)
+        height, width, colorspace, codec, block_size = read_header(header_line)
         # read the data
         data = f.read()
     stream = bitstring.ConstBitStream(data)
 
     # 2. decode the encoded file into a luminance plane
-    effective_width = ((width + (block_size - 1)) // block_size) * block_size
     effective_height = ((height + (block_size - 1)) // block_size) * block_size
+    effective_width = ((width + (block_size - 1)) // block_size) * block_size
     if codec == "warhol":
         yarray, stats = decode_warhol(
-            effective_width, effective_height, colorspace, block_size, stream, debug
+            effective_height, effective_width, colorspace, block_size, stream, debug
         )
     elif codec == "warhol2":
         yarray, stats = decode_warhol2(
-            effective_width, effective_height, colorspace, block_size, stream, debug
+            effective_height, effective_width, colorspace, block_size, stream, debug
         )
     elif codec == "bitmap":
         yarray, stats = decode_bitmap(
-            effective_width, effective_height, colorspace, block_size, stream, debug
+            effective_height, effective_width, colorspace, block_size, stream, debug
         )
     elif codec.startswith("resolution-"):
         yarray, stats = decode_resolution(
             codec,
-            effective_width,
             effective_height,
+            effective_width,
             colorspace,
             block_size,
             stream,
@@ -434,10 +434,10 @@ def decode_file(infile, outfile, debug):
         )
 
     # 3. chop the array if needed
-    if effective_width > width:
-        yarray = yarray[:, :width]
     if effective_height > height:
         yarray = yarray[:height, :]
+    if effective_width > width:
+        yarray = yarray[:, :width]
 
     # 4. write the array into a y4m file
     itools_y4m.write_y4m(outfile, yarray, colorspace)

@@ -872,8 +872,8 @@ default_values = {
     "dry_run": False,
     "i_pix_fmt": None,
     "o_pix_fmt": None,
-    "width": 0,
     "height": 0,
+    "width": 0,
     "infile": None,
     "outfile": None,
 }
@@ -1051,13 +1051,13 @@ def yuv_upsample_planar(yuv_subsampled_planar):
 
 class BayerImage:
 
-    def __init__(self, infile, buffer, packed, planar, width, height, pix_fmt, debug=0):
+    def __init__(self, infile, buffer, packed, planar, height, width, pix_fmt, debug=0):
         self.infile = infile
         self.buffer = buffer
         self.packed = packed
         self.planar = planar
-        self.width = width
         self.height = height
+        self.width = width
         self.pix_fmt = pix_fmt
         pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
         self.depth = INPUT_FORMATS[pix_fmt]["depth"]
@@ -1250,10 +1250,10 @@ class BayerImage:
 
     # factory methods
     @classmethod
-    def FromFile(cls, infile, pix_fmt, width, height, debug=0):
+    def FromFile(cls, infile, pix_fmt, height, width, debug=0):
         # check image resolution
-        assert width % 2 == 0, f"error: only accept images with even width {width=}"
         assert height % 2 == 0, f"error: only accept images with even height {height=}"
+        assert width % 2 == 0, f"error: only accept images with even width {width=}"
         # check image pix_fmt
         pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
         # get format info
@@ -1278,7 +1278,7 @@ class BayerImage:
         with open(infile, "rb") as fin:
             buffer = fin.read(expected_size)
 
-        return BayerImage(infile, buffer, None, None, width, height, pix_fmt, debug)
+        return BayerImage(infile, buffer, None, None, height, width, pix_fmt, debug)
 
     @classmethod
     def FromPlanars(cls, bayer_r, bayer_g1, bayer_g2, bayer_b, pix_fmt, debug=0):
@@ -1302,7 +1302,7 @@ class BayerImage:
         assert (
             width % clen == 0
         ), f"error: invalid width ({width}) as clen: {clen} for {pix_fmt}"
-        return BayerImage(infile, None, None, planar, width, height, pix_fmt, debug)
+        return BayerImage(infile, None, None, planar, height, width, pix_fmt, debug)
 
     def GetBufferFromPlanar(self):
         clen = OUTPUT_FORMATS[self.pix_fmt]["clen"]
@@ -1351,7 +1351,7 @@ class BayerImage:
         assert (
             width % clen == 0
         ), f"error: invalid width ({width}) as clen: {clen} for {pix_fmt}"
-        return BayerImage("", None, packed, None, width, height, pix_fmt, debug)
+        return BayerImage("", None, packed, None, height, width, pix_fmt, debug)
 
     def GetBufferFromPacked(self):
         clen = OUTPUT_FORMATS[self.pix_fmt]["clen"]
@@ -1520,7 +1520,7 @@ def get_options(argv):
 
 
 def convert_image_planar_mode(
-    infile, i_pix_fmt, width, height, outfile, o_pix_fmt, debug
+    infile, i_pix_fmt, height, width, outfile, o_pix_fmt, debug
 ):
     # check the input pixel format
     i_pix_fmt = get_canonical_input_pix_fmt(i_pix_fmt)
@@ -1528,7 +1528,7 @@ def convert_image_planar_mode(
     o_pix_fmt = get_canonical_output_pix_fmt(o_pix_fmt)
 
     # read input image file
-    bayer_image = BayerImage.FromFile(infile, i_pix_fmt, width, height, debug)
+    bayer_image = BayerImage.FromFile(infile, i_pix_fmt, height, width, debug)
     planar = bayer_image.GetPlanar()
 
     # convert depths
@@ -1580,8 +1580,8 @@ def main(argv):
     convert_image_planar_mode(
         options.infile,
         options.i_pix_fmt,
-        options.width,
         options.height,
+        options.width,
         options.outfile,
         options.o_pix_fmt,
         options.debug,

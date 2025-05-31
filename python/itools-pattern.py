@@ -36,8 +36,8 @@ default_values = {
     "dry_run": False,
     "json_output": False,
     "pattern": "kwrgb",
-    "width": 4032,
     "height": 3024,
+    "width": 4032,
     "diff_factor": 1.0,
     "diff_component": "y",
     "range_conversion": "fr2fr",
@@ -49,54 +49,54 @@ default_values = {
 }
 
 
-def read_yuv420p10le_to_ndarray(infile, num_cols, num_rows):
+def read_yuv420p10le_to_ndarray(infile, height, width):
     # preallocate the array
-    y = np.zeros((num_rows, num_cols), dtype=np.uint16)
-    u = np.zeros((num_rows >> 1, num_cols >> 1), dtype=np.uint16)
-    v = np.zeros((num_rows >> 1, num_cols >> 1), dtype=np.uint16)
+    y = np.zeros((height, width), dtype=np.uint16)
+    u = np.zeros((height >> 1, width >> 1), dtype=np.uint16)
+    v = np.zeros((height >> 1, width >> 1), dtype=np.uint16)
     with open(infile, "rb") as fin:
         # read the luma plane
-        for row in range(num_rows):
-            for col in range(num_cols):
+        for row in range(height):
+            for col in range(width):
                 value_packed = fin.read(2)
                 y[row][col] = ((value_packed[1] << 8) | (value_packed[0])) & 0x03FF
         # read the u plane
-        for row in range(num_rows >> 1):
-            for col in range(num_cols >> 1):
+        for row in range(height >> 1):
+            for col in range(width >> 1):
                 value_packed = fin.read(2)
                 u[row][col] = ((value_packed[1] << 8) | (value_packed[0])) & 0x03FF
         # read the v plane
-        for row in range(num_rows >> 1):
-            for col in range(num_cols >> 1):
+        for row in range(height >> 1):
+            for col in range(width >> 1):
                 value_packed = fin.read(2)
                 v[row][col] = ((value_packed[1] << 8) | (value_packed[0])) & 0x03FF
     return y, u, v
 
 
-def write_ndarray_to_yuv420p10le(outfile, y, u, v, num_cols, num_rows):
+def write_ndarray_to_yuv420p10le(outfile, y, u, v, height, width):
     with open(outfile, "wb") as fout:
         # write the luma plane
-        for row in range(num_rows):
-            for col in range(num_cols):
+        for row in range(height):
+            for col in range(width):
                 fout.write(int(y[row][col]).to_bytes(2, byteorder="little"))
         # read the u plane
-        for row in range(num_rows >> 1):
-            for col in range(num_cols >> 1):
+        for row in range(height >> 1):
+            for col in range(width >> 1):
                 fout.write(int(u[row][col]).to_bytes(2, byteorder="little"))
         # read the v plane
-        for row in range(num_rows >> 1):
-            for col in range(num_cols >> 1):
+        for row in range(height >> 1):
+            for col in range(width >> 1):
                 fout.write(int(v[row][col]).to_bytes(2, byteorder="little"))
     return
 
 
 # yuv420p10le parser
-def parse(infile, num_cols, num_rows, pattern, logfd, debug):
+def parse(infile, height, width, pattern, logfd, debug):
     # read the input file
-    y, u, v = read_yuv420p10le_to_ndarray(infile, num_cols, num_rows)
+    y, u, v = read_yuv420p10le_to_ndarray(infile, height, width)
     # get the average representation for each color
     num_bands = len(itools_generate.PATTERN_COLORS[pattern])
-    delta_rows = num_rows // num_bands
+    delta_rows = height // num_bands
     for cur_band in range(num_bands):
         # get the top and bottom rows
         row_top = delta_rows * cur_band
@@ -127,9 +127,9 @@ def range_convert_using_range(matrix_in, imin, imax, omin, omax, ominabs, omaxab
 
 
 # yuv420p10le range conversion
-def range_convert(infile, outfile, num_cols, num_rows, range_conversion, logfd, debug):
+def range_convert(infile, outfile, height, width, range_conversion, logfd, debug):
     # read input image
-    y, u, v = read_yuv420p10le_to_ndarray(infile, num_cols, num_rows)
+    y, u, v = read_yuv420p10le_to_ndarray(infile, height, width)
     # convert range for each component
     if range_conversion in ("fr2fr", "fr2lr"):
         # input is FR
@@ -151,7 +151,7 @@ def range_convert(infile, outfile, num_cols, num_rows, range_conversion, logfd, 
     uc = range_convert_using_range(u, cimin, cimax, comin, comax, 0, 1023)
     vc = range_convert_using_range(v, cimin, cimax, comin, comax, 0, 1023)
     # write input image
-    write_ndarray_to_yuv420p10le(outfile, yc, uc, vc, num_cols, num_rows)
+    write_ndarray_to_yuv420p10le(outfile, yc, uc, vc, height, width)
 
 
 # yuv420p10le differ
@@ -159,16 +159,16 @@ def diff(
     infile1,
     infile2,
     outfile,
-    num_cols,
-    num_rows,
+    height,
+    width,
     diff_factor,
     diff_component,
     logfd,
     debug,
 ):
     # read the input files
-    y1, u1, v1 = read_yuv420p10le_to_ndarray(infile1, num_cols, num_rows)
-    y2, u2, v2 = read_yuv420p10le_to_ndarray(infile2, num_cols, num_rows)
+    y1, u1, v1 = read_yuv420p10le_to_ndarray(infile1, height, width)
+    y2, u2, v2 = read_yuv420p10le_to_ndarray(infile2, height, width)
     # diff them
     yd = np.absolute(y1.astype(np.int32) - y2.astype(np.int32)).astype(np.uint16)
     ud = np.absolute(u1.astype(np.int32) - u2.astype(np.int32)).astype(np.uint16)
@@ -188,13 +188,13 @@ def diff(
     elif diff_component == "u":
         # use the u for diff luma
         yd = ud
-        num_rows >>= 1
-        num_cols >>= 1
+        height >>= 1
+        width >>= 1
     elif diff_component == "v":
         # use the v for diff luma
         yd = vd
-        num_rows >>= 1
-        num_cols >>= 1
+        height >>= 1
+        width >>= 1
     # apply the luma factor
     yd_float = yd * diff_factor
     yd_float = yd_float.clip(0, 1023)
@@ -203,13 +203,13 @@ def diff(
     # invert the luma values
     yd = 1023 - yd
     # use gray chromas for visualization
-    ud = np.full((num_rows >> 1, num_cols >> 1), 512, dtype=np.uint16)
-    vd = np.full((num_rows >> 1, num_cols >> 1), 512, dtype=np.uint16)
+    ud = np.full((height >> 1, width >> 1), 512, dtype=np.uint16)
+    vd = np.full((height >> 1, width >> 1), 512, dtype=np.uint16)
     # write the diff as an output file
-    write_ndarray_to_yuv420p10le(outfile, yd, ud, vd, num_cols, num_rows)
+    write_ndarray_to_yuv420p10le(outfile, yd, ud, vd, height, width)
     # write the diff as a png file
     outfile_png = f"{outfile}.png"
-    command = f"{itools_common.FFMPEG_SILENT} -f rawvideo -pixel_format yuv420p10le -s {num_cols}x{num_rows} -i {outfile} {outfile_png}"
+    command = f"{itools_common.FFMPEG_SILENT} -f rawvideo -pixel_format yuv420p10le -s {width}x{height} -i {outfile} {outfile_png}"
     itools_common.run(command, logfd=logfd, debug=debug)
     print(f"debug: output: {outfile} png: {outfile_png}", file=logfd)
 
@@ -421,8 +421,8 @@ def main(argv):
     # do something
     if options.func == "generate":
         planar_image = itools_generate.generate_planar(
-            options.width,
             options.height,
+            options.width,
             options.pattern,
             logfd,
             options.debug,
@@ -433,8 +433,8 @@ def main(argv):
             planar_image,
             options.outfile,
             o_pix_fmt,
-            options.width,
             options.height,
+            options.width,
             cdepth,
             options.debug,
         )
@@ -442,8 +442,8 @@ def main(argv):
     elif options.func == "parse":
         parse(
             options.infile,
-            options.width,
             options.height,
+            options.width,
             options.pattern,
             logfd,
             options.debug,
@@ -453,8 +453,8 @@ def main(argv):
         range_convert(
             options.infile,
             options.outfile,
-            options.width,
             options.height,
+            options.width,
             options.range_conversion,
             logfd,
             options.debug,
@@ -469,8 +469,8 @@ def main(argv):
             options.infile,
             options.infile2,
             options.outfile,
-            options.width,
             options.height,
+            options.width,
             options.diff_factor,
             options.diff_component,
             logfd,

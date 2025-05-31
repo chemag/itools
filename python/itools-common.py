@@ -152,18 +152,18 @@ COLORSPACES = {
 
 
 class ImageInfo:
-    width = None
     height = None
+    width = None
 
-    def __init__(self, width, height, stride=None, scanline=None, colorrange=None):
-        self.width = width
+    def __init__(self, height, width, stride=None, scanline=None, colorrange=None):
         self.height = height
+        self.width = width
         self.stride = stride
         self.scanline = scanline
         self.colorrange = colorrange
 
     def __str__(self):
-        return f"width: {self.width} height: {self.height} stride: {self.stride} scanline: {self.scanline} colorrange: {self.colorrange.name}"
+        return f"height: {self.height} width: {self.width} stride: {self.stride} scanline: {self.scanline} colorrange: {self.colorrange.name}"
 
 
 def run(command, **kwargs):
@@ -220,44 +220,46 @@ def run(command, **kwargs):
 # converts a chroma-subsampled matrix into a non-chroma subsampled one
 # Algo is very simple (just dup values)
 def chroma_subsample_reverse(in_luma_matrix, in_chroma_matrix, colorspace):
-    in_w, in_h = in_chroma_matrix.shape
+    in_h, in_w = in_chroma_matrix.shape
     chroma_subsample = COLORSPACES[colorspace]["chroma_subsample"]
     if chroma_subsample == ChromaSubsample.chroma_420:
-        out_w = in_w << 1
         out_h = in_h << 1
-        out_chroma_matrix = np.zeros((out_w, out_h), dtype=np.uint8)
+        out_w = in_w << 1
+        out_chroma_matrix = np.zeros((out_h, out_w), dtype=np.uint8)
         out_chroma_matrix[::2, ::2] = in_chroma_matrix
         out_chroma_matrix[1::2, ::2] = in_chroma_matrix
         out_chroma_matrix[::2, 1::2] = in_chroma_matrix
         out_chroma_matrix[1::2, 1::2] = in_chroma_matrix
     elif chroma_subsample == ChromaSubsample.chroma_422:
-        out_w = in_w << 1
         out_h = in_h
-        out_chroma_matrix = np.zeros((out_w, out_h), dtype=np.uint8)
+        out_w = in_w << 1
+        out_chroma_matrix = np.zeros((out_h, out_w), dtype=np.uint8)
         out_chroma_matrix[::, ::2] = in_chroma_matrix
         out_chroma_matrix[::, 1::2] = in_chroma_matrix
     elif chroma_subsample == ChromaSubsample.chroma_444:
-        out_w = in_w
         out_h = in_h
-        out_chroma_matrix = np.zeros((out_w, out_h), dtype=np.uint8)
+        out_w = in_w
+        out_chroma_matrix = np.zeros((out_h, out_w), dtype=np.uint8)
         out_chroma_matrix = in_chroma_matrix
     elif chroma_subsample == ChromaSubsample.chroma_400:
-        in_w, in_h = in_luma_matrix.shape
-        out_w = in_w
+        in_h, in_w = in_luma_matrix.shape
         out_h = in_h
-        out_chroma_matrix = np.full((out_w, out_h), 128, dtype=np.uint8)
+        out_w = in_w
+        out_chroma_matrix = np.full((out_h, out_w), 128, dtype=np.uint8)
     return out_chroma_matrix
 
 
 # converts a non-chroma-subsampled matrix into a chroma subsampled one
 # Algo is very simple (just average values)
 def chroma_subsample_direct(in_chroma_matrix, colorspace):
-    in_w, in_h = in_chroma_matrix.shape
+    in_h, in_w = in_chroma_matrix.shape
     chroma_subsample = COLORSPACES[colorspace]["chroma_subsample"]
     if chroma_subsample == ChromaSubsample.chroma_420:
-        out_w = in_w >> 1
         out_h = in_h >> 1
-        out_chroma_matrix = np.zeros((out_w, out_h), dtype=np.uint16)
+        out_w = in_w >> 1
+        # pad the input chroma matrix to support odd height and width
+        in_chroma_matrix = np.pad(in_chroma_matrix, ((0, in_h % 2), (0, in_w % 2)), mode='edge')
+        out_chroma_matrix = np.zeros((out_h, out_w), dtype=np.uint16)
         out_chroma_matrix += in_chroma_matrix[::2, ::2]
         out_chroma_matrix += in_chroma_matrix[1::2, ::2]
         out_chroma_matrix += in_chroma_matrix[::2, 1::2]
@@ -265,17 +267,19 @@ def chroma_subsample_direct(in_chroma_matrix, colorspace):
         out_chroma_matrix = out_chroma_matrix / 4
         out_chroma_matrix = out_chroma_matrix.astype(np.uint8)
     elif chroma_subsample == ChromaSubsample.chroma_422:
-        out_w = in_w >> 1
         out_h = in_h
-        out_chroma_matrix = np.zeros((out_w, out_h), dtype=np.uint16)
+        out_w = in_w >> 1
+        # pad the input chroma matrix to support odd height and width
+        in_chroma_matrix = np.pad(in_chroma_matrix, ((0, 0), (0, in_w % 2)), mode='edge')
+        out_chroma_matrix = np.zeros((out_h, out_w), dtype=np.uint16)
         out_chroma_matrix += in_chroma_matrix[::, ::2]
         out_chroma_matrix += in_chroma_matrix[::, 1::2]
         out_chroma_matrix = out_chroma_matrix / 2
         out_chroma_matrix = out_chroma_matrix.astype(np.uint8)
     elif chroma_subsample == ChromaSubsample.chroma_444:
-        out_w = in_w
         out_h = in_h
-        out_chroma_matrix = np.zeros((out_w, out_h), dtype=np.uint8)
+        out_w = in_w
+        out_chroma_matrix = np.zeros((out_h, out_w), dtype=np.uint8)
         out_chroma_matrix = in_chroma_matrix
     return out_chroma_matrix
 

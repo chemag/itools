@@ -22,8 +22,8 @@ processImageTestCases = [
     # (a) component order
     {
         "name": "basic-8x8.noop",
-        "width": 4,
         "height": 4,
+        "width": 4,
         "i_pix_fmt": "bayer_rggb8",
         "o_pix_fmt": "bayer_rggb8",
         "debug": 0,
@@ -47,8 +47,8 @@ processImageTestCases = [
     },
     {
         "name": "basic-8x8.01",
-        "width": 4,
         "height": 4,
+        "width": 4,
         "i_pix_fmt": "bayer_rgbg8",
         "o_pix_fmt": "bayer_bggr8",
         "debug": 0,
@@ -74,8 +74,8 @@ processImageTestCases = [
     # bayer8->bayer16
     {
         "name": "basic-bayer_bggr8-bayer_bggr8",
-        "width": 4,
         "height": 4,
+        "width": 4,
         "i_pix_fmt": "bayer_bggr8",
         "o_pix_fmt": "bayer_bggr8",
         "debug": 0,
@@ -99,8 +99,8 @@ processImageTestCases = [
     },
     {
         "name": "basic-bayer_bggr8-bayer_gbrg8",
-        "width": 4,
         "height": 4,
+        "width": 4,
         "i_pix_fmt": "bayer_bggr8",
         "o_pix_fmt": "bayer_gbrg8",
         "debug": 0,
@@ -124,8 +124,8 @@ processImageTestCases = [
     },
     {
         "name": "basic-bayer_bggr8-bayer_gbrg8",
-        "width": 4,
         "height": 4,
+        "width": 4,
         "i_pix_fmt": "bayer_bggr8",
         "o_pix_fmt": "bayer_gbrg8",
         "debug": 0,
@@ -149,8 +149,8 @@ processImageTestCases = [
     },
     {
         "name": "basic-bayer_bggr8-bayer_grbg8",
-        "width": 4,
         "height": 4,
+        "width": 4,
         "i_pix_fmt": "bayer_bggr8",
         "o_pix_fmt": "bayer_grbg8",
         "debug": 0,
@@ -174,8 +174,8 @@ processImageTestCases = [
     },
     {
         "name": "basic-bayer_bggr8-bayer_ggbr8",
-        "width": 4,
         "height": 4,
+        "width": 4,
         "i_pix_fmt": "bayer_bggr8",
         "o_pix_fmt": "bayer_ggbr8",
         "debug": 0,
@@ -199,8 +199,8 @@ processImageTestCases = [
     },
     {
         "name": "basic-bayer_bggr8-bayer_ggrb8",
-        "width": 4,
         "height": 4,
+        "width": 4,
         "i_pix_fmt": "bayer_bggr8",
         "o_pix_fmt": "bayer_ggrb8",
         "debug": 0,
@@ -224,8 +224,8 @@ processImageTestCases = [
     },
     {
         "name": "basic-bayer_bggr8-bayer_rgbg8",
-        "width": 4,
         "height": 4,
+        "width": 4,
         "i_pix_fmt": "bayer_bggr8",
         "o_pix_fmt": "bayer_rgbg8",
         "debug": 0,
@@ -249,8 +249,8 @@ processImageTestCases = [
     },
     {
         "name": "basic-bayer_bggr8-bayer_bgrg8",
-        "width": 4,
         "height": 4,
+        "width": 4,
         "i_pix_fmt": "bayer_bggr8",
         "o_pix_fmt": "bayer_bgrg8",
         "debug": 0,
@@ -275,8 +275,8 @@ processImageTestCases = [
     # bayer8->bayer16
     {
         "name": "basic-8x16.be.readable",
-        "width": 4,
         "height": 4,
+        "width": 4,
         "i_pix_fmt": "bayer_bggr8",
         "o_pix_fmt": "bayer_bggr16be",
         "debug": 0,
@@ -300,8 +300,8 @@ processImageTestCases = [
     },
     {
         "name": "basic-8x16.be",
-        "width": 4,
         "height": 4,
+        "width": 4,
         "i_pix_fmt": "bayer_bggr8",
         "o_pix_fmt": "bayer_bggr16be",
         "debug": 0,
@@ -325,8 +325,8 @@ processImageTestCases = [
     },
     {
         "name": "basic-8x16.le",
-        "width": 4,
         "height": 4,
+        "width": 4,
         "i_pix_fmt": "bayer_bggr8",
         "o_pix_fmt": "bayer_bggr16le",
         "debug": 0,
@@ -351,8 +351,8 @@ processImageTestCases = [
     # bayer10->bayer16 (extended)
     {
         "name": "basic-extended10x16.le",
-        "width": 4,
         "height": 4,
+        "width": 4,
         "i_pix_fmt": "RG10",  # SRGGB10
         "o_pix_fmt": "bayer_rggb16le",
         "debug": 0,
@@ -377,8 +377,8 @@ processImageTestCases = [
     # bayer10->bayer16 (packed)
     {
         "name": "basic-packed10x16.le",
-        "width": 4,
         "height": 4,
+        "width": 4,
         "i_pix_fmt": "pRAA",  # SRGGB10P
         "o_pix_fmt": "bayer_bggr16le",
         "debug": 0,
@@ -407,8 +407,8 @@ processColorConversions = [
     # (a) 8-bit, red/purple image
     {
         "name": "red-purple.8bits.4x4",
-        "width": 4,
         "height": 4,
+        "width": 4,
         "pix_fmt": "bayer_rggb8",
         "debug": 0,
         "input": b"\xFF\x00\xFF\x00\x00\x00\x00\x80\xFF\x00\xFF\x00\x00\x80\x00\xFF",
@@ -480,8 +480,8 @@ processColorConversions = [
     # (b) 10-bit, red/purple image
     {
         "name": "red-purple.10bits.4x4",
-        "width": 4,
         "height": 4,
+        "width": 4,
         "pix_fmt": "bayer_rggb10",
         "debug": 0,
         "input": b"\xFF\x03\x00\x00\xFF\x03\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\xFF\x03\x00\x00\xFF\x03\x00\x00\x00\x00\x00\x02\x00\x00\xFF\x03",
@@ -567,14 +567,14 @@ class MainTest(unittest.TestCase):
             # prepare output file(s)
             # prepare parameters
             pix_fmt = test_case["pix_fmt"]
-            width = test_case["width"]
             height = test_case["height"]
+            width = test_case["width"]
             debug = test_case["debug"]
 
             # 1. run forward conversion
             pix_fmt = itools_bayer.get_canonical_input_pix_fmt(pix_fmt)
             bayer_image = itools_bayer.BayerImage.FromFile(
-                infile, pix_fmt, width, height, debug
+                infile, pix_fmt, height, width, debug
             )
 
             # 2. check the Bayer planar representation is correct
@@ -644,8 +644,8 @@ class MainTest(unittest.TestCase):
             expected_output = test_case["output"]
             # prepare parameters
             i_pix_fmt = test_case["i_pix_fmt"]
-            width = test_case["width"]
             height = test_case["height"]
+            width = test_case["width"]
             o_pix_fmt = test_case["o_pix_fmt"]
             debug = test_case["debug"]
 
@@ -653,8 +653,8 @@ class MainTest(unittest.TestCase):
             bayer_image = itools_bayer.convert_image_planar_mode(
                 infile,
                 i_pix_fmt,
-                width,
                 height,
+                width,
                 outfile,
                 o_pix_fmt,
                 debug,
@@ -697,8 +697,8 @@ class MainTest(unittest.TestCase):
             _ = itools_bayer.convert_image_planar_mode(
                 outfile,
                 o_pix_fmt,
-                width,
                 height,
+                width,
                 outfile,
                 o_pix_fmt,
                 debug,
@@ -717,8 +717,8 @@ class MainTest(unittest.TestCase):
             _ = itools_bayer.convert_image_planar_mode(
                 infile,
                 i_pix_fmt,
-                width,
                 height,
+                width,
                 outfile,
                 i_pix_fmt,
                 debug,

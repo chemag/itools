@@ -113,10 +113,10 @@ class Y4MHeader:
     DEFAULT_COLORSPACE = "420"
 
     def __init__(
-        self, width, height, framerate, interlaced, aspect, colorspace, comment
+        self, height, width, framerate, interlaced, aspect, colorspace, comment
     ):
-        self.width = width
         self.height = height
+        self.width = width
         self.framerate = framerate
         self.interlaced = interlaced
         self.aspect = aspect
@@ -142,7 +142,7 @@ class Y4MHeader:
             val[0] for val in parameters[1:]
         ), "error: no frame-rate parameter in y4m header"
         # default parameters
-        width = height = framerate = interlaced = aspect = colorspace = None
+        height = width = framerate = interlaced = aspect = colorspace = None
         comment = {}
         # parse parameters
         for v in parameters[1:]:
@@ -174,7 +174,7 @@ class Y4MHeader:
                     ), f"error: invalid colorrange: {colorrange}"
                 comment[key2] = val2
         return Y4MHeader(
-            width, height, framerate, interlaced, aspect, colorspace, comment
+            height, width, framerate, interlaced, aspect, colorspace, comment
         )
 
     @classmethod
@@ -303,7 +303,7 @@ def read_y4m(infile, output_colorrange=None, cleanup=0, logfd=sys.stdout, debug=
     return frame, header, offset, status
 
 
-def write_header(width, height, colorspace, colorrange):
+def write_header(height, width, colorspace, colorrange):
     header = f"YUV4MPEG2 W{width} H{height} F25:1 Ip A0:0 C{colorspace}"
     if colorrange in (
         itools_common.ColorRange.limited,
@@ -332,7 +332,7 @@ def write_y4m(
             height, width, _ = outyvu.shape
         except ValueError:
             height, width = outyvu.shape
-        header = write_header(width, height, colorspace, colorrange)
+        header = write_header(height, width, colorspace, colorrange)
         fout.write(header.encode("utf-8"))
         # write frame line
         frame = "FRAME\n"
