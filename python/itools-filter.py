@@ -69,6 +69,12 @@ FILTER_DICT = {
             "yvu",
         ],
     ),
+    "tint": Filter(
+        description="tint luminance extremes",
+        proc_color=[
+            "yvu",
+        ],
+    ),
     "mix-images": Filter(
         description="mix image components between 2x files",
         proc_color=[
@@ -246,6 +252,42 @@ def swap_xchroma(
         itools_io.write_image_file(
             outfile, outyvu, proc_color=itools_common.ProcColor.yvu, **instatus
         )
+
+
+def tint_extremes(
+    infile, outfile, iinfo, proc_color, config_dict, cleanup, logfd, debug
+):
+    assert (
+        proc_color == itools_common.ProcColor.yvu
+    ), f"error: swap_xchroma unsupported in {proc_color}"
+    # load the input image
+    inyvu, instatus = itools_io.read_image_file(
+        infile,
+        config_dict,
+        iinfo=iinfo,
+        proc_color=itools_common.ProcColor.yvu,
+        cleanup=cleanup,
+        logfd=logfd,
+        debug=debug,
+    )
+    assert inyvu is not None, f"error: cannot read {infile}"
+    # tint the chromas for almost-black and almost-white values
+    width, height, components = inyvu.shape
+    outyvu = np.zeros((width, height, components), dtype=inyvu.dtype)
+    for i in range(0, height):
+        for j in range(0, width):
+            y, v, u = inyvu[j][i]
+            if y == 254 and u == 128 and v == 128:
+                # force yellow-ish color
+                y, u, v = 255, 48, 160
+            elif y == 1 and u == 128 and v == 128:
+                # force blue-ish color
+                y, u, v = 0, 160, 48
+            outyvu[j][i] = y, v, u
+    # store the output image
+    itools_io.write_image_file(
+        outfile, outyvu, proc_color=itools_common.ProcColor.yvu, **instatus
+    )
 
 
 def swap_xrgb2yuv(
@@ -1499,6 +1541,18 @@ def main(argv):
 
     elif options.filter == "xchroma":
         swap_xchroma(
+            options.infile,
+            options.outfile,
+            iinfo,
+            itools_common.ProcColor[options.proc_color],
+            config_dict,
+            options.cleanup,
+            logfd,
+            options.debug,
+        )
+
+    elif options.filter == "tint":
+        tint_extremes(
             options.infile,
             options.outfile,
             iinfo,
