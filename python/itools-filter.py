@@ -276,14 +276,14 @@ def tint_extremes(
     outyvu = np.zeros((height, width, components), dtype=inyvu.dtype)
     for i in range(0, height):
         for j in range(0, width):
-            y, v, u = inyvu[j][i]
+            y, v, u = inyvu[i][j]
             if y == 254 and u == 128 and v == 128:
                 # force yellow-ish color
                 y, u, v = 255, 48, 160
             elif y == 1 and u == 128 and v == 128:
                 # force blue-ish color
                 y, u, v = 0, 160, 48
-            outyvu[j][i] = y, v, u
+            outyvu[i][j] = y, v, u
     # store the output image
     itools_io.write_image_file(
         outfile, outyvu, proc_color=itools_common.ProcColor.yvu, **instatus
