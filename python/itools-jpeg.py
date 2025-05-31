@@ -24,7 +24,7 @@ LIBJPEG_ENC = os.environ.get("LIBJPEG_ENC", "cjpeg")
 JPEGLI_ENC = os.environ.get("JPEGLI_ENC", "cjpegli")
 
 
-def read_jpeg(infile, config_dict, logfd, debug=0):
+def read_jpeg(infile, config_dict, logfd, cleanup=True, debug=0):
     # 1. decode to y4m
     tmpy4m = tempfile.NamedTemporaryFile(prefix="itools.jpeg.", suffix=".y4m").name
     decode_jpeg(infile, tmpy4m, logfd=logfd, debug=debug)
@@ -35,6 +35,8 @@ def read_jpeg(infile, config_dict, logfd, debug=0):
         logfd=logfd,
         debug=debug,
     )
+    if cleanup:
+        os.remove(tmpy4m)
     return outyvu
 
 
