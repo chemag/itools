@@ -41,7 +41,8 @@ def get_exiftool(infile, short, config_dict, cleanup, logfd, debug):
     # parse the exif file of the first tile
     command = f"exiftool -g -j -b {infile}"
     returncode, out, err = itools_common.run(command, logfd=logfd, debug=debug)
-    assert returncode == 0, f"error in {command}\n{err}"
+    if returncode != 0:
+        return {}
     exiftool_info = json.loads(out)
     exiftool_dict = exiftool_info[0]
     status = {}
