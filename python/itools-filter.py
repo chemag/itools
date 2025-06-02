@@ -287,7 +287,11 @@ def tint_extremes(
             outyvu[i][j] = y, v, u
     # store the output image
     itools_io.write_image_file(
-        outfile, outyvu, proc_color=itools_common.ProcColor.yvu, **instatus
+        outfile,
+        outyvu,
+        proc_color=itools_common.ProcColor.yvu,
+        colorspace="444",
+        **instatus,
     )
 
 
