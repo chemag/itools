@@ -54,6 +54,7 @@ FILTER_DICT = {
         description="copy input to output",
         proc_color=[
             "bgr",
+            "yvu",
         ],
     ),
     "gray": Filter(
