@@ -280,10 +280,10 @@ def tint_extremes(
             y, v, u = inyvu[i][j]
             if y == 254 and u == 128 and v == 128:
                 # force yellow-ish color
-                y, u, v = 255, 48, 160
+                y, u, v = 129, 48, 160
             elif y == 1 and u == 128 and v == 128:
                 # force blue-ish color
-                y, u, v = 0, 160, 48
+                y, u, v = 128, 160, 48
             outyvu[i][j] = y, v, u
     # store the output image
     itools_io.write_image_file(
