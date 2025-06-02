@@ -225,12 +225,15 @@ def parse_sos(blob):
     components = []
     for _ in range(number_of_components):
         component = collections.OrderedDict()
-        component["component_id"] = blob[idx]
-        component["component_id"] = COMPONENT_ID_STR[component["component_id"]]
+        component_id = blob[idx]
+        component_id_str = COMPONENT_ID_STR[component_id]
         idx += 1
-        component["huffman_ac_table"] = blob[idx] & 0x0F
-        component["huffman_dc_table"] = blob[idx] >> 4
+        huffman_ac_table = blob[idx] & 0x0F
+        huffman_dc_table = blob[idx] >> 4
         idx += 1
+        components.append(
+            [component_id, component_id_str, huffman_dc_table, huffman_ac_table]
+        )
     contents["components"] = components
     start_of_spectral_selection = blob[idx]
     idx += 1
