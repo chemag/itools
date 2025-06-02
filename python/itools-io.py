@@ -140,7 +140,7 @@ def write_image_file(outfile, outimg, proc_color=itools_common.ProcColor.bgr, **
             outyvu = outimg
         elif proc_color == itools_common.ProcColor.bgr:
             outyvu = cv2.cvtColor(outimg, cv2.COLOR_BGR2YCrCb)
-        colorspace = "420"
+        colorspace = kwargs.get("colorspace", "420")
         colorrange = kwargs.get("colorrange", itools_common.ColorRange.get_default())
         itools_y4m.write_y4m(outfile, outyvu, colorspace, colorrange)
     else:
