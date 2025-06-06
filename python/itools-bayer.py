@@ -1205,7 +1205,7 @@ class BayerImage:
         self.width = width
         self.pix_fmt = pix_fmt
         pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
-        self.depth = INPUT_FORMATS[pix_fmt]["depth"]
+        self.depth = BAYER_FORMATS[pix_fmt]["depth"]
         self.debug = debug
         self.rgb_cv2_packed = None
         self.rgb_planar = None
@@ -1247,7 +1247,7 @@ class BayerImage:
         return self.planar
 
     def GetPackedFromBuffer(self):
-        layout = INPUT_FORMATS[self.pix_fmt]["layout"]
+        layout = BAYER_FORMATS[self.pix_fmt]["layout"]
         if layout == LayoutType.planar:
             # make sure we have the planar
             self.planar = self.GetPlanarFromBuffer()
@@ -1259,10 +1259,10 @@ class BayerImage:
         # convert file buffer to packed
         # get format info
         pix_fmt = self.pix_fmt
-        clen = INPUT_FORMATS[pix_fmt]["clen"]
-        order = INPUT_FORMATS[pix_fmt]["order"]
-        blen = INPUT_FORMATS[pix_fmt]["blen"]
-        rfun = INPUT_FORMATS[pix_fmt]["rfun"]
+        clen = BAYER_FORMATS[pix_fmt]["clen"]
+        order = BAYER_FORMATS[pix_fmt]["order"]
+        blen = BAYER_FORMATS[pix_fmt]["blen"]
+        rfun = BAYER_FORMATS[pix_fmt]["rfun"]
         # create bayer packed image
         dtype = np.uint16 if self.depth > 8 else np.uint8
         self.packed = np.zeros((self.height, self.width), dtype=dtype)
@@ -1299,7 +1299,7 @@ class BayerImage:
         return self.packed
 
     def GetPlanarFromBuffer(self):
-        layout = INPUT_FORMATS[self.pix_fmt]["layout"]
+        layout = BAYER_FORMATS[self.pix_fmt]["layout"]
         if layout == LayoutType.packed:
             # make sure we have the packed
             self.packed = self.GetPackedFromBuffer()
@@ -1331,7 +1331,7 @@ class BayerImage:
         if self.rgb_cv2_packed is not None:
             return self.rgb_cv2_packed
         pix_fmt = self.pix_fmt
-        order = INPUT_FORMATS[pix_fmt]["order"]
+        order = BAYER_FORMATS[pix_fmt]["order"]
         bayer_packed = self.GetBayerPacked()
         self.rgb_cv2_packed = bayer_packed_to_rgb_cv2_packed(
             bayer_packed, order, self.depth
@@ -1381,9 +1381,9 @@ class BayerImage:
         # check image pix_fmt
         pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
         # get format info
-        clen = INPUT_FORMATS[pix_fmt]["clen"]
-        blen = INPUT_FORMATS[pix_fmt]["blen"]
-        order = INPUT_FORMATS[pix_fmt]["order"]
+        clen = BAYER_FORMATS[pix_fmt]["clen"]
+        blen = BAYER_FORMATS[pix_fmt]["blen"]
+        order = BAYER_FORMATS[pix_fmt]["order"]
 
         # make sure the width is OK
         # for Bayer pixel formats, only the width is important
@@ -1429,7 +1429,7 @@ class BayerImage:
         return BayerImage(infile, None, None, planar, height, width, pix_fmt, debug)
 
     def GetBufferFromPlanar(self):
-        layout = INPUT_FORMATS[self.pix_fmt]["layout"]
+        layout = BAYER_FORMATS[self.pix_fmt]["layout"]
         if layout == LayoutType.packed:
             # make sure we have the packed
             self.packed = self.GetPackedFromPlanar()
@@ -1457,7 +1457,7 @@ class BayerImage:
         return BayerImage("", None, packed, None, height, width, pix_fmt, debug)
 
     def GetBufferFromPacked(self):
-        layout = INPUT_FORMATS[self.pix_fmt]["layout"]
+        layout = BAYER_FORMATS[self.pix_fmt]["layout"]
         if layout == LayoutType.planar:
             # make sure we have the planar
             self.planar = self.GetPlanarFromPacked()
