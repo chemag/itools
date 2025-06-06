@@ -400,6 +400,32 @@ processImageTestCases = [
         ),
         "output": b"\x80\x07\x40\x02\x00\x09\x00\x04\x80\x06\x40\x01\x00\x08\x00\x03\x40\x11\xc0\x0c\x00\x13\x00\x0e\x00\x10\xc0\x0b\x40\x12\x00\x0d",
     },
+    # planar bayer
+    {
+        "name": "basic-8x8.planar",
+        "height": 4,
+        "width": 4,
+        "i_pix_fmt": "bayer_rggb8.planar",
+        "o_pix_fmt": "bayer_rggb8.planar",
+        "debug": 0,
+        "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
+        "planar_image": {
+            "R": np.array([[1, 2], [3, 4]], dtype=np.uint8),
+            "G": np.array([[5, 6], [7, 8]], dtype=np.uint8),
+            "g": np.array([[9, 10], [11, 12]], dtype=np.uint8),
+            "B": np.array([[13, 14], [15, 16]], dtype=np.uint8),
+        },
+        "packed_image": np.array(
+            [
+                [1, 5, 2, 6],
+                [9, 13, 10, 14],
+                [3, 7, 4, 8],
+                [11, 15, 12, 16],
+            ],
+            dtype=np.uint8,
+        ),
+        "output": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
+    },
 ]
 
 

@@ -17,6 +17,7 @@ Notes:
 
 import argparse
 import cv2
+import enum
 import importlib
 import numpy as np
 import os
@@ -38,6 +39,40 @@ OPENCV_BAYER_FROM_CONVERSIONS = {
     "BGgR": cv2.COLOR_BayerBGGR2RGB,
     "GBRg": cv2.COLOR_BayerGBRG2RGB,
 }
+
+
+class LayoutType(enum.Enum):
+    packed = 0
+    planar = 1
+
+
+# planar read/write functions
+def rfun_planar(data, order, depth, width, height, debug):
+    dtype = np.uint8 if depth == 8 else np.uint16
+    element_size_bytes = 1 if depth == 8 else 2
+    buffer_length = (width >> 1) * (height >> 1) * element_size_bytes
+    planar = {
+        order[0]: np.frombuffer(
+            data[0 * buffer_length : 1 * buffer_length], dtype=dtype
+        ).reshape((width >> 1, height >> 1)),
+        order[1]: np.frombuffer(
+            data[1 * buffer_length : 2 * buffer_length], dtype=dtype
+        ).reshape((width >> 1, height >> 1)),
+        order[2]: np.frombuffer(
+            data[2 * buffer_length : 3 * buffer_length], dtype=dtype
+        ).reshape((width >> 1, height >> 1)),
+        order[3]: np.frombuffer(
+            data[3 * buffer_length : 4 * buffer_length], dtype=dtype
+        ).reshape((width >> 1, height >> 1)),
+    }
+    return planar
+
+
+def wfun_planar(planar, order, debug):
+    buffer = b""
+    for plane_id in list(order):
+        buffer += planar[plane_id].tobytes()
+    return buffer
 
 
 # component read/write functions
@@ -259,6 +294,8 @@ BAYER_FORMATS = {
             "BA81",
             "SBGGR8",
         ),
+        # layout
+        "layout": LayoutType.packed,
         # component order
         "order": "BGgR",
         # byte length
@@ -279,6 +316,7 @@ BAYER_FORMATS = {
             "RGGB",
             "SRGGB8",
         ),
+        "layout": LayoutType.packed,
         "order": "RGgB",
         "blen": 2,
         "clen": 2,
@@ -292,6 +330,7 @@ BAYER_FORMATS = {
             "GBRG",
             "SGBRG8",
         ),
+        "layout": LayoutType.packed,
         "order": "GBRg",
         "blen": 2,
         "clen": 2,
@@ -305,6 +344,7 @@ BAYER_FORMATS = {
             "GRBG",
             "SGRBG8",
         ),
+        "layout": LayoutType.packed,
         "order": "GRBg",
         "blen": 2,
         "clen": 2,
@@ -314,6 +354,7 @@ BAYER_FORMATS = {
         "ffmpeg": True,
     },
     "bayer_ggbr8": {
+        "layout": LayoutType.packed,
         # component order
         "order": "GgBR",
         # byte length
@@ -330,6 +371,7 @@ BAYER_FORMATS = {
         "ffmpeg": True,
     },
     "bayer_ggrb8": {
+        "layout": LayoutType.packed,
         # component order
         "order": "GgRB",
         # byte length
@@ -346,6 +388,7 @@ BAYER_FORMATS = {
         "ffmpeg": True,
     },
     "bayer_rgbg8": {
+        "layout": LayoutType.packed,
         # component order
         "order": "RGBg",
         # byte length
@@ -362,6 +405,7 @@ BAYER_FORMATS = {
         "ffmpeg": True,
     },
     "bayer_bgrg8": {
+        "layout": LayoutType.packed,
         # component order
         "order": "BGRg",
         # byte length
@@ -388,6 +432,7 @@ BAYER_FORMATS = {
         "depth": 10,
         "rfun": rfun_10_expanded_to_16,
         "wfun": wfun_10_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "RGgB",
         "ffmpeg": False,
     },
@@ -401,6 +446,7 @@ BAYER_FORMATS = {
         "depth": 10,
         "rfun": rfun_10_expanded_to_16,
         "wfun": wfun_10_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "GRBg",
         "ffmpeg": False,
     },
@@ -414,6 +460,7 @@ BAYER_FORMATS = {
         "depth": 10,
         "rfun": rfun_10_expanded_to_16,
         "wfun": wfun_10_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "GBRg",
         "ffmpeg": False,
     },
@@ -427,6 +474,7 @@ BAYER_FORMATS = {
         "depth": 10,
         "rfun": rfun_10_expanded_to_16,
         "wfun": wfun_10_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "BGgR",
         "ffmpeg": False,
     },
@@ -438,6 +486,7 @@ BAYER_FORMATS = {
         "depth": 10,
         "rfun": rfun_10_packed_expanded_to_16,
         "wfun": wfun_10_packed_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "RGgB",
         "ffmpeg": False,
     },
@@ -448,6 +497,7 @@ BAYER_FORMATS = {
         "depth": 10,
         "rfun": rfun_10_packed_expanded_to_16,
         "wfun": wfun_10_packed_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "GRBg",
         "ffmpeg": False,
     },
@@ -458,6 +508,7 @@ BAYER_FORMATS = {
         "depth": 10,
         "rfun": rfun_10_packed_expanded_to_16,
         "wfun": wfun_10_packed_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "GBRg",
         "ffmpeg": False,
     },
@@ -468,6 +519,7 @@ BAYER_FORMATS = {
         "depth": 10,
         "rfun": rfun_10_packed_expanded_to_16,
         "wfun": wfun_10_packed_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "BGgR",
         "ffmpeg": False,
     },
@@ -479,6 +531,7 @@ BAYER_FORMATS = {
         "depth": 10,
         "rfun": rfun_10_alaw_expanded_to_16,
         "wfun": wfun_10_alaw_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "RGgB",
         "ffmpeg": False,
     },
@@ -489,6 +542,7 @@ BAYER_FORMATS = {
         "depth": 10,
         "rfun": rfun_10_alaw_expanded_to_16,
         "wfun": wfun_10_alaw_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "BGgR",
         "ffmpeg": False,
     },
@@ -499,6 +553,7 @@ BAYER_FORMATS = {
         "depth": 10,
         "rfun": rfun_10_alaw_expanded_to_16,
         "wfun": wfun_10_alaw_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "GBRg",
         "ffmpeg": False,
     },
@@ -509,6 +564,7 @@ BAYER_FORMATS = {
         "depth": 10,
         "rfun": rfun_10_alaw_expanded_to_16,
         "wfun": wfun_10_alaw_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "GRBg",
         "ffmpeg": False,
     },
@@ -520,6 +576,7 @@ BAYER_FORMATS = {
         "depth": 10,
         "rfun": rfun_10_dpcm_expanded_to_16,
         "wfun": wfun_10_dpcm_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "RGgB",
         "ffmpeg": False,
     },
@@ -530,6 +587,7 @@ BAYER_FORMATS = {
         "depth": 10,
         "rfun": rfun_10_dpcm_expanded_to_16,
         "wfun": wfun_10_dpcm_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "BGgR",
         "ffmpeg": False,
     },
@@ -540,6 +598,7 @@ BAYER_FORMATS = {
         "depth": 10,
         "rfun": rfun_10_dpcm_expanded_to_16,
         "wfun": wfun_10_dpcm_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "GBRg",
         "ffmpeg": False,
     },
@@ -550,6 +609,7 @@ BAYER_FORMATS = {
         "depth": 10,
         "rfun": rfun_10_dpcm_expanded_to_16,
         "wfun": wfun_10_dpcm_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "GRBg",
         "ffmpeg": False,
     },
@@ -561,6 +621,7 @@ BAYER_FORMATS = {
         "depth": 10,
         "rfun": rfun_10_ipu3_expanded_to_16,
         "wfun": wfun_10_ipu3_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "RGgB",
         "ffmpeg": False,
     },
@@ -571,6 +632,7 @@ BAYER_FORMATS = {
         "depth": 10,
         "rfun": rfun_10_ipu3_expanded_to_16,
         "wfun": wfun_10_ipu3_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "BGgR",
         "ffmpeg": False,
     },
@@ -581,6 +643,7 @@ BAYER_FORMATS = {
         "depth": 10,
         "rfun": rfun_10_ipu3_expanded_to_16,
         "wfun": wfun_10_ipu3_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "GBRg",
         "ffmpeg": False,
     },
@@ -591,6 +654,7 @@ BAYER_FORMATS = {
         "depth": 10,
         "rfun": rfun_10_ipu3_expanded_to_16,
         "wfun": wfun_10_ipu3_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "GRBg",
         "ffmpeg": False,
     },
@@ -602,6 +666,7 @@ BAYER_FORMATS = {
         "depth": 12,
         "rfun": rfun_12_expanded_to_16,
         "wfun": wfun_12_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "RGgB",
         "ffmpeg": False,
     },
@@ -612,6 +677,7 @@ BAYER_FORMATS = {
         "depth": 12,
         "rfun": rfun_12_expanded_to_16,
         "wfun": wfun_12_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "GRBg",
         "ffmpeg": False,
     },
@@ -622,6 +688,7 @@ BAYER_FORMATS = {
         "depth": 12,
         "rfun": rfun_12_expanded_to_16,
         "wfun": wfun_12_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "GBRg",
         "ffmpeg": False,
     },
@@ -632,6 +699,7 @@ BAYER_FORMATS = {
         "depth": 12,
         "rfun": rfun_12_expanded_to_16,
         "wfun": wfun_12_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "BGgR",
         "ffmpeg": False,
     },
@@ -643,6 +711,7 @@ BAYER_FORMATS = {
         "depth": 12,
         "rfun": rfun_12_packed_expanded_to_16,
         "wfun": wfun_12_packed_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "RGgB",
         "ffmpeg": False,
     },
@@ -653,6 +722,7 @@ BAYER_FORMATS = {
         "depth": 12,
         "rfun": rfun_12_packed_expanded_to_16,
         "wfun": wfun_12_packed_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "GRBg",
         "ffmpeg": False,
     },
@@ -663,6 +733,7 @@ BAYER_FORMATS = {
         "depth": 12,
         "rfun": rfun_12_packed_expanded_to_16,
         "wfun": wfun_12_packed_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "GBRg",
         "ffmpeg": False,
     },
@@ -673,6 +744,7 @@ BAYER_FORMATS = {
         "depth": 12,
         "rfun": rfun_12_packed_expanded_to_16,
         "wfun": wfun_12_packed_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "BGgR",
         "ffmpeg": False,
     },
@@ -684,6 +756,7 @@ BAYER_FORMATS = {
         "depth": 14,
         "rfun": rfun_14_expanded_to_16,
         "wfun": wfun_14_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "RGgB",
         "ffmpeg": False,
     },
@@ -694,6 +767,7 @@ BAYER_FORMATS = {
         "depth": 14,
         "rfun": rfun_14_expanded_to_16,
         "wfun": wfun_14_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "GRBg",
         "ffmpeg": False,
     },
@@ -704,6 +778,7 @@ BAYER_FORMATS = {
         "depth": 14,
         "rfun": rfun_14_expanded_to_16,
         "wfun": wfun_14_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "GBRg",
         "ffmpeg": False,
     },
@@ -714,6 +789,7 @@ BAYER_FORMATS = {
         "depth": 14,
         "rfun": rfun_14_expanded_to_16,
         "wfun": wfun_14_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "BGgR",
         "ffmpeg": False,
     },
@@ -725,6 +801,7 @@ BAYER_FORMATS = {
         "depth": 14,
         "rfun": rfun_14_packed_expanded_to_16,
         "wfun": wfun_14_packed_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "RGgB",
         "ffmpeg": False,
     },
@@ -735,6 +812,7 @@ BAYER_FORMATS = {
         "depth": 14,
         "rfun": rfun_14_packed_expanded_to_16,
         "wfun": wfun_14_packed_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "GRBg",
         "ffmpeg": False,
     },
@@ -745,6 +823,7 @@ BAYER_FORMATS = {
         "depth": 14,
         "rfun": rfun_14_packed_expanded_to_16,
         "wfun": wfun_14_packed_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "GBRg",
         "ffmpeg": False,
     },
@@ -755,6 +834,7 @@ BAYER_FORMATS = {
         "depth": 14,
         "rfun": rfun_14_packed_expanded_to_16,
         "wfun": wfun_14_packed_expanded_to_16,
+        "layout": LayoutType.packed,
         "order": "BGgR",
         "ffmpeg": False,
     },
@@ -765,6 +845,7 @@ BAYER_FORMATS = {
             "BYR2",
             "SBGGR16",
         ),
+        "layout": LayoutType.packed,
         "order": "BGgR",
         "ffmpeg": True,
         "blen": 4,
@@ -774,6 +855,7 @@ BAYER_FORMATS = {
         "wfun": wfun_16le,
     },
     "bayer_rggb16le": {
+        "layout": LayoutType.packed,
         "order": "RGgB",
         "ffmpeg": True,
         "alias": (
@@ -791,6 +873,7 @@ BAYER_FORMATS = {
             "GB16",
             "SGBRG16",
         ),
+        "layout": LayoutType.packed,
         "order": "GBRg",
         "ffmpeg": True,
         "blen": 4,
@@ -804,6 +887,7 @@ BAYER_FORMATS = {
             "GR16",
             "SGRBG16",
         ),
+        "layout": LayoutType.packed,
         "order": "GRBg",
         "ffmpeg": True,
         "blen": 4,
@@ -813,6 +897,7 @@ BAYER_FORMATS = {
         "wfun": wfun_16le,
     },
     "bayer_bggr16be": {
+        "layout": LayoutType.packed,
         "order": "BGgR",
         "ffmpeg": True,
         "blen": 4,
@@ -822,6 +907,7 @@ BAYER_FORMATS = {
         "wfun": wfun_16be,
     },
     "bayer_rggb16be": {
+        "layout": LayoutType.packed,
         "order": "RGgB",
         "ffmpeg": True,
         "blen": 4,
@@ -831,6 +917,7 @@ BAYER_FORMATS = {
         "wfun": wfun_16be,
     },
     "bayer_gbrg16be": {
+        "layout": LayoutType.packed,
         "order": "GBRg",
         "ffmpeg": True,
         "blen": 4,
@@ -840,6 +927,7 @@ BAYER_FORMATS = {
         "wfun": wfun_16be,
     },
     "bayer_grbg16be": {
+        "layout": LayoutType.packed,
         "order": "GRBg",
         "ffmpeg": True,
         "blen": 4,
@@ -847,6 +935,63 @@ BAYER_FORMATS = {
         "depth": 16,
         "rfun": rfun_16be,
         "wfun": wfun_16be,
+    },
+    # planar
+    "bayer_bggr8.planar": {
+        "alias": (
+            "BA81.planar",
+            "SBGGR8.planar",
+        ),
+        "layout": LayoutType.planar,
+        "order": "BGgR",
+        "blen": 0,
+        "clen": 0,
+        "depth": 8,
+        "rfun": rfun_planar,
+        "wfun": wfun_planar,
+        "ffmpeg": False,
+    },
+    "bayer_rggb8.planar": {
+        "alias": (
+            "RGGB.planar",
+            "SRGGB8.planar",
+        ),
+        "layout": LayoutType.planar,
+        "order": "RGgB",
+        "blen": 2,
+        "clen": 2,
+        "depth": 8,
+        "rfun": rfun_planar,
+        "wfun": wfun_planar,
+        "ffmpeg": False,
+    },
+    "bayer_gbrg8.planar": {
+        "alias": (
+            "GBRG.planar",
+            "SGBRG8.planar",
+        ),
+        "layout": LayoutType.planar,
+        "order": "GBRg",
+        "blen": 2,
+        "clen": 2,
+        "depth": 8,
+        "rfun": rfun_planar,
+        "wfun": wfun_planar,
+        "ffmpeg": False,
+    },
+    "bayer_grbg8.planar": {
+        "alias": (
+            "GRBG.planar",
+            "SGRBG8.planar",
+        ),
+        "layout": LayoutType.planar,
+        "order": "GRBg",
+        "blen": 2,
+        "clen": 2,
+        "depth": 8,
+        "rfun": rfun_planar,
+        "wfun": wfun_planar,
+        "ffmpeg": False,
     },
 }
 
@@ -1102,6 +1247,15 @@ class BayerImage:
         return self.planar
 
     def GetPackedFromBuffer(self):
+        layout = INPUT_FORMATS[self.pix_fmt]["layout"]
+        if layout == LayoutType.planar:
+            # make sure we have the planar
+            self.planar = self.GetPlanarFromBuffer()
+            # then get the packed
+            self.packed = self.GetPackedFromPlanar()
+            return self.packed
+        # layout == LayoutType.packed:
+        # do the conversion directly
         # convert file buffer to packed
         # get format info
         pix_fmt = self.pix_fmt
@@ -1145,10 +1299,19 @@ class BayerImage:
         return self.packed
 
     def GetPlanarFromBuffer(self):
-        # make sure we have the packed
-        self.packed = self.GetPackedFromBuffer()
-        # then get the Planar
-        self.planar = self.GetPlanarFromPacked()
+        layout = INPUT_FORMATS[self.pix_fmt]["layout"]
+        if layout == LayoutType.packed:
+            # make sure we have the packed
+            self.packed = self.GetPackedFromBuffer()
+            # then get the Planar
+            self.planar = self.GetPlanarFromPacked()
+            return self.planar
+        # layout == LayoutType.packed:
+        # do the conversion directly
+        order = BAYER_FORMATS[self.pix_fmt]["order"]
+        self.planar = rfun_planar(
+            self.buffer, order, self.depth, self.width, self.height, self.debug
+        )
         return self.planar
 
     def GetBayerPlanar(self):
@@ -1266,10 +1429,17 @@ class BayerImage:
         return BayerImage(infile, None, None, planar, height, width, pix_fmt, debug)
 
     def GetBufferFromPlanar(self):
-        # make sure we have the packed
-        self.packed = self.GetPackedFromPlanar()
-        # then get the Buffer
-        self.buffer = self.GetBufferFromPacked()
+        layout = INPUT_FORMATS[self.pix_fmt]["layout"]
+        if layout == LayoutType.packed:
+            # make sure we have the packed
+            self.packed = self.GetPackedFromPlanar()
+            # then get the Buffer
+            self.buffer = self.GetBufferFromPacked()
+            return self.buffer
+        # layout == LayoutType.planar:
+        # do the conversion directly
+        order = BAYER_FORMATS[self.pix_fmt]["order"]
+        self.buffer = wfun_planar(self.planar, order, self.debug)
         return self.buffer
 
     @classmethod
@@ -1287,6 +1457,15 @@ class BayerImage:
         return BayerImage("", None, packed, None, height, width, pix_fmt, debug)
 
     def GetBufferFromPacked(self):
+        layout = INPUT_FORMATS[self.pix_fmt]["layout"]
+        if layout == LayoutType.planar:
+            # make sure we have the planar
+            self.planar = self.GetPlanarFromPacked()
+            # then get the Buffer
+            self.buffer = self.GetBufferFromPlanar()
+            return self.buffer
+        # layout == LayoutType.packed:
+        # do the conversion directly
         clen = OUTPUT_FORMATS[self.pix_fmt]["clen"]
         order = OUTPUT_FORMATS[self.pix_fmt]["order"]
         wfun = OUTPUT_FORMATS[self.pix_fmt]["wfun"]
