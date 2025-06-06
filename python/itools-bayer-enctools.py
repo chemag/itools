@@ -45,15 +45,6 @@ ST_DTYPE_16BIT = np.uint16
 OP_DTYPE = np.int32
 
 
-CV2_OPERATION_PIX_FMT_DICT = {
-    8: "SRGGB8",
-    10: "SRGGB10",
-    12: "SRGGB12",
-    14: "SRGGB14",
-    16: "SRGGB16",
-}
-
-
 EXPERIMENT_DICT = {
     "bayer-ydgcocg": {
         "name": "Bayer-ydgcocg",
@@ -121,184 +112,23 @@ COLUMN_LIST = [
 ]
 
 
-def bayer_ydgcocg_subsample_planar(bayer_ydgcocg_planar):
-    bayer_ydgcocg_subsampled_planar = bayer_ydgcocg_planar.copy()
-    bayer_ydgcocg_subsampled_planar["co"] = bayer_ydgcocg_subsampled_planar["co"][
-        ::2, ::2
-    ]
-    bayer_ydgcocg_subsampled_planar["cg"] = bayer_ydgcocg_subsampled_planar["cg"][
-        ::2, ::2
-    ]
-    return bayer_ydgcocg_subsampled_planar
+def ydgcocg_subsample_planar(ydgcocg_planar):
+    ydgcocg_subsampled_planar = ydgcocg_planar.copy()
+    ydgcocg_subsampled_planar["co"] = ydgcocg_subsampled_planar["co"][::2, ::2]
+    ydgcocg_subsampled_planar["cg"] = ydgcocg_subsampled_planar["cg"][::2, ::2]
+    return ydgcocg_subsampled_planar
 
 
-def bayer_ydgcocg_upsample_planar(bayer_ydgcocg_subsampled_planar):
-    bayer_ydgcocg_planar = bayer_ydgcocg_subsampled_planar.copy()
-    original_shape = bayer_ydgcocg_planar["y"].shape
-    bayer_ydgcocg_planar["co"] = itools_bayer.upsample_matrix(
-        bayer_ydgcocg_planar["co"], original_shape
+def ydgcocg_upsample_planar(ydgcocg_subsampled_planar):
+    ydgcocg_planar = ydgcocg_subsampled_planar.copy()
+    original_shape = ydgcocg_planar["y"].shape
+    ydgcocg_planar["co"] = itools_bayer.upsample_matrix(
+        ydgcocg_planar["co"], original_shape
     )
-    bayer_ydgcocg_planar["cg"] = itools_bayer.upsample_matrix(
-        bayer_ydgcocg_planar["cg"], original_shape
+    ydgcocg_planar["cg"] = itools_bayer.upsample_matrix(
+        ydgcocg_planar["cg"], original_shape
     )
-    return bayer_ydgcocg_planar
-
-
-# matrix clippers
-# In our matrix operations, the OP_DTYPE is np.int32. After applying the
-# matrix, we can have 2x situations:
-#
-# (a) positive value, in the [0, 2^{<depth>} - 1] range. This is what
-# happens to the Y component, as it is calculated by shifting the R/G1/G2/B
-# components to the right twice, and then add them.
-#   +----+----+----+----+----+----+----+----+
-#   |    |    |    |    |    |    |abcd|efgh| 8-bit
-#   +----+----+----+----+----+----+----+----+
-# In the 8-bit case, we clip the bits [a..h].
-#   +----+----+----+----+----+----+----+----+
-#   |    |    |    |    |    |  ab|cdef|ghij| 10-bit
-#   +----+----+----+----+----+----+----+----+
-# In the 10-bit case, we clip the bits [a..j].
-#   +----+----+----+----+----+----+----+----+
-#   |    |    |    |    |abcd|efgh|ijkl|mnop| 16-bit
-#   +----+----+----+----+----+----+----+----+
-# In the 10-bit case, we clip the bits [a..p].
-def clip_positive(arr, depth, check=True):
-    max_value = 2**depth - 1
-    st_dtype = np.uint8 if depth == 8 else np.uint16
-    # check for values outside the valid range
-    if check and np.any((arr < 0) | (arr > max_value)):
-        raise ValueError("Array contains values outside the valid range")
-    # clip values to the closest integer and convert to storage dtype
-    return np.clip(arr, 0, max_value).astype(st_dtype)
-
-
-# (b) integer value, in the [-2^{<depth>}, 2^{<depth>} - 1] range. This is
-# what happens to the Dg, Co, and Cg components, as they are calculated by
-# adding/substracting the R/G1/G2/B components. Note that it is not possible
-# to get away of the range.
-#
-# The solution in this case is to add a shift to center the value (positive
-# or negative) around zero, and then throw the LSB in order to encode the
-# right amount of bits.
-#
-# For example, for 8-bit components, the value of Dg/Co/Cg is in the
-# [-255, 255] range. In order to encode it, we scale it to half (effectively
-# throwing the LSB), and then add a shift. The value ends up in the range
-# [0, 255].
-
-
-def clip_integer_and_scale(arr, depth, check=True):
-    max_value = 2**depth - 1
-    min_value = -max_value
-    shift = 2 ** (depth - 1)
-    st_dtype = np.uint8 if depth == 8 else np.uint16
-    # check for values outside the valid range
-    if check and np.any((arr < min_value) | (arr > max_value)):
-        raise ValueError("Array contains values outside the valid range")
-    # scale and shift values to the storage dtype
-    return ((arr >> 1) + shift).astype(st_dtype)
-
-
-def unclip_positive(arr, depth):
-    return arr.astype(OP_DTYPE)
-
-
-def unclip_integer_and_unscale(arr, depth):
-    shift = 2 ** (depth - 1)
-    # unscale and convert
-    return (arr.astype(OP_DTYPE) - shift) << 1
-
-
-# Malvar Sullivan, "Progressive to Lossless Compression of Color Filter
-# Array Images Using Macropixel Spectral Spatial Transformation", 2012
-def convert_rg1g2b_to_ydgcocg(bayer_image, depth):
-    # 1. separate Bayer components
-    bayer_planar = bayer_image.GetBayerPlanar()
-    bayer_r = bayer_planar["R"]
-    bayer_g1 = bayer_planar["G"]
-    bayer_g2 = bayer_planar["g"]
-    bayer_b = bayer_planar["B"]
-    # 2. do the color conversion
-    bayer_ydgcocg_planar = convert_rg1g2b_to_ydgcocg_components(
-        bayer_r, bayer_g1, bayer_g2, bayer_b, depth
-    )
-    return bayer_ydgcocg_planar
-
-
-def convert_rg1g2b_to_ydgcocg_components(bayer_r, bayer_g1, bayer_g2, bayer_b, depth):
-    # 1. convert values
-    bayer_r = bayer_r.astype(OP_DTYPE)
-    bayer_g1 = bayer_g1.astype(OP_DTYPE)
-    bayer_g2 = bayer_g2.astype(OP_DTYPE)
-    bayer_b = bayer_b.astype(OP_DTYPE)
-    # [ Y  ]   [ 1/4  1/4  1/4  1/4 ] [ G1 ]
-    # [ Dg ] = [ -1    1    0    0  ] [ G4 ]
-    # [ Co ]   [  0    0    1   -1  ] [ R2 ]
-    # [ Cg ]   [ 1/2  1/2 -1/2 -1/2 ] [ B3 ]
-    bayer_y = (bayer_g1 >> 2) + (bayer_g2 >> 2) + (bayer_r >> 2) + (bayer_b >> 2)
-    bayer_dg = (-1) * bayer_g1 + (1) * bayer_g2
-    bayer_co = (1) * bayer_r + (-1) * bayer_b
-    bayer_cg = (bayer_g1 >> 1) + (bayer_g2 >> 1) - (bayer_r >> 1) - (bayer_b >> 1)
-    # 2. clip matrices to storage type
-    bayer_ydgcocg_planar = {
-        "y": clip_positive(bayer_y, depth),
-        "dg": clip_integer_and_scale(bayer_dg, depth),
-        "co": clip_integer_and_scale(bayer_co, depth),
-        "cg": clip_integer_and_scale(bayer_cg, depth),
-    }
-    return bayer_ydgcocg_planar
-
-
-def convert_ydgcocg_to_rg1g2b(bayer_ydgcocg_planar, depth):
-    # 1. do the color conversion
-    bayer_y = bayer_ydgcocg_planar["y"]
-    bayer_dg = bayer_ydgcocg_planar["dg"]
-    bayer_co = bayer_ydgcocg_planar["co"]
-    bayer_cg = bayer_ydgcocg_planar["cg"]
-    bayer_r, bayer_g1, bayer_g2, bayer_b = convert_ydgcocg_to_rg1g2b_components(
-        bayer_y, bayer_dg, bayer_co, bayer_cg, depth
-    )
-    # 2. merge Bayer components
-    bayer_image = merge_bayer_planes(bayer_r, bayer_g1, bayer_g2, bayer_b, depth)
-    return bayer_image
-
-
-def merge_bayer_planes(bayer_r, bayer_g1, bayer_g2, bayer_b, depth):
-    pix_fmt = CV2_OPERATION_PIX_FMT_DICT[depth]
-    return itools_bayer.BayerImage.FromPlanars(
-        bayer_r, bayer_g1, bayer_g2, bayer_b, pix_fmt
-    )
-
-
-def convert_ydgcocg_to_rg1g2b_components(bayer_y, bayer_dg, bayer_co, bayer_cg, depth):
-    # 1. unclip matrices from storage dtype
-    bayer_y = unclip_positive(bayer_y, depth)
-    bayer_dg = unclip_integer_and_unscale(bayer_dg, depth)
-    bayer_co = unclip_integer_and_unscale(bayer_co, depth)
-    bayer_cg = unclip_integer_and_unscale(bayer_cg, depth)
-    # 2. convert values
-    # l = (1/4, 1/4, 1/4, 1/4, -1, 1, 0, 0, 0, 0, 1, -1, 1/2, 1/2, -1/2, -1/2)
-    # matrix = np.array(l).reshape(4, 4)
-    # np.linalg.inv(matrix)
-    # array([[ 1. , -0.5, -0. ,  0.5],
-    #        [ 1. ,  0.5,  0. ,  0.5],
-    #        [ 1. ,  0. ,  0.5, -0.5],
-    #        [ 1. ,  0. , -0.5, -0.5]])
-    # [ G1 ]   [  1  -1/2   0   1/2 ] [ Y  ]
-    # [ G4 ] = [  1   1/2   0   1/2 ] [ Dg ]
-    # [ R2 ]   [  1    0   1/2 -1/2 ] [ Co ]
-    # [ B3 ]   [  1    0  -1/2 -1/2 ] [ Cg ]
-    bayer_g1 = bayer_y - (bayer_dg >> 1) + (bayer_cg >> 1)
-    bayer_g2 = bayer_y + (bayer_dg >> 1) + (bayer_cg >> 1)
-    bayer_r = bayer_y + (bayer_co >> 1) - (bayer_cg >> 1)
-    bayer_b = bayer_y - (bayer_co >> 1) - (bayer_cg >> 1)
-    # 3. round to storage dtype
-    bayer_r = clip_positive(bayer_r, depth, check=False)
-    bayer_g1 = clip_positive(bayer_g1, depth, check=False)
-    bayer_g2 = clip_positive(bayer_g2, depth, check=False)
-    bayer_b = clip_positive(bayer_b, depth, check=False)
-    return bayer_r, bayer_g1, bayer_g2, bayer_b
+    return ydgcocg_planar
 
 
 # encoding processing
@@ -429,7 +259,7 @@ def read_bayer_image(infile, pix_fmt, height, width, debug):
     depth = itools_bayer.get_depth(bayer_image.pix_fmt)
 
     # convert to a same-depth format that is opencv-friendly
-    o_pix_fmt = CV2_OPERATION_PIX_FMT_DICT[depth]
+    o_pix_fmt = itools_bayer.CV2_OPERATION_PIX_FMT_DICT[depth]
     o_pix_fmt = itools_bayer.get_canonical_output_pix_fmt(o_pix_fmt)
     bayer_image_cv2 = itools_bayer.BayerImage.FromPlanar(
         bayer_image.GetBayerPlanar(),
@@ -441,7 +271,7 @@ def read_bayer_image(infile, pix_fmt, height, width, debug):
 
 
 # debug functions
-def yuv_planar_to_yvu(yuv_planar):
+def yuv_planar_to_opencv_yvu(yuv_planar):
     plane_yvu = np.stack((yuv_planar["y"], yuv_planar["v"], yuv_planar["u"]), axis=-1)
     return plane_yvu
 
@@ -449,12 +279,14 @@ def yuv_planar_to_yvu(yuv_planar):
 def write_yuv_planar_to_y4m(
     yuv_planar, experiment, depth, colorrange=itools_common.ColorRange.full
 ):
-    yuv_yvu = yuv_planar_to_yvu(yuv_planar)
+    plane_yvu = yuv_planar_to_opencv_yvu(yuv_planar)
     y4mfile = tempfile.NamedTemporaryFile(
         prefix=f"itools-bayer-enctools.experiment_{experiment}.", suffix=".y4m"
     ).name
     colorspace = "444" if depth == 8 else "444p10"
-    itools_y4m.write_y4m(y4mfile, yuv_yvu, colorspace=colorspace, colorrange=colorrange)
+    itools_y4m.write_y4m(
+        y4mfile, plane_yvu, colorspace=colorspace, colorrange=colorrange
+    )
 
 
 def write_single_plane_to_y4m(
@@ -468,7 +300,7 @@ def write_single_plane_to_y4m(
 
 
 # Bayer processing stack
-def process_file_bayer_ydgcocg_array(
+def process_file_ydgcocg_array(
     experiment,
     bayer_image,
     codec,
@@ -492,18 +324,18 @@ def process_file_bayer_ydgcocg_array(
         )
 
     # 3. demosaic Bayer image to YDgCoCg
-    bayer_ydgcocg_planar = convert_rg1g2b_to_ydgcocg(bayer_image, depth)
+    ydgcocg_planar = bayer_image.GetYDgCoCgPlanar()
 
     for quality in quality_list:
         if debug > 1:
             print(f"# ... {bayer_image.infile}: {experiment} {quality}")
         # 4. encode and decode the 4 planes
-        bayer_ydgcocg_planar_prime, encoded_size_dict = codec_process(
-            codec, quality, depth, bayer_ydgcocg_planar, experiment, debug
+        ydgcocg_planar_prime, encoded_size_dict = codec_process(
+            codec, quality, depth, ydgcocg_planar, experiment, debug
         )
-
-        # 5. convert YDgCoCg image back to Bayer
-        bayer_image_prime = convert_ydgcocg_to_rg1g2b(bayer_ydgcocg_planar_prime, depth)
+        bayer_image_prime = itools_bayer.BayerImage.FromYDgCoCgPlanar(
+            ydgcocg_planar_prime, bayer_image.pix_fmt, debug
+        )
 
         # 6. demosaic raw image to RGB
         rgb_planar_prime = bayer_image_prime.GetRGBPlanar()
@@ -568,7 +400,7 @@ def process_file_bayer_ydgcocg_array(
 
 
 # Bayer processing stack (YDgCoCg 4:2:0)
-def process_file_bayer_ydgcocg_420_array(
+def process_file_ydgcocg_420_array(
     experiment,
     bayer_image,
     codec,
@@ -592,29 +424,27 @@ def process_file_bayer_ydgcocg_420_array(
         )
 
     # 3. demosaic Bayer image to YDgCoCg
-    bayer_ydgcocg_planar = convert_rg1g2b_to_ydgcocg(bayer_image, depth)
+    ydgcocg_planar = bayer_image.GetYDgCoCgPlanar()
 
     # 4. subsample the chromas
-    bayer_ydgcocg_subsampled_planar = bayer_ydgcocg_subsample_planar(
-        bayer_ydgcocg_planar
-    )
+    ydgcocg_subsampled_planar = ydgcocg_subsample_planar(ydgcocg_planar)
 
     for quality in quality_list:
         if debug > 1:
             print(f"# ... {bayer_image.infile}: {experiment} {quality}")
         # 5. encode and decode the 4 planes
         # encode and decode the 4 planes
-        bayer_ydgcocg_subsampled_planar_prime, encoded_size_dict = codec_process(
-            codec, quality, depth, bayer_ydgcocg_subsampled_planar, experiment, debug
+        ydgcocg_subsampled_planar_prime, encoded_size_dict = codec_process(
+            codec, quality, depth, ydgcocg_subsampled_planar, experiment, debug
         )
 
         # 6. upsample the chromas
-        bayer_ydgcocg_planar_prime = bayer_ydgcocg_upsample_planar(
-            bayer_ydgcocg_subsampled_planar_prime
-        )
+        ydgcocg_planar_prime = ydgcocg_upsample_planar(ydgcocg_subsampled_planar_prime)
 
         # 7. convert YDgCoCg image back to Bayer
-        bayer_image_prime = convert_ydgcocg_to_rg1g2b(bayer_ydgcocg_planar_prime, depth)
+        bayer_image_prime = itools_bayer.BayerImage.FromYDgCoCgPlanar(
+            ydgcocg_planar_prime, bayer_image.pix_fmt, debug
+        )
 
         # 8. demosaic raw image to RGB
         rgb_planar_prime = bayer_image_prime.GetRGBPlanar()
@@ -1175,8 +1005,8 @@ def process_file_rgb_array(
 
 
 PROCESS_FILE_ARRAY_FUN = {
-    "bayer-ydgcocg": process_file_bayer_ydgcocg_array,
-    "bayer-ydgcocg-420": process_file_bayer_ydgcocg_420_array,
+    "bayer-ydgcocg": process_file_ydgcocg_array,
+    "bayer-ydgcocg-420": process_file_ydgcocg_420_array,
     "yuv444": process_file_yuv444_array,
     "yuv420": process_file_yuv420_array,
     "rgb": process_file_rgb_array,

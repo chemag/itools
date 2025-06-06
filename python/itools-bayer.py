@@ -25,13 +25,13 @@ import sys
 
 itools_common = importlib.import_module("itools-common")
 
-
 __version__ = "0.1"
 
 COLOR_COMPONENTS = set("RGgB")
 
 # internal planar bayer image format is G1G2RB
-DEFAULT_PLANAR_ORDER = list("GgRB")
+DEFAULT_BAYER_PLANAR_ORDER = list("RGgB")
+DEFAULT_YDGCOCG_PLANAR_ORDER = list("YDCc")
 
 OPENCV_BAYER_FROM_CONVERSIONS = {
     "RGgB": cv2.COLOR_BayerRGGB2RGB,
@@ -40,10 +40,32 @@ OPENCV_BAYER_FROM_CONVERSIONS = {
     "GBRg": cv2.COLOR_BayerGBRG2RGB,
 }
 
+# dtype operation
+# We use 2x dtype values
+# * (1) st_dtype (storage dtype): This is uint8 for 8-bit Bayer, uint16 for
+#   higher bit depths.
+# * (2) op_dtype (operation dtype): This is int32 in all cases.
+ST_DTYPE_8BIT = np.uint8
+ST_DTYPE_16BIT = np.uint16
+OP_DTYPE = np.int32
+
+CV2_OPERATION_PIX_FMT_DICT = {
+    8: "SRGGB8",
+    10: "SRGGB10",
+    12: "SRGGB12",
+    14: "SRGGB14",
+    16: "SRGGB16",
+}
+
 
 class LayoutType(enum.Enum):
     packed = 0
     planar = 1
+
+
+class ComponentType(enum.Enum):
+    bayer = 0
+    ydgcocg = 1
 
 
 # planar read/write functions
@@ -54,16 +76,16 @@ def rfun_planar(data, order, depth, width, height, debug):
     planar = {
         order[0]: np.frombuffer(
             data[0 * buffer_length : 1 * buffer_length], dtype=dtype
-        ).reshape((width >> 1, height >> 1)),
+        ).reshape((height >> 1, width >> 1)),
         order[1]: np.frombuffer(
             data[1 * buffer_length : 2 * buffer_length], dtype=dtype
-        ).reshape((width >> 1, height >> 1)),
+        ).reshape((height >> 1, width >> 1)),
         order[2]: np.frombuffer(
             data[2 * buffer_length : 3 * buffer_length], dtype=dtype
-        ).reshape((width >> 1, height >> 1)),
+        ).reshape((height >> 1, width >> 1)),
         order[3]: np.frombuffer(
             data[3 * buffer_length : 4 * buffer_length], dtype=dtype
-        ).reshape((width >> 1, height >> 1)),
+        ).reshape((height >> 1, width >> 1)),
     }
     return planar
 
@@ -298,9 +320,13 @@ BAYER_FORMATS = {
         "layout": LayoutType.packed,
         # component order
         "order": "BGgR",
-        # byte length
+        # Some bayer formats use an intermediate "item" structure that gathers
+        # components together. For example, the 10-bit Bayer formats (packed)
+        # pack 4 components in 5 bytes. In this case, the item size will be
+        # 5 bytes (blen=5), and it will contain 4 components (clen=4)
+        # byte length: bytes per item read
         "blen": 2,
-        # component length
+        # component length: components per item
         "clen": 2,
         # component depth (in bits)
         "depth": 8,
@@ -355,70 +381,42 @@ BAYER_FORMATS = {
     },
     "bayer_ggbr8": {
         "layout": LayoutType.packed,
-        # component order
         "order": "GgBR",
-        # byte length
         "blen": 2,
-        # component length
         "clen": 2,
-        # component depth (in bits)
         "depth": 8,
-        # read function
         "rfun": rfun_8,
-        # write function
         "wfun": wfun_8,
-        # ffmpeg support
         "ffmpeg": True,
     },
     "bayer_ggrb8": {
         "layout": LayoutType.packed,
-        # component order
         "order": "GgRB",
-        # byte length
         "blen": 2,
-        # component length
         "clen": 2,
-        # component depth (in bits)
         "depth": 8,
-        # read function
         "rfun": rfun_8,
-        # write function
         "wfun": wfun_8,
-        # ffmpeg support
         "ffmpeg": True,
     },
     "bayer_rgbg8": {
         "layout": LayoutType.packed,
-        # component order
         "order": "RGBg",
-        # byte length
         "blen": 2,
-        # component length
         "clen": 2,
-        # component depth (in bits)
         "depth": 8,
-        # read function
         "rfun": rfun_8,
-        # write function
         "wfun": wfun_8,
-        # ffmpeg support
         "ffmpeg": True,
     },
     "bayer_bgrg8": {
         "layout": LayoutType.packed,
-        # component order
         "order": "BGRg",
-        # byte length
         "blen": 2,
-        # component length
         "clen": 2,
-        # component depth (in bits)
         "depth": 8,
-        # read function
         "rfun": rfun_8,
-        # write function
         "wfun": wfun_8,
-        # ffmpeg support
         "ffmpeg": True,
     },
     # 10-bit Bayer formats expanded to 16 bits
@@ -944,8 +942,6 @@ BAYER_FORMATS = {
         ),
         "layout": LayoutType.planar,
         "order": "BGgR",
-        "blen": 0,
-        "clen": 0,
         "depth": 8,
         "rfun": rfun_planar,
         "wfun": wfun_planar,
@@ -958,8 +954,6 @@ BAYER_FORMATS = {
         ),
         "layout": LayoutType.planar,
         "order": "RGgB",
-        "blen": 2,
-        "clen": 2,
         "depth": 8,
         "rfun": rfun_planar,
         "wfun": wfun_planar,
@@ -972,8 +966,6 @@ BAYER_FORMATS = {
         ),
         "layout": LayoutType.planar,
         "order": "GBRg",
-        "blen": 2,
-        "clen": 2,
         "depth": 8,
         "rfun": rfun_planar,
         "wfun": wfun_planar,
@@ -986,8 +978,6 @@ BAYER_FORMATS = {
         ),
         "layout": LayoutType.planar,
         "order": "GRBg",
-        "blen": 2,
-        "clen": 2,
         "depth": 8,
         "rfun": rfun_planar,
         "wfun": wfun_planar,
@@ -998,8 +988,6 @@ BAYER_FORMATS = {
             "SRGGB10.planar",
             "bayer_rggb10.planar",
         ),
-        "blen": 4,
-        "clen": 2,
         "depth": 10,
         "rfun": rfun_planar,
         "wfun": wfun_planar,
@@ -1012,8 +1000,6 @@ BAYER_FORMATS = {
             "SGRBG10.planar",
             "bayer_grbg10.planar",
         ),
-        "blen": 4,
-        "clen": 2,
         "depth": 10,
         "rfun": rfun_planar,
         "wfun": wfun_planar,
@@ -1026,8 +1012,6 @@ BAYER_FORMATS = {
             "SGBRG10.planar",
             "bayer_gbrg10.planar",
         ),
-        "blen": 4,
-        "clen": 2,
         "depth": 10,
         "rfun": rfun_planar,
         "wfun": wfun_planar,
@@ -1040,13 +1024,48 @@ BAYER_FORMATS = {
             "SBGGR10.planar",
             "bayer_bggr10.planar",
         ),
-        "blen": 4,
-        "clen": 2,
         "depth": 10,
         "rfun": rfun_planar,
         "wfun": wfun_planar,
         "layout": LayoutType.planar,
         "order": "BGgR",
+        "ffmpeg": False,
+    },
+    # non-RGGB Bayer
+    "ydgcocg8.packed": {
+        "layout": LayoutType.packed,
+        "order": "YDCc",
+        "blen": 1,
+        "clen": 1,
+        "depth": 8,
+        "rfun": rfun_8,
+        "wfun": wfun_8,
+        "ffmpeg": False,
+    },
+    "ydgcocg8.planar": {
+        "layout": LayoutType.planar,
+        "order": "YDCc",
+        "depth": 8,
+        "rfun": rfun_planar,
+        "wfun": wfun_planar,
+        "ffmpeg": False,
+    },
+    "ydgcocg10.packed": {
+        "layout": LayoutType.packed,
+        "order": "YDCc",
+        "blen": 4,
+        "clen": 2,
+        "depth": 10,
+        "rfun": rfun_10_expanded_to_16,
+        "wfun": wfun_10_expanded_to_16,
+        "ffmpeg": False,
+    },
+    "ydgcocg10.planar": {
+        "layout": LayoutType.planar,
+        "order": "YDCc",
+        "depth": 10,
+        "rfun": rfun_planar,
+        "wfun": wfun_planar,
         "ffmpeg": False,
     },
 }
@@ -1073,8 +1092,8 @@ default_values = {
     "dry_run": False,
     "i_pix_fmt": None,
     "o_pix_fmt": None,
-    "height": 0,
     "width": 0,
+    "height": 0,
     "infile": None,
     "outfile": None,
 }
@@ -1109,8 +1128,13 @@ def get_canonical_output_pix_fmt(o_pix_fmt):
 
 
 def get_depth(pix_fmt):
-    i_pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
-    return BAYER_FORMATS[i_pix_fmt]["depth"]
+    pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
+    return BAYER_FORMATS[pix_fmt]["depth"]
+
+
+def get_order(pix_fmt):
+    pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
+    return BAYER_FORMATS[pix_fmt]["order"]
 
 
 # 1. color conversions (Bayer-RGB)
@@ -1153,7 +1177,7 @@ def rgb_cv2_packed_to_bayer_image(rgb_cv2_packed, pix_fmt):
                     bayer_packed[i, j] = bgr_image[i, j, 1]  # Green
                 else:
                     bayer_packed[i, j] = bgr_image[i, j, 2]  # Red
-    return BayerImage.FromPacked(bayer_packed, pix_fmt)
+    return BayerImage.FromBayerPacked(bayer_packed, pix_fmt)
 
 
 def rgb_planar_to_bayer_image(rgb_planar, pix_fmt):
@@ -1198,7 +1222,83 @@ def yuv_cv2_packed_to_rgb_cv2_packed(yuv_cv2_packed, depth):
     return rgb_cv2_packed
 
 
-# 3. packed-to-planar conversions
+# 3. color conversions (Bayer-YDgCoCg)
+# Malvar Sullivan, "Progressive to Lossless Compression of Color Filter
+# Array Images Using Macropixel Spectral Spatial Transformation", 2012
+def rg1g2b_to_ydgcocg_planar(bayer_planar, depth):
+    # 1. separate Bayer components
+    bayer_r = bayer_planar["R"].astype(OP_DTYPE)
+    bayer_g1 = bayer_planar["G"].astype(OP_DTYPE)
+    bayer_g2 = bayer_planar["g"].astype(OP_DTYPE)
+    bayer_b = bayer_planar["B"].astype(OP_DTYPE)
+
+    # 2. do the color conversion
+    # [ Y  ]   [ 1/4  1/4  1/4  1/4 ] [ G1 ]
+    # [ Dg ] = [ -1    1    0    0  ] [ G4 ]
+    # [ Co ]   [  0    0    1   -1  ] [ R2 ]
+    # [ Cg ]   [ 1/2  1/2 -1/2 -1/2 ] [ B3 ]
+    bayer_y = (bayer_g1 >> 2) + (bayer_g2 >> 2) + (bayer_r >> 2) + (bayer_b >> 2)
+    bayer_dg = (-1) * bayer_g1 + (1) * bayer_g2
+    bayer_co = (1) * bayer_r + (-1) * bayer_b
+    bayer_cg = (bayer_g1 >> 1) + (bayer_g2 >> 1) - (bayer_r >> 1) - (bayer_b >> 1)
+
+    # 3. clip matrices to storage type
+    ydgcocg_planar = {
+        "Y": clip_positive(bayer_y, depth),
+        "D": clip_integer_and_scale(bayer_dg, depth),
+        "C": clip_integer_and_scale(bayer_co, depth),
+        "c": clip_integer_and_scale(bayer_cg, depth),
+    }
+    return ydgcocg_planar
+
+
+def ydgcocg_to_rg1g2b_planar(ydgcocg_planar, depth):
+    # 1. separate YDgCoCg components
+    bayer_y = ydgcocg_planar["Y"]
+    bayer_dg = ydgcocg_planar["D"]
+    bayer_co = ydgcocg_planar["C"]
+    bayer_cg = ydgcocg_planar["c"]
+
+    # 2. unclip matrices from storage dtype
+    bayer_y = unclip_positive(bayer_y, depth)
+    bayer_dg = unclip_integer_and_unscale(bayer_dg, depth)
+    bayer_co = unclip_integer_and_unscale(bayer_co, depth)
+    bayer_cg = unclip_integer_and_unscale(bayer_cg, depth)
+
+    # 3. do the color conversion
+    # l = (1/4, 1/4, 1/4, 1/4, -1, 1, 0, 0, 0, 0, 1, -1, 1/2, 1/2, -1/2, -1/2)
+    # matrix = np.array(l).reshape(4, 4)
+    # np.linalg.inv(matrix)
+    # array([[ 1. , -0.5, -0. ,  0.5],
+    #        [ 1. ,  0.5,  0. ,  0.5],
+    #        [ 1. ,  0. ,  0.5, -0.5],
+    #        [ 1. ,  0. , -0.5, -0.5]])
+    # [ G1 ]   [  1  -1/2   0   1/2 ] [ Y  ]
+    # [ G4 ] = [  1   1/2   0   1/2 ] [ Dg ]
+    # [ R2 ]   [  1    0   1/2 -1/2 ] [ Co ]
+    # [ B3 ]   [  1    0  -1/2 -1/2 ] [ Cg ]
+    bayer_g1 = bayer_y - (bayer_dg >> 1) + (bayer_cg >> 1)
+    bayer_g2 = bayer_y + (bayer_dg >> 1) + (bayer_cg >> 1)
+    bayer_r = bayer_y + (bayer_co >> 1) - (bayer_cg >> 1)
+    bayer_b = bayer_y - (bayer_co >> 1) - (bayer_cg >> 1)
+
+    # 4. round to storage dtype
+    bayer_r = clip_positive(bayer_r, depth, check=False)
+    bayer_g1 = clip_positive(bayer_g1, depth, check=False)
+    bayer_g2 = clip_positive(bayer_g2, depth, check=False)
+    bayer_b = clip_positive(bayer_b, depth, check=False)
+
+    # 5. merge planes
+    bayer_planar = {
+        "R": bayer_r,
+        "G": bayer_g1,
+        "g": bayer_g2,
+        "B": bayer_b,
+    }
+    return bayer_planar
+
+
+# 4. packed-to-planar conversions
 def rgb_cv2_packed_to_rgb_planar(rgb_cv2_packed):
     rgb_planar = {
         "r": rgb_cv2_packed[:, :, 0],
@@ -1227,10 +1327,9 @@ def yuv_planar_to_yuv_cv2_packed(yuv_planar):
     return yuv_cv2_packed
 
 
-# 4. upsample/downsample conversions
+# 5. upsample/downsample conversions
 def upsample_matrix(arr, shape):
     upsampled_array = np.repeat(np.repeat(arr, 2, axis=0), 2, axis=1)
-    rows, cols = shape
     height, width = shape
     return upsampled_array[:height, :width]
 
@@ -1250,131 +1349,237 @@ def yuv_upsample_planar(yuv_subsampled_planar):
     return yuv_planar
 
 
+# 6. matrix clip/unclip functions
+
+
+# In our matrix operations, the OP_DTYPE is np.int32. After applying the
+# matrix, we can have 2x situations:
+#
+# (a) positive value, in the [0, 2^{<depth>} - 1] range. This is what
+# happens to the Y component, as it is calculated by shifting the R/G1/G2/B
+# components to the right twice, and then add them.
+#   +----+----+----+----+----+----+----+----+
+#   |    |    |    |    |    |    |abcd|efgh| 8-bit
+#   +----+----+----+----+----+----+----+----+
+# In the 8-bit case, we clip the bits [a..h].
+#   +----+----+----+----+----+----+----+----+
+#   |    |    |    |    |    |  ab|cdef|ghij| 10-bit
+#   +----+----+----+----+----+----+----+----+
+# In the 10-bit case, we clip the bits [a..j].
+#   +----+----+----+----+----+----+----+----+
+#   |    |    |    |    |abcd|efgh|ijkl|mnop| 16-bit
+#   +----+----+----+----+----+----+----+----+
+# In the 10-bit case, we clip the bits [a..p].
+def clip_positive(arr, depth, check=True):
+    max_value = 2**depth - 1
+    st_dtype = np.uint8 if depth == 8 else np.uint16
+    # check for values outside the valid range
+    if check and np.any((arr < 0) | (arr > max_value)):
+        raise ValueError("Array contains values outside the valid range")
+    # clip values to the closest integer and convert to storage dtype
+    return np.clip(arr, 0, max_value).astype(st_dtype)
+
+
+# (b) integer value, in the [-2^{<depth>}, 2^{<depth>} - 1] range. This is
+# what happens to the Dg, Co, and Cg components, as they are calculated by
+# adding/substracting the R/G1/G2/B components. Note that it is not possible
+# to get away of the range.
+#
+# The solution in this case is to add a shift to center the value (positive
+# or negative) around zero, and then throw the LSB in order to encode the
+# right amount of bits.
+#
+# For example, for 8-bit components, the value of Dg/Co/Cg is in the
+# [-255, 255] range. In order to encode it, we scale it to half (effectively
+# throwing the LSB), and then add a shift. The value ends up in the range
+# [0, 255].
+
+
+def clip_integer_and_scale(arr, depth, check=True):
+    max_value = 2**depth - 1
+    min_value = -max_value
+    shift = 2 ** (depth - 1)
+    st_dtype = np.uint8 if depth == 8 else np.uint16
+    # check for values outside the valid range
+    if check and np.any((arr < min_value) | (arr > max_value)):
+        raise ValueError("Array contains values outside the valid range")
+    # scale and shift values to the storage dtype
+    return ((arr >> 1) + shift).astype(st_dtype)
+
+
+def unclip_positive(arr, depth):
+    return arr.astype(OP_DTYPE)
+
+
+def unclip_integer_and_unscale(arr, depth):
+    shift = 2 ** (depth - 1)
+    # unscale and convert
+    return (arr.astype(OP_DTYPE) - shift) << 1
+
+
+# main class
 class BayerImage:
 
-    def __init__(self, infile, buffer, packed, planar, height, width, pix_fmt, debug=0):
+    @classmethod
+    def IsBayer(cls, order):
+        return set(order) == set("GgRB")
+
+    @classmethod
+    def IsYDgCoCg(cls, order):
+        return set(order) == set("YDCc")
+
+    @classmethod
+    def GetComponentType(cls, order):
+        if cls.IsBayer(order):
+            return ComponentType.bayer
+        elif cls.IsYDgCoCg(order):
+            return ComponentType.ydgcocg
+        else:
+            raise AssertionError("error: invalid components: {order}")
+
+    def __init__(
+        self,
+        infile,
+        buffer,
+        bayer_packed,
+        bayer_planar,
+        width,
+        height,
+        pix_fmt,
+        debug=0,
+    ):
         self.infile = infile
         self.buffer = buffer
-        self.packed = packed
-        self.planar = planar
-        self.height = height
+        self.bayer_packed = bayer_packed
+        self.bayer_planar = bayer_planar
         self.width = width
+        self.height = height
         self.pix_fmt = pix_fmt
         pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
+        self.layout = BAYER_FORMATS[pix_fmt]["layout"]
         self.depth = BAYER_FORMATS[pix_fmt]["depth"]
+        self.order = BAYER_FORMATS[pix_fmt]["order"]
+        self.component_type = self.GetComponentType(self.order)
+        self.clen = BAYER_FORMATS[pix_fmt].get("clen", None)
+        self.blen = BAYER_FORMATS[pix_fmt].get("blen", None)
+        self.rfun = BAYER_FORMATS[pix_fmt].get("rfun", None)
+        self.wfun = BAYER_FORMATS[pix_fmt].get("wfun", None)
         self.debug = debug
         self.rgb_cv2_packed = None
         self.rgb_planar = None
         self.yuv_cv2_packed = None
         self.yuv_planar = None
+        self.ydgcocg_planar = None
+        self.ydgcocg_packed = None
+
+    # we have 5x representations
+    #
+    # YDgCoCgPacked <-                  -> BayerPacked
+    #       ^         \               /        ^
+    #       |          \            /          |
+    #       |           -> Buffer<-            |
+    #       |          /            \          |
+    #       v         /               \        v
+    # YDgCoCgPlanar <--------------------> BayerPlanar
+    #
+    # Note that the Bayer<->YDgCoCg conversion only occurs in planar
+    # representation.
 
     # accessors
     def GetBuffer(self):
         if self.buffer is not None:
             pass
-        elif self.packed is not None:
-            self.buffer = self.GetBufferFromPacked()
-        elif self.planar is not None:
-            self.buffer = self.GetBufferFromPlanar()
+        elif self.IsBayer(self.order):
+            if self.bayer_packed is not None:
+                self.buffer = self.GetBufferFromBayerPacked()
+            elif self.bayer_planar is not None:
+                self.buffer = self.GetBufferFromBayerPlanar()
+            else:
+                raise AssertionError("error: invalid RGGB BayerImage")
+        elif self.IsYDgCoCg(self.order):
+            if self.ydgcocg_planar is not None:
+                self.buffer = self.GetBufferFromYDgCoCgPlanar()
+            elif self.ydgcocg_packed is not None:
+                self.buffer = self.GetBufferFromYDgCoCgPacked()
+            else:
+                raise AssertionError("error: invalid YDgCoCg BayerImage")
         else:
             raise AssertionError("error: invalid BayerImage")
         return self.buffer
 
-    def GetPacked(self):
-        if self.packed is not None:
+    def GetBayerPacked(self, order=None):
+        if self.bayer_packed is not None:
             pass
-        elif self.buffer is not None:
-            self.packed = self.GetPackedFromBuffer()
-        elif self.planar is not None:
-            self.packed = self.GetPackedFromPlanar()
+        elif self.IsBayer(self.order):
+            if self.buffer is not None:
+                self.bayer_packed = self.GetBayerPackedFromBuffer()
+            elif self.bayer_planar is not None:
+                self.bayer_packed = self.GetBayerPackedFromBayerPlanar()
+            else:
+                raise AssertionError("error: invalid RGGB BayerImage")
+        elif self.IsYDgCoCg(self.order):
+            # BGGR<->YDgCoCg conversion always through planar
+            self.ydgcocg_planar = self.GetYDgCoCgPlanar()
+            self.bayer_planar = self.GetBayerPlanarFromYDgCoCgPlanar()
+            self.bayer_packed = self.GetBayerPackedFromBayerPlanar(order)
         else:
             raise AssertionError("error: invalid BayerImage")
-        return self.packed
-
-    def GetPlanar(self):
-        if self.planar is not None:
-            pass
-        elif self.buffer is not None:
-            self.planar = self.GetPlanarFromBuffer()
-        elif self.packed is not None:
-            self.planar = self.GetPlanarFromPacked()
-        else:
-            raise AssertionError("error: invalid BayerImage")
-        return self.planar
-
-    def GetPackedFromBuffer(self):
-        layout = BAYER_FORMATS[self.pix_fmt]["layout"]
-        if layout == LayoutType.planar:
-            # make sure we have the planar
-            self.planar = self.GetPlanarFromBuffer()
-            # then get the packed
-            self.packed = self.GetPackedFromPlanar()
-            return self.packed
-        # layout == LayoutType.packed:
-        # do the conversion directly
-        # convert file buffer to packed
-        # get format info
-        pix_fmt = self.pix_fmt
-        clen = BAYER_FORMATS[pix_fmt]["clen"]
-        order = BAYER_FORMATS[pix_fmt]["order"]
-        blen = BAYER_FORMATS[pix_fmt]["blen"]
-        rfun = BAYER_FORMATS[pix_fmt]["rfun"]
-        # create bayer packed image
-        dtype = np.uint16 if self.depth > 8 else np.uint8
-        self.packed = np.zeros((self.height, self.width), dtype=dtype)
-        # fill it up
-        row = 0
-        col = 0
-        i = 0
-        while True:
-            if self.debug > 2:
-                print(f"debug: {row=} {col=}")
-            # 1. read components from the input
-            components = ()
-            while len(components) < clen:
-                idata = self.buffer[i : i + blen]
-                i += blen
-                if not idata:
-                    break
-                components += rfun(idata, self.debug)
-            if len(components) < clen:
-                # end of input
-                break
-            if self.debug > 2:
-                print(f"debug:  {components=}")
-            # 2. convert component order
-            for component in components:
-                self.packed[row][col] = component
-                if self.debug > 3:
-                    print(f"debug: {row=} {col=}")
-                col += 1
-            # 3. update input row numbers
-            if col == self.width:
-                col = 0
-                row += 1
-        return self.packed
-
-    def GetPlanarFromBuffer(self):
-        layout = BAYER_FORMATS[self.pix_fmt]["layout"]
-        if layout == LayoutType.packed:
-            # make sure we have the packed
-            self.packed = self.GetPackedFromBuffer()
-            # then get the Planar
-            self.planar = self.GetPlanarFromPacked()
-            return self.planar
-        # layout == LayoutType.packed:
-        # do the conversion directly
-        order = BAYER_FORMATS[self.pix_fmt]["order"]
-        self.planar = rfun_planar(
-            self.buffer, order, self.depth, self.width, self.height, self.debug
-        )
-        return self.planar
+        return self.bayer_packed
 
     def GetBayerPlanar(self):
-        return self.GetPlanar()
+        if self.bayer_planar is not None:
+            pass
+        elif self.IsBayer(self.order):
+            if self.buffer is not None:
+                self.bayer_planar = self.GetBayerPlanarFromBuffer()
+            elif self.bayer_packed is not None:
+                self.bayer_planar = self.GetBayerPlanarFromBayerPacked()
+            else:
+                raise AssertionError("error: invalid RGGB BayerImage")
+        elif self.IsYDgCoCg(self.order):
+            # BGGR<->YDgCoCg conversion always through planar
+            self.ydgcocg_planar = self.GetYDgCoCgPlanar()
+            self.bayer_planar = self.GetBayerPlanarFromYDgCoCgPlanar()
+        else:
+            raise AssertionError("error: invalid BayerImage")
+        return self.bayer_planar
 
-    def GetBayerPacked(self):
-        return self.GetPacked()
+    def GetYDgCoCgPlanar(self):
+        if self.ydgcocg_planar is not None:
+            return self.ydgcocg_planar
+        elif self.IsYDgCoCg(self.order):
+            if self.buffer is not None:
+                self.ydgcocg_planar = self.GetYDgCoCgPlanarFromBuffer()
+            elif self.ydgcocg_packed is not None:
+                self.ydgcocg_planar = self.GetYDgCoCgPlanarFromYDgCoCgPacked()
+            else:
+                raise AssertionError("error: invalid YDgCoCg BayerImage")
+        elif self.IsBayer(self.order):
+            # BGGR<->YDgCoCg conversion always through planar
+            self.bayer_planar = self.GetBayerPlanar()
+            self.ydgcocg_planar = self.GetYDgCoCgPlanarFromBayerPlanar()
+        else:
+            raise AssertionError("error: invalid BayerImage")
+        return self.ydgcocg_planar
+
+    def GetYDgCoCgPacked(self):
+        if self.ydgcocg_packed is not None:
+            return self.ydgcocg_packed
+        elif self.IsYDgCoCg(self.order):
+            if self.buffer is not None:
+                self.ydgcocg_packed = self.GetYDgCoCgPackedFromBuffer()
+            elif self.ydgcocg_packed is not None:
+                self.ydgcocg_packed = self.GetYDgCoCgPackedFromYDgCoCgPlanar()
+            else:
+                raise AssertionError("error: invalid YDgCoCg BayerImage")
+        elif self.IsBayer(self.order):
+            # BGGR<->YDgCoCg conversion always through planar
+            self.bayer_planar = self.GetBayerPlanar()
+            self.ydgcocg_planar = self.GetYDgCoCgPlanarFromBayerPlanar()
+            self.ydgcocg_packed = self.GetYDgCoCgPackedFromYDgCoCgPlanar()
+        else:
+            raise AssertionError("error: invalid BayerImage")
+        return self.ydgcocg_packed
 
     def GetRGBPlanar(self):
         if self.rgb_planar is not None:
@@ -1386,11 +1591,9 @@ class BayerImage:
     def GetRGBCV2Packed(self):
         if self.rgb_cv2_packed is not None:
             return self.rgb_cv2_packed
-        pix_fmt = self.pix_fmt
-        order = BAYER_FORMATS[pix_fmt]["order"]
         bayer_packed = self.GetBayerPacked()
         self.rgb_cv2_packed = bayer_packed_to_rgb_cv2_packed(
-            bayer_packed, order, self.depth
+            bayer_packed, self.order, self.depth
         )
         return self.rgb_cv2_packed
 
@@ -1415,158 +1618,72 @@ class BayerImage:
         )
         return self.yuv_cv2_packed
 
-    @classmethod
-    def GetPlanarOrder(cls, planar_order):
-        assert (
-            set(planar_order) == COLOR_COMPONENTS
-        ), f"error: invalid Bayer components {planar_order}"
-        return planar_order
+    # converters: Generic packed/planar-Buffer
+    def GetPackedFromBuffer(self):
+        assert self.layout == LayoutType.packed, f"error: invalid call"
+        # do the conversion directly
+        # convert file buffer to packed
+        # create bayer packed image
+        dtype = np.uint16 if self.depth > 8 else np.uint8
+        packed = np.zeros((self.height, self.width), dtype=dtype)
+        # fill it up
+        row = 0
+        col = 0
+        i = 0
+        while True:
+            if self.debug > 2:
+                print(f"debug: {row=} {col=}")
+            # 1. read components from the input
+            components = ()
+            while len(components) < self.clen:
+                idata = self.buffer[i : i + self.blen]
+                i += self.blen
+                if not idata:
+                    break
+                components += self.rfun(idata, self.debug)
+            if len(components) < self.clen:
+                # end of input
+                break
+            if self.debug > 2:
+                print(f"debug:  {components=}")
+            # 2. convert component order
+            for component in components:
+                packed[row][col] = component
+                if self.debug > 3:
+                    print(f"debug: {row=} {col=}")
+                col += 1
+            # 3. update input row numbers
+            if col == self.width:
+                col = 0
+                row += 1
+        return packed
 
-    @classmethod
-    def GetPlaneIds(cls, planar_order, row):
-        planar_order = cls.GetPlanarOrder(planar_order)
-        plane_ids = planar_order[0:2] if row % 2 == 0 else planar_order[2:4]
-        return plane_ids
-
-    def ToFile(self, outfile, debug):
-        with open(outfile, "wb") as fout:
-            fout.write(self.GetBuffer())
-
-    def Copy(self, o_pix_fmt, debug):
-        bayer_planar = self.GetBayerPlanar().copy()
-        i_depth = get_depth(self.pix_fmt)
-        o_depth = get_depth(o_pix_fmt)
-        o_dtype = np.uint16 if o_depth > 8 else np.uint8
-        if i_depth > o_depth:
-            bayer_planar = {
-                k: (v >> (i_depth - o_depth)).astype(o_dtype)
-                for k, v in bayer_planar.items()
-            }
-        elif i_depth < o_depth:
-            bayer_planar = {
-                k: (v.astype(o_dtype) << (o_depth - i_depth))
-                for k, v in bayer_planar.items()
-            }
-        bayer_image_copy = BayerImage.FromPlanar(
-            bayer_planar,
-            o_pix_fmt,
-            debug,
+    def GetPlanarFromBuffer(self):
+        assert self.layout == LayoutType.planar, f"error: invalid call"
+        # do the conversion directly
+        planar = rfun_planar(
+            self.buffer, self.order, self.depth, self.width, self.height, self.debug
         )
-        return bayer_image_copy
+        return planar
 
-    # factory methods
-    @classmethod
-    def FromFile(cls, infile, pix_fmt, height, width, debug=0):
-        # check image resolution
-        assert height % 2 == 0, f"error: only accept images with even height {height=}"
-        assert width % 2 == 0, f"error: only accept images with even width {width=}"
-        # check image pix_fmt
-        pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
-        # get format info
-        clen = BAYER_FORMATS[pix_fmt]["clen"]
-        blen = BAYER_FORMATS[pix_fmt]["blen"]
-        order = BAYER_FORMATS[pix_fmt]["order"]
-
-        # make sure the width is OK
-        # for Bayer pixel formats, only the width is important
-        assert (
-            width % clen == 0
-        ), f"error: invalid width ({width}) as clen: {clen} for {pix_fmt}"
-
-        # make sure the dimensions are OK
-        file_size = os.stat(infile).st_size
-        expected_size = int((height * width * blen) / clen)
-        assert (
-            expected_size == file_size
-        ), f"error: invalid dimensions: {height}x{width}, {pix_fmt=}, {expected_size=}, {file_size=}"
-
-        # read the file into a buffer
-        with open(infile, "rb") as fin:
-            buffer = fin.read(expected_size)
-
-        return BayerImage(infile, buffer, None, None, height, width, pix_fmt, debug)
-
-    @classmethod
-    def FromPlanars(cls, bayer_r, bayer_g1, bayer_g2, bayer_b, pix_fmt, debug=0):
-        # get format info
-        planar = {
-            "R": bayer_r,
-            "G": bayer_g1,
-            "g": bayer_g2,
-            "B": bayer_b,
-        }
-        return cls.FromPlanar(planar, pix_fmt)
-
-    @classmethod
-    def FromPlanar(cls, planar, pix_fmt, infile="", debug=0):
-        # get format info
-        height, width = (2 * dim for dim in planar["R"].shape)
-        pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
-        clen = OUTPUT_FORMATS[pix_fmt]["clen"]
-        # make sure the width is OK
-        # for Bayer pixel formats, only the width is important
-        assert (
-            width % clen == 0
-        ), f"error: invalid width ({width}) as clen: {clen} for {pix_fmt}"
-        return BayerImage(infile, None, None, planar, height, width, pix_fmt, debug)
-
-    def GetBufferFromPlanar(self):
-        layout = BAYER_FORMATS[self.pix_fmt]["layout"]
-        if layout == LayoutType.packed:
-            # make sure we have the packed
-            self.packed = self.GetPackedFromPlanar()
-            # then get the Buffer
-            self.buffer = self.GetBufferFromPacked()
-            return self.buffer
-        # layout == LayoutType.planar:
-        # do the conversion directly
-        order = BAYER_FORMATS[self.pix_fmt]["order"]
-        self.buffer = wfun_planar(self.planar, order, self.debug)
-        return self.buffer
-
-    @classmethod
-    def FromPacked(cls, packed, pix_fmt, debug=0):
-        # get format info
-        height, width = packed.shape
-        pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
-        clen = OUTPUT_FORMATS[pix_fmt]["clen"]
-
-        # make sure the width is OK
-        # for Bayer pixel formats, only the width is important
-        assert (
-            width % clen == 0
-        ), f"error: invalid width ({width}) as clen: {clen} for {pix_fmt}"
-        return BayerImage("", None, packed, None, height, width, pix_fmt, debug)
-
-    def GetBufferFromPacked(self):
-        layout = BAYER_FORMATS[self.pix_fmt]["layout"]
-        if layout == LayoutType.planar:
-            # make sure we have the planar
-            self.planar = self.GetPlanarFromPacked()
-            # then get the Buffer
-            self.buffer = self.GetBufferFromPlanar()
-            return self.buffer
-        # layout == LayoutType.packed:
-        # do the conversion directly
-        clen = OUTPUT_FORMATS[self.pix_fmt]["clen"]
-        order = OUTPUT_FORMATS[self.pix_fmt]["order"]
-        wfun = OUTPUT_FORMATS[self.pix_fmt]["wfun"]
+    def GetBufferFromPacked(self, packed):
+        assert self.layout == LayoutType.packed, f"error: invalid call"
         row = 0
         col = 0
         buffer = b""
         while row < self.height:
             # 1. get components in order
             components = []
-            for _ in range(clen):
+            for _ in range(self.clen):
                 if self.debug > 2:
                     print(f"debug: {row=} {col=}")
-                component = self.packed[row][col]
+                component = packed[row][col]
                 components.append(component)
                 col += 1
             if self.debug > 2:
                 print(f"debug:  {components=}")
             # 2. write components to the output
-            odata = wfun(*components[0:clen], self.debug)
+            odata = self.wfun(*components[0 : self.clen], self.debug)
             buffer += odata
             # 3. update row numbers
             if col == self.width:
@@ -1575,26 +1692,299 @@ class BayerImage:
         self.buffer = buffer
         return self.buffer
 
-    def GetPackedFromPlanar(self):
-        order = OUTPUT_FORMATS[self.pix_fmt]["order"]
-        height, width = self.planar[order[0]].shape
-        dtype = self.planar[order[0]].dtype
-        packed = np.zeros((height * 2, width * 2), dtype=dtype)
-        packed[0::2, 0::2] = self.planar[order[0]]
-        packed[0::2, 1::2] = self.planar[order[1]]
-        packed[1::2, 0::2] = self.planar[order[2]]
-        packed[1::2, 1::2] = self.planar[order[3]]
-        return packed
+    def GetBufferFromPlanar(self, planar):
+        assert self.layout == LayoutType.planar, f"error: invalid call"
+        order = get_order(self.pix_fmt)
+        self.buffer = wfun_planar(planar, order, self.debug)
+        return self.buffer
 
-    def GetPlanarFromPacked(self):
-        order = OUTPUT_FORMATS[self.pix_fmt]["order"]
-        planar = {
-            order[0]: self.packed[0::2, 0::2],
-            order[1]: self.packed[0::2, 1::2],
-            order[2]: self.packed[1::2, 0::2],
-            order[3]: self.packed[1::2, 1::2],
+    # converters: Bayer-Buffer
+    def GetBayerPackedFromBuffer(self):
+        assert self.IsBayer(self.order), f"error: invalid call"
+        layout = BAYER_FORMATS[self.pix_fmt]["layout"]
+        if self.layout == LayoutType.planar:
+            # make sure we have the planar
+            self.bayer_planar = self.GetBayerPlanarFromBuffer()
+            # then get the packed
+            self.bayer_packed = self.GetBayerPackedFromBayerPlanar()
+            return self.bayer_packed
+        # read the buffer
+        self.bayer_packed = self.GetPackedFromBuffer()
+        return self.bayer_packed
+
+    def GetBayerPackedFromBayerPlanar(self, order=None):
+        order = (
+            order
+            if order is not None
+            else (
+                self.order if self.IsBayer(self.order) else DEFAULT_BAYER_PLANAR_ORDER
+            )
+        )
+        height, width = self.bayer_planar[order[0]].shape
+        dtype = self.bayer_planar[order[0]].dtype
+        bayer_packed = np.zeros((height * 2, width * 2), dtype=dtype)
+        bayer_packed[0::2, 0::2] = self.bayer_planar[order[0]]
+        bayer_packed[0::2, 1::2] = self.bayer_planar[order[1]]
+        bayer_packed[1::2, 0::2] = self.bayer_planar[order[2]]
+        bayer_packed[1::2, 1::2] = self.bayer_planar[order[3]]
+        return bayer_packed
+
+    def GetBayerPlanarFromBuffer(self):
+        if self.layout == LayoutType.packed:
+            # make sure we have the packed
+            self.bayer_packed = self.GetBayerPackedFromBuffer()
+            # then get the Planar
+            self.bayer_planar = self.GetBayerPlanarFromBayerPacked()
+            return self.bayer_planar
+        # self.layout == LayoutType.planar:
+        # do the conversion directly
+        self.bayer_planar = self.GetPlanarFromBuffer()
+        return self.bayer_planar
+
+    def GetBayerPlanarFromBayerPacked(self):
+        bayer_planar = {
+            self.order[0]: self.bayer_packed[0::2, 0::2],
+            self.order[1]: self.bayer_packed[0::2, 1::2],
+            self.order[2]: self.bayer_packed[1::2, 0::2],
+            self.order[3]: self.bayer_packed[1::2, 1::2],
         }
-        return planar
+        return bayer_planar
+
+    def GetBufferFromBayerPlanar(self):
+        if self.layout == LayoutType.packed:
+            # make sure we have the packed
+            self.bayer_packed = self.GetBayerPackedFromBayerPlanar()
+            # then get the Buffer
+            self.buffer = self.GetBufferFromBayerPacked()
+            return self.buffer
+        # self.layout == LayoutType.planar:
+        # do the conversion directly
+        self.buffer = self.GetBufferFromPlanar(self.bayer_planar)
+        return self.buffer
+
+    def GetBufferFromBayerPacked(self):
+        if self.layout == LayoutType.planar:
+            # make sure we have the planar
+            self.bayer_planar = self.GetBayerPlanarFromBayerPacked()
+            # then get the Buffer
+            self.buffer = self.GetBufferFromBayerPlanar()
+            return self.buffer
+        # self.layout == LayoutType.packed:
+        # do the conversion directly
+        self.buffer = self.GetBufferFromPacked(self.bayer_packed)
+        return self.buffer
+
+    # converters: YDgCoCg-Buffer
+    def GetYDgCoCgPackedFromBuffer(self):
+        assert self.IsYDgCoCg(self.order), f"error: invalid call"
+        layout = BAYER_FORMATS[self.pix_fmt]["layout"]
+        if self.layout == LayoutType.planar:
+            # make sure we have the planar
+            self.ydgcocg_planar = self.GetYDgCoCgPlanarFromBuffer()
+            # then get the packed
+            self.ydgcocg_packed = self.GetYDgCoCgPackedFromYDgCoCgPlanar()
+            return self.ydgcocg_packed
+        # read the buffer
+        self.ydgcocg_packed = self.GetPackedFromBuffer()
+        return self.ydgcocg_packed
+
+    def GetYDgCoCgPackedFromYDgCoCgPlanar(self):
+        order = (
+            self.order if self.IsYDgCoCg(self.order) else DEFAULT_YDGCOCG_PLANAR_ORDER
+        )
+        height, width = self.ydgcocg_planar[order[0]].shape
+        dtype = self.ydgcocg_planar[order[0]].dtype
+        ydgcocg_packed = np.zeros((height * 2, width * 2), dtype=dtype)
+        ydgcocg_packed[0::2, 0::2] = self.ydgcocg_planar[order[0]]
+        ydgcocg_packed[0::2, 1::2] = self.ydgcocg_planar[order[1]]
+        ydgcocg_packed[1::2, 0::2] = self.ydgcocg_planar[order[2]]
+        ydgcocg_packed[1::2, 1::2] = self.ydgcocg_planar[order[3]]
+        return ydgcocg_packed
+
+    def GetYDgCoCgPlanarFromBuffer(self):
+        if self.layout == LayoutType.packed:
+            # make sure we have the packed
+            self.ydgcocg_packed = self.GetYDgCoCgPackedFromBuffer()
+            # then get the Planar
+            self.ydgcocg_planar = self.GetYDgCoCgPlanarFromYDgCoCgPacked()
+            return self.ydgcocg_planar
+        # self.layout == LayoutType.planar:
+        # do the conversion directly
+        self.ydgcocg_planar = self.GetPlanarFromBuffer()
+        return self.ydgcocg_planar
+
+    def GetYDgCoCgPlanarFromYDgCoCgPacked(self):
+        ydgcocg_planar = {
+            self.order[0]: self.ydgcocg_packed[0::2, 0::2],
+            self.order[1]: self.ydgcocg_packed[0::2, 1::2],
+            self.order[2]: self.ydgcocg_packed[1::2, 0::2],
+            self.order[3]: self.ydgcocg_packed[1::2, 1::2],
+        }
+        return ydgcocg_planar
+
+    def GetBufferFromYDgCoCgPlanar(self):
+        if self.layout == LayoutType.packed:
+            # make sure we have the packed
+            self.ydgcocg_packed = self.GetYDgCoCgPackedFromYDgCoCgPlanar()
+            # then get the Buffer
+            self.buffer = self.GetBufferFromYDgCoCgPacked()
+            return self.buffer
+        # self.layout == LayoutType.planar:
+        # do the conversion directly
+        self.buffer = self.GetBufferFromPlanar(self.ydgcocg_planar)
+        return self.buffer
+
+    def GetBufferFromYDgCoCgPacked(self):
+        if self.layout == LayoutType.planar:
+            # make sure we have the planar
+            self.ydgcocg_planar = self.GetYDgCoCgPlanarFromYDgCoCgPacked()
+            # then get the Buffer
+            self.buffer = self.GetBufferFromYDgCoCgPlanar()
+            return self.buffer
+        # self.layout == LayoutType.packed:
+        # do the conversion directly
+        self.buffer = self.GetBufferFromPacked(self.ydgcocg_packed)
+        return self.buffer
+
+    # converters: Bayer-YDgCoCg
+    def GetBayerPlanarFromYDgCoCgPlanar(self):
+        self.bayer_planar = ydgcocg_to_rg1g2b_planar(self.ydgcocg_planar, self.depth)
+        return self.bayer_planar
+
+    def GetYDgCoCgPlanarFromBayerPlanar(self):
+        self.ydgcocg_planar = rg1g2b_to_ydgcocg_planar(self.bayer_planar, self.depth)
+        return self.ydgcocg_planar
+
+    # other methods
+    @classmethod
+    def GetBayerPlanarOrder(cls, planar_order):
+        assert (
+            set(planar_order) == COLOR_COMPONENTS
+        ), f"error: invalid Bayer components {planar_order}"
+        return planar_order
+
+    @classmethod
+    def GetPlaneIds(cls, planar_order, row):
+        planar_order = cls.GetBayerPlanarOrder(planar_order)
+        plane_ids = planar_order[0:2] if row % 2 == 0 else planar_order[2:4]
+        return plane_ids
+
+    def ToFile(self, outfile, debug):
+        with open(outfile, "wb") as fout:
+            fout.write(self.GetBuffer())
+
+    # create a new BayerImage from a depth-aware copy of another
+    def Copy(self, o_pix_fmt, debug):
+        # 1. select the input plane
+        i_component_type = self.component_type
+        if i_component_type == ComponentType.bayer:
+            i_planar = self.GetBayerPlanar()
+        elif i_component_type == ComponentType.ydgcocg:
+            i_planar = self.GetYDgCoCgPlanar()
+        # 2. convert planar to destination depth
+        i_depth = get_depth(self.pix_fmt)
+        o_depth = get_depth(o_pix_fmt)
+        o_planar = self.CopyPlanar(i_planar, i_depth, o_depth)
+        # 3. convert planar to color space
+        o_order = get_order(o_pix_fmt)
+        o_component_type = self.GetComponentType(o_order)
+        if (
+            i_component_type == ComponentType.bayer
+            and o_component_type == ComponentType.ydgcocg
+        ):
+            o_planar = rg1g2b_to_ydgcocg_planar(o_planar, o_depth)
+        elif (
+            i_component_type == ComponentType.ydgcocg
+            and o_component_type == ComponentType.bayer
+        ):
+            o_planar = ydgcocg_to_rg1g2b_planar(o_planar, o_depth)
+        # 4. use the new plane to create the new image
+        if o_component_type == ComponentType.bayer:
+            image_copy = BayerImage.FromBayerPlanar(o_planar, o_pix_fmt, debug)
+        elif o_component_type == ComponentType.ydgcocg:
+            image_copy = BayerImage.FromYDgCoCgPlanar(o_planar, o_pix_fmt, debug)
+        return image_copy
+
+    # depth-aware planar copy
+    def CopyPlanar(self, i_planar, i_depth, o_depth):
+        o_planar = i_planar.copy()
+        o_dtype = np.uint16 if o_depth > 8 else np.uint8
+        if i_depth > o_depth:
+            o_planar = {
+                k: (v >> (i_depth - o_depth)).astype(o_dtype)
+                for k, v in o_planar.items()
+            }
+        elif i_depth < o_depth:
+            o_planar = {
+                k: (v.astype(o_dtype) << (o_depth - i_depth))
+                for k, v in o_planar.items()
+            }
+        return o_planar
+
+    # factory methods
+    @classmethod
+    def FromFile(cls, infile, pix_fmt, width, height, debug=0):
+        # check image resolution
+        assert width % 2 == 0, f"error: only accept images with even width {width=}"
+        assert height % 2 == 0, f"error: only accept images with even height {height=}"
+        # check image pix_fmt
+        pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
+        # get format info
+        layout = BAYER_FORMATS[pix_fmt]["layout"]
+        if layout == LayoutType.packed:
+            clen = BAYER_FORMATS[pix_fmt]["clen"]
+            blen = BAYER_FORMATS[pix_fmt]["blen"]
+            # make sure the width is OK
+            # for Bayer pixel formats, only the width is important
+            assert (
+                width % clen == 0
+            ), f"error: invalid width ({width}) as clen: {clen} for {pix_fmt}"
+            expected_size = int((width * height * blen) / clen)
+        elif layout == LayoutType.planar:
+            depth = get_depth(pix_fmt)
+            element_size_bytes = 1 if depth == 8 else 2
+            expected_size = height * width * element_size_bytes
+
+        # make sure the dimensions are OK
+        file_size = os.stat(infile).st_size
+        assert (
+            expected_size == file_size
+        ), f"error: invalid dimensions: {width}x{height}, {pix_fmt=}, {expected_size=}, {file_size=}"
+
+        # read the file into a buffer
+        with open(infile, "rb") as fin:
+            buffer = fin.read(expected_size)
+
+        return cls.FromBuffer(buffer, width, height, pix_fmt, infile, debug)
+
+    @classmethod
+    def FromBuffer(cls, buffer, width, height, pix_fmt, infile="", debug=0):
+        return BayerImage(infile, buffer, None, None, width, height, pix_fmt, debug)
+
+    @classmethod
+    def FromBayerPlanar(cls, bayer_planar, pix_fmt, infile="", debug=0):
+        # get format info
+        height, width = (2 * dim for dim in bayer_planar["R"].shape)
+        pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
+        return BayerImage(
+            infile, None, None, bayer_planar, width, height, pix_fmt, debug
+        )
+
+    @classmethod
+    def FromBayerPacked(cls, bayer_packed, pix_fmt, debug=0):
+        # get format info
+        height, width = bayer_packed.shape
+        pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
+        return BayerImage("", None, bayer_packed, None, width, height, pix_fmt, debug)
+
+    @classmethod
+    def FromYDgCoCgPlanar(cls, ydgcocg_planar, pix_fmt, debug=0):
+        # get format info
+        height, width = (2 * dim for dim in ydgcocg_planar["Y"].shape)
+        pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
+        bayer_image = BayerImage("", None, None, None, width, height, pix_fmt, debug)
+        bayer_image.ydgcocg_planar = ydgcocg_planar
+        return bayer_image
 
 
 def get_options(argv):
@@ -1714,9 +2104,9 @@ def get_options(argv):
     return options
 
 
-def convert_image_format(infile, i_pix_fmt, height, width, outfile, o_pix_fmt, debug):
+def convert_image_format(infile, i_pix_fmt, width, height, outfile, o_pix_fmt, debug):
     # 1. read input image file
-    bayer_image = BayerImage.FromFile(infile, i_pix_fmt, height, width, debug)
+    bayer_image = BayerImage.FromFile(infile, i_pix_fmt, width, height, debug)
 
     # 2. convert image to new pixel format
     bayer_image_copy = bayer_image.Copy(o_pix_fmt, debug)
@@ -1725,7 +2115,7 @@ def convert_image_format(infile, i_pix_fmt, height, width, outfile, o_pix_fmt, d
     bayer_image_copy.ToFile(outfile, debug)
 
     o_pix_fmt = get_canonical_output_pix_fmt(o_pix_fmt)
-    ffmpeg_support = OUTPUT_FORMATS[o_pix_fmt]["ffmpeg"]
+    ffmpeg_support = BAYER_FORMATS[o_pix_fmt]["ffmpeg"]
     if debug > 0 and ffmpeg_support:
         print(
             f"info: {itools_common.FFMPEG_SILENT} -f rawvideo -pixel_format {o_pix_fmt} "
@@ -1752,8 +2142,8 @@ def main(argv):
     convert_image_format(
         options.infile,
         options.i_pix_fmt,
-        options.height,
         options.width,
+        options.height,
         options.outfile,
         options.o_pix_fmt,
         options.debug,

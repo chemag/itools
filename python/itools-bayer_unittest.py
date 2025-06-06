@@ -24,19 +24,19 @@ convertImageFormatTestCases = [
     # (a) component order
     {
         "name": "basic-8x8.noop",
-        "height": 4,
         "width": 4,
+        "height": 4,
         "i_pix_fmt": "bayer_rggb8",
         "o_pix_fmt": "bayer_rggb8",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
-        "planar_image": {
+        "bayer_planar": {
             "R": np.array([[1, 3], [9, 11]], dtype=np.uint8),
             "G": np.array([[2, 4], [10, 12]], dtype=np.uint8),
             "g": np.array([[5, 7], [13, 15]], dtype=np.uint8),
             "B": np.array([[6, 8], [14, 16]], dtype=np.uint8),
         },
-        "packed_image": np.array(
+        "bayer_packed": np.array(
             [
                 [1, 2, 3, 4],
                 [5, 6, 7, 8],
@@ -49,19 +49,19 @@ convertImageFormatTestCases = [
     },
     {
         "name": "basic-8x8.01",
-        "height": 4,
         "width": 4,
+        "height": 4,
         "i_pix_fmt": "bayer_rgbg8",
         "o_pix_fmt": "bayer_bggr8",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
-        "planar_image": {
+        "bayer_planar": {
             "R": np.array([[1, 3], [9, 11]], dtype=np.uint8),
             "G": np.array([[2, 4], [10, 12]], dtype=np.uint8),
             "B": np.array([[5, 7], [13, 15]], dtype=np.uint8),
             "g": np.array([[6, 8], [14, 16]], dtype=np.uint8),
         },
-        "packed_image": np.array(
+        "bayer_packed": np.array(
             [
                 [1, 2, 3, 4],
                 [5, 6, 7, 8],
@@ -73,22 +73,21 @@ convertImageFormatTestCases = [
         "output": b"\x05\x02\x07\x04\x06\x01\x08\x03\x0d\x0a\x0f\x0c\x0e\x09\x10\x0b",
     },
     # (b) depth/pix_fmt changes
-    # bayer8->bayer16
     {
         "name": "basic-bayer_bggr8-bayer_bggr8",
-        "height": 4,
         "width": 4,
+        "height": 4,
         "i_pix_fmt": "bayer_bggr8",
         "o_pix_fmt": "bayer_bggr8",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
-        "planar_image": {
+        "bayer_planar": {
             "B": np.array([[1, 3], [9, 11]], dtype=np.uint8),
             "G": np.array([[2, 4], [10, 12]], dtype=np.uint8),
             "g": np.array([[5, 7], [13, 15]], dtype=np.uint8),
             "R": np.array([[6, 8], [14, 16]], dtype=np.uint8),
         },
-        "packed_image": np.array(
+        "bayer_packed": np.array(
             [
                 [1, 2, 3, 4],
                 [5, 6, 7, 8],
@@ -101,19 +100,19 @@ convertImageFormatTestCases = [
     },
     {
         "name": "basic-bayer_bggr8-bayer_gbrg8",
-        "height": 4,
         "width": 4,
+        "height": 4,
         "i_pix_fmt": "bayer_bggr8",
         "o_pix_fmt": "bayer_gbrg8",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
-        "planar_image": {
+        "bayer_planar": {
             "B": np.array([[1, 3], [9, 11]], dtype=np.uint8),
             "G": np.array([[2, 4], [10, 12]], dtype=np.uint8),
             "g": np.array([[5, 7], [13, 15]], dtype=np.uint8),
             "R": np.array([[6, 8], [14, 16]], dtype=np.uint8),
         },
-        "packed_image": np.array(
+        "bayer_packed": np.array(
             [
                 [1, 2, 3, 4],
                 [5, 6, 7, 8],
@@ -126,19 +125,19 @@ convertImageFormatTestCases = [
     },
     {
         "name": "basic-bayer_bggr8-bayer_gbrg8",
-        "height": 4,
         "width": 4,
+        "height": 4,
         "i_pix_fmt": "bayer_bggr8",
         "o_pix_fmt": "bayer_gbrg8",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
-        "planar_image": {
+        "bayer_planar": {
             "B": np.array([[1, 3], [9, 11]], dtype=np.uint8),
             "G": np.array([[2, 4], [10, 12]], dtype=np.uint8),
             "g": np.array([[5, 7], [13, 15]], dtype=np.uint8),
             "R": np.array([[6, 8], [14, 16]], dtype=np.uint8),
         },
-        "packed_image": np.array(
+        "bayer_packed": np.array(
             [
                 [1, 2, 3, 4],
                 [5, 6, 7, 8],
@@ -151,19 +150,19 @@ convertImageFormatTestCases = [
     },
     {
         "name": "basic-bayer_bggr8-bayer_grbg8",
-        "height": 4,
         "width": 4,
+        "height": 4,
         "i_pix_fmt": "bayer_bggr8",
         "o_pix_fmt": "bayer_grbg8",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
-        "planar_image": {
+        "bayer_planar": {
             "B": np.array([[1, 3], [9, 11]], dtype=np.uint8),
             "G": np.array([[2, 4], [10, 12]], dtype=np.uint8),
             "g": np.array([[5, 7], [13, 15]], dtype=np.uint8),
             "R": np.array([[6, 8], [14, 16]], dtype=np.uint8),
         },
-        "packed_image": np.array(
+        "bayer_packed": np.array(
             [
                 [1, 2, 3, 4],
                 [5, 6, 7, 8],
@@ -176,19 +175,19 @@ convertImageFormatTestCases = [
     },
     {
         "name": "basic-bayer_bggr8-bayer_ggbr8",
-        "height": 4,
         "width": 4,
+        "height": 4,
         "i_pix_fmt": "bayer_bggr8",
         "o_pix_fmt": "bayer_ggbr8",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
-        "planar_image": {
+        "bayer_planar": {
             "B": np.array([[1, 3], [9, 11]], dtype=np.uint8),
             "G": np.array([[2, 4], [10, 12]], dtype=np.uint8),
             "g": np.array([[5, 7], [13, 15]], dtype=np.uint8),
             "R": np.array([[6, 8], [14, 16]], dtype=np.uint8),
         },
-        "packed_image": np.array(
+        "bayer_packed": np.array(
             [
                 [1, 2, 3, 4],
                 [5, 6, 7, 8],
@@ -201,19 +200,19 @@ convertImageFormatTestCases = [
     },
     {
         "name": "basic-bayer_bggr8-bayer_ggrb8",
-        "height": 4,
         "width": 4,
+        "height": 4,
         "i_pix_fmt": "bayer_bggr8",
         "o_pix_fmt": "bayer_ggrb8",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
-        "planar_image": {
+        "bayer_planar": {
             "B": np.array([[1, 3], [9, 11]], dtype=np.uint8),
             "G": np.array([[2, 4], [10, 12]], dtype=np.uint8),
             "g": np.array([[5, 7], [13, 15]], dtype=np.uint8),
             "R": np.array([[6, 8], [14, 16]], dtype=np.uint8),
         },
-        "packed_image": np.array(
+        "bayer_packed": np.array(
             [
                 [1, 2, 3, 4],
                 [5, 6, 7, 8],
@@ -226,19 +225,19 @@ convertImageFormatTestCases = [
     },
     {
         "name": "basic-bayer_bggr8-bayer_rgbg8",
-        "height": 4,
         "width": 4,
+        "height": 4,
         "i_pix_fmt": "bayer_bggr8",
         "o_pix_fmt": "bayer_rgbg8",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
-        "planar_image": {
+        "bayer_planar": {
             "B": np.array([[1, 3], [9, 11]], dtype=np.uint8),
             "G": np.array([[2, 4], [10, 12]], dtype=np.uint8),
             "g": np.array([[5, 7], [13, 15]], dtype=np.uint8),
             "R": np.array([[6, 8], [14, 16]], dtype=np.uint8),
         },
-        "packed_image": np.array(
+        "bayer_packed": np.array(
             [
                 [1, 2, 3, 4],
                 [5, 6, 7, 8],
@@ -251,19 +250,19 @@ convertImageFormatTestCases = [
     },
     {
         "name": "basic-bayer_bggr8-bayer_bgrg8",
-        "height": 4,
         "width": 4,
+        "height": 4,
         "i_pix_fmt": "bayer_bggr8",
         "o_pix_fmt": "bayer_bgrg8",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
-        "planar_image": {
+        "bayer_planar": {
             "B": np.array([[1, 3], [9, 11]], dtype=np.uint8),
             "G": np.array([[2, 4], [10, 12]], dtype=np.uint8),
             "g": np.array([[5, 7], [13, 15]], dtype=np.uint8),
             "R": np.array([[6, 8], [14, 16]], dtype=np.uint8),
         },
-        "packed_image": np.array(
+        "bayer_packed": np.array(
             [
                 [1, 2, 3, 4],
                 [5, 6, 7, 8],
@@ -277,19 +276,19 @@ convertImageFormatTestCases = [
     # bayer8->bayer16
     {
         "name": "basic-8x16.be.readable",
-        "height": 4,
         "width": 4,
+        "height": 4,
         "i_pix_fmt": "bayer_bggr8",
         "o_pix_fmt": "bayer_bggr16be",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
-        "planar_image": {
+        "bayer_planar": {
             "B": np.array([[1, 3], [9, 11]], dtype=np.uint8),
             "G": np.array([[2, 4], [10, 12]], dtype=np.uint8),
             "g": np.array([[5, 7], [13, 15]], dtype=np.uint8),
             "R": np.array([[6, 8], [14, 16]], dtype=np.uint8),
         },
-        "packed_image": np.array(
+        "bayer_packed": np.array(
             [
                 [1, 2, 3, 4],
                 [5, 6, 7, 8],
@@ -302,19 +301,19 @@ convertImageFormatTestCases = [
     },
     {
         "name": "basic-8x16.be",
-        "height": 4,
         "width": 4,
+        "height": 4,
         "i_pix_fmt": "bayer_bggr8",
         "o_pix_fmt": "bayer_bggr16be",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
-        "planar_image": {
+        "bayer_planar": {
             "B": np.array([[1, 3], [9, 11]], dtype=np.uint8),
             "G": np.array([[2, 4], [10, 12]], dtype=np.uint8),
             "g": np.array([[5, 7], [13, 15]], dtype=np.uint8),
             "R": np.array([[6, 8], [14, 16]], dtype=np.uint8),
         },
-        "packed_image": np.array(
+        "bayer_packed": np.array(
             [
                 [1, 2, 3, 4],
                 [5, 6, 7, 8],
@@ -327,19 +326,19 @@ convertImageFormatTestCases = [
     },
     {
         "name": "basic-8x16.le",
-        "height": 4,
         "width": 4,
+        "height": 4,
         "i_pix_fmt": "bayer_bggr8",
         "o_pix_fmt": "bayer_bggr16le",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
-        "planar_image": {
+        "bayer_planar": {
             "B": np.array([[1, 3], [9, 11]], dtype=np.uint8),
             "G": np.array([[2, 4], [10, 12]], dtype=np.uint8),
             "g": np.array([[5, 7], [13, 15]], dtype=np.uint8),
             "R": np.array([[6, 8], [14, 16]], dtype=np.uint8),
         },
-        "packed_image": np.array(
+        "bayer_packed": np.array(
             [
                 [1, 2, 3, 4],
                 [5, 6, 7, 8],
@@ -353,19 +352,19 @@ convertImageFormatTestCases = [
     # bayer10->bayer16 (extended)
     {
         "name": "basic-extended10x16.le",
-        "height": 4,
         "width": 4,
+        "height": 4,
         "i_pix_fmt": "RG10",  # SRGGB10
         "o_pix_fmt": "bayer_rggb16le",
         "debug": 0,
         "input": b"\x01\x00\x03\x01\x05\x02\x07\x03\x09\x00\x0b\x01\x0d\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
-        "planar_image": {
+        "bayer_planar": {
             "R": np.array([[0x001, 0x205], [0x011, 0x215]], dtype=np.uint16),
             "G": np.array([[0x103, 0x307], [0x113, 0x317]], dtype=np.uint16),
             "g": np.array([[0x009, 0x20D], [0x019, 0x21D]], dtype=np.uint16),
             "B": np.array([[0x10B, 0x30F], [0x11B, 0x31F]], dtype=np.uint16),
         },
-        "packed_image": np.array(
+        "bayer_packed": np.array(
             [
                 [0x001, 0x103, 0x205, 0x307],
                 [0x009, 0x10B, 0x20D, 0x30F],
@@ -379,19 +378,19 @@ convertImageFormatTestCases = [
     # bayer10->bayer16 (packed)
     {
         "name": "basic-packed10x16.le",
-        "height": 4,
         "width": 4,
+        "height": 4,
         "i_pix_fmt": "pRAA",  # SRGGB10P
         "o_pix_fmt": "bayer_bggr16le",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14",
-        "planar_image": {
+        "bayer_planar": {
             "R": np.array([[0x005, 0x00C], [0x02F, 0x034]], dtype=np.uint16),
             "G": np.array([[0x009, 0x010], [0x033, 0x038]], dtype=np.uint16),
             "g": np.array([[0x01A, 0x020], [0x040, 0x049]], dtype=np.uint16),
             "B": np.array([[0x01E, 0x024], [0x045, 0x04C]], dtype=np.uint16),
         },
-        "packed_image": np.array(
+        "bayer_packed": np.array(
             [
                 [0x005, 0x009, 0x00C, 0x010],
                 [0x01A, 0x01E, 0x020, 0x024],
@@ -402,22 +401,22 @@ convertImageFormatTestCases = [
         ),
         "output": b"\x80\x07\x40\x02\x00\x09\x00\x04\x80\x06\x40\x01\x00\x08\x00\x03\x40\x11\xc0\x0c\x00\x13\x00\x0e\x00\x10\xc0\x0b\x40\x12\x00\x0d",
     },
-    # planar bayer
+    # (c) planar bayer
     {
         "name": "basic-8x8.planar.1",
-        "height": 4,
         "width": 4,
+        "height": 4,
         "i_pix_fmt": "bayer_rggb8.planar",
         "o_pix_fmt": "bayer_rggb8.planar",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
-        "planar_image": {
+        "bayer_planar": {
             "R": np.array([[1, 2], [3, 4]], dtype=np.uint8),
             "G": np.array([[5, 6], [7, 8]], dtype=np.uint8),
             "g": np.array([[9, 10], [11, 12]], dtype=np.uint8),
             "B": np.array([[13, 14], [15, 16]], dtype=np.uint8),
         },
-        "packed_image": np.array(
+        "bayer_packed": np.array(
             [
                 [1, 5, 2, 6],
                 [9, 13, 10, 14],
@@ -430,19 +429,19 @@ convertImageFormatTestCases = [
     },
     {
         "name": "basic-8x8.planar.2",
-        "height": 4,
         "width": 4,
+        "height": 4,
         "i_pix_fmt": "bayer_rggb8.planar",
         "o_pix_fmt": "bayer_rggb8",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
-        "planar_image": {
+        "bayer_planar": {
             "R": np.array([[1, 2], [3, 4]], dtype=np.uint8),
             "G": np.array([[5, 6], [7, 8]], dtype=np.uint8),
             "g": np.array([[9, 10], [11, 12]], dtype=np.uint8),
             "B": np.array([[13, 14], [15, 16]], dtype=np.uint8),
         },
-        "packed_image": np.array(
+        "bayer_packed": np.array(
             [
                 [1, 5, 2, 6],
                 [9, 13, 10, 14],
@@ -455,19 +454,19 @@ convertImageFormatTestCases = [
     },
     {
         "name": "basic-8x8.planar.3",
-        "height": 4,
         "width": 4,
+        "height": 4,
         "i_pix_fmt": "bayer_rggb8",
         "o_pix_fmt": "bayer_rggb8.planar",
         "debug": 0,
         "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
-        "planar_image": {
+        "bayer_planar": {
             "R": np.array([[1, 3], [9, 11]], dtype=np.uint8),
             "G": np.array([[2, 4], [10, 12]], dtype=np.uint8),
             "g": np.array([[5, 7], [13, 15]], dtype=np.uint8),
             "B": np.array([[6, 8], [14, 16]], dtype=np.uint8),
         },
-        "packed_image": np.array(
+        "bayer_packed": np.array(
             [
                 [1, 2, 3, 4],
                 [5, 6, 7, 8],
@@ -481,19 +480,19 @@ convertImageFormatTestCases = [
     # bayer10 (extended)
     {
         "name": "basic-10bit.planar.1",
-        "height": 4,
         "width": 4,
+        "height": 4,
         "i_pix_fmt": "RG10",
         "o_pix_fmt": "RG10",
         "debug": 0,
         "input": b"\x01\x00\x03\x01\x05\x02\x07\x03\x09\x00\x0b\x01\x0d\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
-        "planar_image": {
+        "bayer_planar": {
             "R": np.array([[0x001, 0x205], [0x011, 0x215]], dtype=np.uint16),
             "G": np.array([[0x103, 0x307], [0x113, 0x317]], dtype=np.uint16),
             "g": np.array([[0x009, 0x20D], [0x019, 0x21D]], dtype=np.uint16),
             "B": np.array([[0x10B, 0x30F], [0x11B, 0x31F]], dtype=np.uint16),
         },
-        "packed_image": np.array(
+        "bayer_packed": np.array(
             [
                 [0x001, 0x103, 0x205, 0x307],
                 [0x009, 0x10B, 0x20D, 0x30F],
@@ -506,19 +505,19 @@ convertImageFormatTestCases = [
     },
     {
         "name": "basic-10bit.planar.2",
-        "height": 4,
         "width": 4,
+        "height": 4,
         "i_pix_fmt": "RG10",
         "o_pix_fmt": "RG10.planar",
         "debug": 0,
         "input": b"\x01\x00\x03\x01\x05\x02\x07\x03\x09\x00\x0b\x01\x0d\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
-        "planar_image": {
+        "bayer_planar": {
             "R": np.array([[0x001, 0x205], [0x011, 0x215]], dtype=np.uint16),
             "G": np.array([[0x103, 0x307], [0x113, 0x317]], dtype=np.uint16),
             "g": np.array([[0x009, 0x20D], [0x019, 0x21D]], dtype=np.uint16),
             "B": np.array([[0x10B, 0x30F], [0x11B, 0x31F]], dtype=np.uint16),
         },
-        "packed_image": np.array(
+        "bayer_packed": np.array(
             [
                 [0x001, 0x103, 0x205, 0x307],
                 [0x009, 0x10B, 0x20D, 0x30F],
@@ -531,19 +530,19 @@ convertImageFormatTestCases = [
     },
     {
         "name": "basic-10bit.planar.3",
-        "height": 4,
         "width": 4,
+        "height": 4,
         "i_pix_fmt": "RG10.planar",
         "o_pix_fmt": "RG10",
         "debug": 0,
         "input": b"\x01\x00\x03\x01\x05\x02\x07\x03\x09\x00\x0b\x01\x0d\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
-        "planar_image": {
+        "bayer_planar": {
             "R": np.array([[0x001, 0x103], [0x205, 0x307]], dtype=np.uint16),
             "G": np.array([[0x009, 0x10B], [0x20D, 0x30F]], dtype=np.uint16),
             "g": np.array([[0x011, 0x113], [0x215, 0x317]], dtype=np.uint16),
             "B": np.array([[0x019, 0x11B], [0x21D, 0x31F]], dtype=np.uint16),
         },
-        "packed_image": np.array(
+        "bayer_packed": np.array(
             [
                 [0x001, 0x009, 0x103, 0x10B],
                 [0x011, 0x019, 0x113, 0x11B],
@@ -556,19 +555,19 @@ convertImageFormatTestCases = [
     },
     {
         "name": "basic-10bit.planar.4",
-        "height": 4,
         "width": 4,
+        "height": 4,
         "i_pix_fmt": "RG10.planar",
         "o_pix_fmt": "RG10.planar",
         "debug": 0,
         "input": b"\x01\x00\x03\x01\x05\x02\x07\x03\x09\x00\x0b\x01\x0d\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
-        "planar_image": {
+        "bayer_planar": {
             "R": np.array([[0x001, 0x103], [0x205, 0x307]], dtype=np.uint16),
             "G": np.array([[0x009, 0x10B], [0x20D, 0x30F]], dtype=np.uint16),
             "g": np.array([[0x011, 0x113], [0x215, 0x317]], dtype=np.uint16),
             "B": np.array([[0x019, 0x11B], [0x21D, 0x31F]], dtype=np.uint16),
         },
-        "packed_image": np.array(
+        "bayer_packed": np.array(
             [
                 [0x001, 0x009, 0x103, 0x10B],
                 [0x011, 0x019, 0x113, 0x11B],
@@ -579,6 +578,276 @@ convertImageFormatTestCases = [
         ),
         "output": b"\x01\x00\x03\x01\x05\x02\x07\x03\x09\x00\x0b\x01\x0d\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
     },
+    # (d) YDgCoCg conversions
+    # (d.1) 8-bit
+    {
+        "name": "ydgcocg-8bit.planar.1",
+        "width": 4,
+        "height": 4,
+        "i_pix_fmt": "ydgcocg8.planar",
+        "o_pix_fmt": "ydgcocg8.planar",
+        "debug": 0,
+        "input": b"\x6f\x70\x70\x70\xA0\xB0\xC0\xD0\x00\x10\x20\x30\x70\x70\x70\x70",
+        "ydgcocg_planar": {
+            "Y": np.array([[0x6F, 0x70], [0x70, 0x70]], dtype=np.uint8),
+            "D": np.array([[0xA0, 0xB0], [0xC0, 0xD0]], dtype=np.uint8),
+            "C": np.array([[0x00, 0x10], [0x20, 0x30]], dtype=np.uint8),
+            "c": np.array([[0x70, 0x70], [0x70, 0x70]], dtype=np.uint8),
+        },
+        "ydgcocg_packed": np.array(
+            [
+                [0x6F, 0xA0, 0x70, 0xB0],
+                [0x00, 0x70, 0x10, 0x70],
+                [0x70, 0xC0, 0x70, 0xD0],
+                [0x20, 0x70, 0x30, 0x70],
+            ],
+            dtype=np.uint8,
+        ),
+        "bayer_planar": {
+            "R": np.array([[0x00, 0x10], [0x20, 0x30]], dtype=np.uint8),
+            "G": np.array([[0x40, 0x30], [0x20, 0x10]], dtype=np.uint8),
+            "g": np.array([[0x80, 0x90], [0xA0, 0xB0]], dtype=np.uint8),
+            "B": np.array([[0xFF, 0xF0], [0xE0, 0xD0]], dtype=np.uint8),
+        },
+        "bayer_packed": np.array(
+            [
+                [0x00, 0x40, 0x10, 0x30],
+                [0x80, 0xFF, 0x90, 0xF0],
+                [0x20, 0x20, 0x30, 0x10],
+                [0xA0, 0xE0, 0xB0, 0xD0],
+            ],
+            dtype=np.uint8,
+        ),
+        "output": b"\x6f\x70\x70\x70\xA0\xB0\xC0\xD0\x00\x10\x20\x30\x70\x70\x70\x70",
+    },
+    {
+        "name": "rggb8-forward-4x4",
+        "width": 4,
+        "height": 4,
+        "i_pix_fmt": "bayer_rggb8",
+        "o_pix_fmt": "ydgcocg8.planar",
+        "debug": 0,
+        "input": b"\x00\x40\x10\x30\x80\xFF\x90\xF0\x20\x20\x30\x10\xA0\xE0\xB0\xD0",
+        "bayer_packed": np.array(
+            [
+                [0x00, 0x40, 0x10, 0x30],
+                [0x80, 0xFF, 0x90, 0xF0],
+                [0x20, 0x20, 0x30, 0x10],
+                [0xA0, 0xE0, 0xB0, 0xD0],
+            ],
+            dtype=np.uint8,
+        ),
+        "bayer_planar": {
+            "R": np.array([[0x00, 0x10], [0x20, 0x30]], dtype=np.uint8),
+            "G": np.array([[0x40, 0x30], [0x20, 0x10]], dtype=np.uint8),
+            "g": np.array([[0x80, 0x90], [0xA0, 0xB0]], dtype=np.uint8),
+            "B": np.array([[0xFF, 0xF0], [0xE0, 0xD0]], dtype=np.uint8),
+        },
+        "ydgcocg_planar": {
+            "Y": np.array([[0x6F, 0x70], [0x70, 0x70]], dtype=np.uint8),
+            "D": np.array([[0xA0, 0xB0], [0xC0, 0xD0]], dtype=np.uint8),
+            "C": np.array([[0x00, 0x10], [0x20, 0x30]], dtype=np.uint8),
+            "c": np.array([[0x70, 0x70], [0x70, 0x70]], dtype=np.uint8),
+        },
+        "output": b"\x6f\x70\x70\x70\xA0\xB0\xC0\xD0\x00\x10\x20\x30\x70\x70\x70\x70",
+    },
+    {
+        "name": "rggb8-reverse-4x4",
+        "width": 4,
+        "height": 4,
+        "i_pix_fmt": "bayer_rggb8",
+        "o_pix_fmt": "ydgcocg8.planar",
+        "debug": 0,
+        "input": b"\x00\x40\x10\x30\x80\x00\x90\xF0\x20\x20\x30\x10\xA0\xE0\xB0\xD0",
+        "bayer_packed": np.array(
+            [
+                [0x00, 0x40, 0x10, 0x30],
+                [0x80, 0x00, 0x90, 0xF0],
+                [0x20, 0x20, 0x30, 0x10],
+                [0xA0, 0xE0, 0xB0, 0xD0],
+            ],
+            dtype=np.uint8,
+        ),
+        "ydgcocg_planar": {
+            "Y": np.array([[0x30, 0x70], [0x70, 0x70]], dtype=np.uint8),
+            "D": np.array([[0xA0, 0xB0], [0xC0, 0xD0]], dtype=np.uint8),
+            "C": np.array([[0x80, 0x10], [0x20, 0x30]], dtype=np.uint8),
+            "c": np.array([[0xB0, 0x70], [0x70, 0x70]], dtype=np.uint8),
+        },
+        "ydgcocg_packed": np.array(
+            [
+                [0x30, 0xA0, 0x70, 0xB0],
+                [0x80, 0xB0, 0x10, 0x70],
+                [0x70, 0xC0, 0x70, 0xD0],
+                [0x20, 0x70, 0x30, 0x70],
+            ],
+            dtype=np.uint8,
+        ),
+        "output": b"\x30\x70\x70\x70\xA0\xB0\xC0\xD0\x80\x10\x20\x30\xB0\x70\x70\x70",
+    },
+    {
+        "name": "rggb8-maxmin-forward.16x4",
+        "width": 16,
+        "height": 4,
+        "i_pix_fmt": "bayer_rggb8.planar",
+        "o_pix_fmt": "ydgcocg8.planar",
+        "debug": 0,
+        "input": b"\x00\x00\x00\x00\x00\x00\x00\x00\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF\x00\x00\xFF\xFF\x00\x00\xFF\xFF\x00\x00\xFF\xFF\x00\x00\xFF\xFF\x00\xFF\x00\xFF\x00\xFF\x00\xFF\x00\xFF\x00\xFF\x00\xFF\x00\xFF",
+        "bayer_planar": {
+            "R": np.array(
+                [
+                    [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
+                    [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF],
+                ],
+                dtype=np.uint8,
+            ),
+            "G": np.array(
+                [
+                    [0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF],
+                    [0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF],
+                ],
+                dtype=np.uint8,
+            ),
+            "g": np.array(
+                [
+                    [0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF],
+                    [0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF],
+                ],
+                dtype=np.uint8,
+            ),
+            "B": np.array(
+                [
+                    [0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF],
+                    [0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF],
+                ],
+                dtype=np.uint8,
+            ),
+        },
+        "ydgcocg_planar": {
+            "Y": np.array(
+                [
+                    [0x00, 0x3F, 0x3F, 0x7E, 0x3F, 0x7E, 0x7E, 0xBD],
+                    [0x3F, 0x7E, 0x7E, 0xBD, 0x7E, 0xBD, 0xBD, 0xFC],
+                ],
+                dtype=np.uint8,
+            ),
+            "D": np.array(
+                [
+                    [0x80, 0x80, 0xFF, 0xFF, 0x00, 0x00, 0x80, 0x80],
+                    [0x80, 0x80, 0xFF, 0xFF, 0x00, 0x00, 0x80, 0x80],
+                ],
+                dtype=np.uint8,
+            ),
+            "C": np.array(
+                [
+                    [0x80, 0x00, 0x80, 0x00, 0x80, 0x00, 0x80, 0x00],
+                    [0xFF, 0x80, 0xFF, 0x80, 0xFF, 0x80, 0xFF, 0x80],
+                ],
+                dtype=np.uint8,
+            ),
+            "c": np.array(
+                [
+                    [0x80, 0x40, 0xBF, 0x80, 0xBF, 0x80, 0xFF, 0xBF],
+                    [0x40, 0x01, 0x80, 0x40, 0x80, 0x40, 0xBF, 0x80],
+                ],
+                dtype=np.uint8,
+            ),
+        },
+        "output": b"\x00\x3f\x3f\x7e\x3f\x7e\x7e\xbd\x3f\x7e\x7e\xbd\x7e\xbd\xbd\xfc\x80\x80\xff\xff\x00\x00\x80\x80\x80\x80\xff\xff\x00\x00\x80\x80\x80\x00\x80\x00\x80\x00\x80\x00\xff\x80\xff\x80\xff\x80\xff\x80\x80\x40\xbf\x80\xbf\x80\xff\xbf\x40\x01\x80\x40\x80\x40\xbf\x80",
+    },
+    {
+        "name": "ydgcocg8-maxmin-forward.16x4",
+        "width": 16,
+        "height": 4,
+        "i_pix_fmt": "ydgcocg8.planar",
+        "o_pix_fmt": "bayer_rggb8.planar",
+        "debug": 0,
+        "input": b"\x00\x00\x00\x00\x00\x00\x00\x00\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF\x00\x00\xFF\xFF\x00\x00\xFF\xFF\x00\x00\xFF\xFF\x00\x00\xFF\xFF\x00\xFF\x00\xFF\x00\xFF\x00\xFF\x00\xFF\x00\xFF\x00\xFF\x00\xFF",
+        "ydgcocg_planar": {
+            "Y": np.array(
+                [
+                    [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
+                    [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF],
+                ],
+                dtype=np.uint8,
+            ),
+            "D": np.array(
+                [
+                    [0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF],
+                    [0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF],
+                ],
+                dtype=np.uint8,
+            ),
+            "C": np.array(
+                [
+                    [0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF],
+                    [0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF],
+                ],
+                dtype=np.uint8,
+            ),
+            "c": np.array(
+                [
+                    [0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF],
+                    [0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF],
+                ],
+                dtype=np.uint8,
+            ),
+        },
+        "bayer_planar": {
+            "R": np.array(
+                [
+                    [0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00],
+                    [0xFF, 0x00, 0xFF, 0xFF, 0xFF, 0x00, 0xFF, 0xFF],
+                ],
+                dtype=np.uint8,
+            ),
+            "G": np.array(
+                [
+                    [0x00, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00, 0x00],
+                    [0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0xFF, 0x00, 0xFF],
+                ],
+                dtype=np.uint8,
+            ),
+            "g": np.array(
+                [
+                    [0x00, 0x00, 0x00, 0x00, 0x00, 0xFE, 0x00, 0xFE],
+                    [0x00, 0xFE, 0x00, 0xFE, 0xFE, 0xFF, 0xFE, 0xFF],
+                ],
+                dtype=np.uint8,
+            ),
+            "B": np.array(
+                [
+                    [0xFF, 0x01, 0x01, 0x00, 0xFF, 0x01, 0x01, 0x00],
+                    [0xFF, 0xFF, 0xFF, 0x01, 0xFF, 0xFF, 0xFF, 0x01],
+                ],
+                dtype=np.uint8,
+            ),
+        },
+        "output": b"\x00\x00\xff\x00\x00\x00\xff\x00\xff\x00\xff\xff\xff\x00\xff\xff\x00\xff\x00\xff\x00\x00\x00\x00\xff\xff\xff\xff\x00\xff\x00\xff\x00\x00\x00\x00\x00\xfe\x00\xfe\x00\xfe\x00\xfe\xfe\xff\xfe\xff\xff\x01\x01\x00\xff\x01\x01\x00\xff\xff\xff\x01\xff\xff\xff\x01",
+    },
+    # (d.2) 10-bit
+    {
+        "name": "ydgcocg-10bit.planar.1",
+        "width": 4,
+        "height": 4,
+        "i_pix_fmt": "ydgcocg10.planar",
+        "o_pix_fmt": "ydgcocg10.planar",
+        "debug": 0,
+        "input": b"\x01\x00\x03\x01\x05\x02\x07\x03\x09\x00\x0b\x01\x0d\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
+        "ydgcocg_planar": {
+            "Y": np.array([[0x001, 0x103], [0x205, 0x307]], dtype=np.uint16),
+            "D": np.array([[0x009, 0x10B], [0x20D, 0x30F]], dtype=np.uint16),
+            "C": np.array([[0x011, 0x113], [0x215, 0x317]], dtype=np.uint16),
+            "c": np.array([[0x019, 0x11B], [0x21D, 0x31F]], dtype=np.uint16),
+        },
+        "bayer_planar": {
+            "R": np.array([[0x000, 0x0FB], [0x1FD, 0x2FF]], dtype=np.uint16),
+            "G": np.array([[0x011, 0x113], [0x215, 0x317]], dtype=np.uint16),
+            "g": np.array([[0x000, 0x000], [0x22F, 0x3FF]], dtype=np.uint16),
+            "B": np.array([[0x3D7, 0x2D5], [0x1D3, 0x0D1]], dtype=np.uint16),
+        },
+        "output": b"\x01\x00\x03\x01\x05\x02\x07\x03\x09\x00\x0b\x01\x0d\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
+    },
 ]
 
 
@@ -586,18 +855,18 @@ processColorConversions = [
     # (a) 8-bit, red/purple image
     {
         "name": "red-purple.8bits.4x4",
-        "height": 4,
         "width": 4,
+        "height": 4,
         "pix_fmt": "bayer_rggb8",
         "debug": 0,
         "input": b"\xFF\x00\xFF\x00\x00\x00\x00\x80\xFF\x00\xFF\x00\x00\x80\x00\xFF",
-        "bayer_planar_image": {
+        "bayer_planar": {
             "R": np.array([[0xFF, 0xFF], [0xFF, 0xFF]], dtype=np.uint8),
             "G": np.array([[0x00, 0x00], [0x00, 0x00]], dtype=np.uint8),
             "g": np.array([[0x00, 0x00], [0x00, 0x00]], dtype=np.uint8),
             "B": np.array([[0x00, 0x80], [0x80, 0xFF]], dtype=np.uint8),
         },
-        "rgb_planar_image": {
+        "rgb_planar": {
             "r": np.array(
                 [
                     [0xFF, 0xFF, 0xFF, 0xFF],
@@ -626,7 +895,7 @@ processColorConversions = [
                 dtype=np.uint8,
             ),
         },
-        "yuv_planar_image": {
+        "yuv_planar": {
             "y": np.array(
                 [
                     [0x4C, 0x4C, 0x54, 0x54],
@@ -659,18 +928,18 @@ processColorConversions = [
     # (b) 10-bit, red/purple image
     {
         "name": "red-purple.10bits.4x4",
-        "height": 4,
         "width": 4,
+        "height": 4,
         "pix_fmt": "bayer_rggb10",
         "debug": 0,
         "input": b"\xFF\x03\x00\x00\xFF\x03\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\xFF\x03\x00\x00\xFF\x03\x00\x00\x00\x00\x00\x02\x00\x00\xFF\x03",
-        "bayer_planar_image": {
+        "bayer_planar": {
             "R": np.array([[0x3FF, 0x3FF], [0x3FF, 0x3FF]], dtype=np.uint16),
             "G": np.array([[0x000, 0x000], [0x000, 0x000]], dtype=np.uint16),
             "g": np.array([[0x000, 0x000], [0x000, 0x000]], dtype=np.uint16),
             "B": np.array([[0x000, 0x200], [0x200, 0x3FF]], dtype=np.uint16),
         },
-        "rgb_planar_image": {
+        "rgb_planar": {
             "r": np.array(
                 [
                     [0x3FF, 0x3FF, 0x3FF, 0x3FF],
@@ -699,7 +968,7 @@ processColorConversions = [
                 dtype=np.uint16,
             ),
         },
-        "yuv_planar_image": {
+        "yuv_planar": {
             "y": np.array(
                 [
                     [0x131, 0x131, 0x14F, 0x14F],
@@ -727,6 +996,186 @@ processColorConversions = [
                 ],
                 dtype=np.uint16,
             ),
+        },
+    },
+]
+
+clipIntegerAndScaleTestCases = [
+    {
+        "name": "8-bits",
+        "depth": 8,
+        "arr": np.array(
+            [
+                [-0xFF, -0x80, -0x7F, 0x00, 0x7F, 0x80, 0xFF],
+            ],
+            dtype=np.int16,
+        ),
+        "clipped_arr": np.array(
+            [
+                [0x00, 0x40, 0x40, 0x80, 0xBF, 0xC0, 0xFF],
+            ],
+            dtype=np.uint8,
+        ),
+    },
+    {
+        "name": "10-bits",
+        "depth": 10,
+        "arr": np.array(
+            [
+                [-0x3FF, -0x200, -0x1FF, 0x00, 0x1FF, 0x200, 0x3FF],
+            ],
+            dtype=np.int32,
+        ),
+        "clipped_arr": np.array(
+            [
+                [0x000, 0x100, 0x100, 0x200, 0x2FF, 0x300, 0x3FF],
+            ],
+            dtype=np.uint16,
+        ),
+    },
+    {
+        "name": "16-bits",
+        "depth": 16,
+        "arr": np.array(
+            [
+                [-0xFFFF, -0x8000, -0x7FFF, 0x00, 0x7FFF, 0x8000, 0xFFFF],
+            ],
+            dtype=np.int32,
+        ),
+        "clipped_arr": np.array(
+            [
+                [0x0000, 0x4000, 0x4000, 0x8000, 0xBFFF, 0xC000, 0xFFFF],
+            ],
+            dtype=np.uint16,
+        ),
+    },
+]
+
+convertRg1g2bToYdgcocgTestCases = [
+    {
+        "name": "rggb8-forward-4x4",
+        "debug": 0,
+        "i_pix_fmt": "bayer_rggb8",
+        "o_pix_fmt": "ydgcocg8.planar",
+        "bayer_packed": np.array(
+            [
+                [0x00, 0x40, 0x10, 0x30],
+                [0x80, 0xFF, 0x90, 0xF0],
+                [0x20, 0x20, 0x30, 0x10],
+                [0xA0, 0xE0, 0xB0, 0xD0],
+            ],
+            dtype=np.uint8,
+        ),
+        "ydgcocg_planar": {
+            "Y": np.array([[0x6F, 0x70], [0x70, 0x70]], dtype=np.uint8),
+            "D": np.array([[0xA0, 0xB0], [0xC0, 0xD0]], dtype=np.uint8),
+            "C": np.array([[0x00, 0x10], [0x20, 0x30]], dtype=np.uint8),
+            "c": np.array([[0x70, 0x70], [0x70, 0x70]], dtype=np.uint8),
+        },
+    },
+    {
+        "name": "rggb8-reverse-4x4",
+        "debug": 0,
+        "i_pix_fmt": "bayer_rggb8",
+        "o_pix_fmt": "ydgcocg8.planar",
+        "bayer_packed": np.array(
+            [
+                [0x00, 0x40, 0x10, 0x30],
+                [0x80, 0x00, 0x90, 0xF0],
+                [0x20, 0x20, 0x30, 0x10],
+                [0xA0, 0xE0, 0xB0, 0xD0],
+            ],
+            dtype=np.uint8,
+        ),
+        "ydgcocg_planar": {
+            "Y": np.array([[0x30, 0x70], [0x70, 0x70]], dtype=np.uint8),
+            "D": np.array([[0xA0, 0xB0], [0xC0, 0xD0]], dtype=np.uint8),
+            "C": np.array([[0x80, 0x10], [0x20, 0x30]], dtype=np.uint8),
+            "c": np.array([[0xB0, 0x70], [0x70, 0x70]], dtype=np.uint8),
+        },
+    },
+    {
+        "name": "rggb10-forward-4x4",
+        "debug": 0,
+        "i_pix_fmt": "SRGGB10",
+        "o_pix_fmt": "ydgcocg10.planar",
+        "bayer_packed": np.array(
+            [
+                [0x00, 0x40, 0x10, 0x30],
+                [0x80, 0xFF, 0x90, 0xF0],
+                [0x20, 0x20, 0x30, 0x10],
+                [0xA0, 0xE0, 0xB0, 0xD0],
+            ],
+            dtype=np.uint16,
+        ),
+        "ydgcocg_planar": {
+            "Y": np.array([[0x06F, 0x070], [0x070, 0x070]], dtype=np.uint16),
+            "D": np.array([[0x220, 0x230], [0x240, 0x250]], dtype=np.uint16),
+            "C": np.array([[0x180, 0x190], [0x1A0, 0x1B0]], dtype=np.uint16),
+            "c": np.array([[0x1F0, 0x1F0], [0x1F0, 0x1F0]], dtype=np.uint16),
+        },
+    },
+    {
+        "name": "rggb10-reverse-4x4",
+        "debug": 0,
+        "i_pix_fmt": "SRGGB10",
+        "o_pix_fmt": "ydgcocg10.planar",
+        "bayer_packed": np.array(
+            [
+                [0x00, 0x40, 0x10, 0x30],
+                [0x80, 0x00, 0x90, 0xF0],
+                [0x20, 0x20, 0x30, 0x10],
+                [0xA0, 0xE0, 0xB0, 0xD0],
+            ],
+            dtype=np.uint16,
+        ),
+        "ydgcocg_planar": {
+            "Y": np.array([[0x030, 0x070], [0x070, 0x070]], dtype=np.uint16),
+            "D": np.array([[0x220, 0x230], [0x240, 0x250]], dtype=np.uint16),
+            "C": np.array([[0x200, 0x190], [0x1A0, 0x1B0]], dtype=np.uint16),
+            "c": np.array([[0x230, 0x1F0], [0x1F0, 0x1F0]], dtype=np.uint16),
+        },
+    },
+    {
+        "name": "rggb10-scaled-forward-4x4",
+        "debug": 0,
+        "i_pix_fmt": "SRGGB10",
+        "o_pix_fmt": "ydgcocg10.planar",
+        "bayer_packed": np.array(
+            [
+                [0x000, 0x100, 0x040, 0x0C0],
+                [0x200, 0x3FF, 0x240, 0x3C0],
+                [0x080, 0x080, 0x0C0, 0x040],
+                [0x280, 0x380, 0x2C0, 0x340],
+            ],
+            dtype=np.uint16,
+        ),
+        "ydgcocg_planar": {
+            "Y": np.array([[0x1BF, 0x1C0], [0x1C0, 0x1C0]], dtype=np.uint16),
+            "D": np.array([[0x280, 0x2C0], [0x300, 0x340]], dtype=np.uint16),
+            "C": np.array([[0x000, 0x040], [0x080, 0x0C0]], dtype=np.uint16),
+            "c": np.array([[0x1C0, 0x1C0], [0x1C0, 0x1C0]], dtype=np.uint16),
+        },
+    },
+    {
+        "name": "rggb10-scaled-reverse-4x4",
+        "debug": 0,
+        "i_pix_fmt": "SRGGB10",
+        "o_pix_fmt": "ydgcocg10.planar",
+        "bayer_packed": np.array(
+            [
+                [0x000, 0x100, 0x040, 0x0C0],
+                [0x200, 0x000, 0x240, 0x3C0],
+                [0x080, 0x080, 0x0C0, 0x040],
+                [0x280, 0x380, 0x2C0, 0x340],
+            ],
+            dtype=np.uint16,
+        ),
+        "ydgcocg_planar": {
+            "Y": np.array([[0x0C0, 0x1C0], [0x1C0, 0x1C0]], dtype=np.uint16),
+            "D": np.array([[0x280, 0x2C0], [0x300, 0x340]], dtype=np.uint16),
+            "C": np.array([[0x200, 0x040], [0x080, 0x0C0]], dtype=np.uint16),
+            "c": np.array([[0x2C0, 0x1C0], [0x1C0, 0x1C0]], dtype=np.uint16),
         },
     },
 ]
@@ -759,6 +1208,17 @@ class MainTest(unittest.TestCase):
         else:
             return test_case_list
 
+    @classmethod
+    def comparePlanar(cls, planar, expected_planar, absolute_tolerance, label):
+        assert set(expected_planar.keys()) == set(planar.keys()), "Broken planar output"
+        for key in expected_planar:
+            np.testing.assert_allclose(
+                expected_planar[key],
+                planar[key],
+                atol=absolute_tolerance,
+                err_msg=f"error on {label} case {key=}",
+            )
+
     def testConvertImageFormat(self):
         """Simplest get_data test."""
         for test_case in self.getTestCases(convertImageFormatTestCases):
@@ -776,93 +1236,86 @@ class MainTest(unittest.TestCase):
             expected_output = test_case["output"]
             # prepare parameters
             i_pix_fmt = test_case["i_pix_fmt"]
-            height = test_case["height"]
             width = test_case["width"]
+            height = test_case["height"]
             o_pix_fmt = test_case["o_pix_fmt"]
             debug = test_case["debug"]
-
-            # 1. run forward conversion
-            bayer_image = itools_bayer.convert_image_format(
-                infile,
-                i_pix_fmt,
-                height,
-                width,
-                outfile,
-                o_pix_fmt,
-                debug,
-            )
-            # check the planar representation is correct
             absolute_tolerance = 1
-            # a. check if the dictionaries have the same keys
-            expected_planar = test_case["planar_image"]
-            planar = bayer_image.GetPlanar()
-            assert set(expected_planar.keys()) == set(
-                planar.keys()
-            ), "Broken Bayer planar output"
-            # b. check if the numpy arrays have the same values
-            for key in expected_planar:
-                np.testing.assert_allclose(
-                    expected_planar[key],
-                    planar[key],
-                    atol=absolute_tolerance,
-                    err_msg=f"error on forward case {key=} {test_case['name']}",
-                )
 
-            # check the packed representation is correct
-            np.testing.assert_allclose(
-                test_case["packed_image"],
-                bayer_image.GetPacked(),
-                atol=absolute_tolerance,
-                err_msg=f"error on forward case {test_case['name']}",
+            # 1. read input image
+            input_image = itools_bayer.BayerImage.FromFile(
+                infile, i_pix_fmt, width, height, debug
             )
-            # read output file
+
+            # 2. check write back produces the same input file
+            input_image.ToFile(outfile, debug)
             with open(outfile, "rb") as f:
                 output = f.read()
             # check the values
+            expected_output = test_case["input"]
             self.assertEqual(
                 expected_output,
                 output,
-                f"error on forward test {test_case['name']}",
+                f"error on input write test {test_case['name']}",
             )
 
-            # 2. run output loop conversion (convert output to output)
-            _ = itools_bayer.convert_image_format(
-                outfile,
-                o_pix_fmt,
-                height,
-                width,
-                outfile,
-                o_pix_fmt,
-                debug,
-            )
-            # read output file
+            # 3. check the bayer_planar representation is correct
+            if "bayer_planar" in test_case:
+                expected_bayer_planar = test_case["bayer_planar"]
+                bayer_planar = input_image.GetBayerPlanar()
+                self.comparePlanar(
+                    bayer_planar,
+                    expected_bayer_planar,
+                    absolute_tolerance,
+                    f"bayer_planar {test_case['name']}",
+                )
+
+            # 4. check the bayer_packed representation is correct
+            if "bayer_packed" in test_case:
+                bayer_packed = input_image.GetBayerPacked()
+                expected_bayer_packed = test_case["bayer_packed"]
+                np.testing.assert_allclose(
+                    expected_bayer_packed,
+                    bayer_packed,
+                    atol=absolute_tolerance,
+                    err_msg=f"error on bayer_packed case {test_case['name']}",
+                )
+
+            # 5. check the ydgcocg plane is correct
+            if "ydgcocg_planar" in test_case:
+                expected_ydgcocg_planar = test_case["ydgcocg_planar"]
+                ydgcocg_planar = input_image.GetYDgCoCgPlanar()
+                self.comparePlanar(
+                    ydgcocg_planar,
+                    expected_ydgcocg_planar,
+                    absolute_tolerance,
+                    f"ydgcocg_planar {test_case['name']}",
+                )
+
+            # 6. check the ydgcocg plane is correct
+            if "ydgcocg_packed" in test_case:
+                expected_ydgcocg_packed = test_case["ydgcocg_packed"]
+                ydgcocg_packed = input_image.GetYDgCoCgPacked()
+                np.testing.assert_allclose(
+                    expected_ydgcocg_packed,
+                    ydgcocg_packed,
+                    atol=absolute_tolerance,
+                    err_msg=f"error on ydgcocg_packed case {test_case['name']}",
+                )
+
+            # 7. run forward conversion
+            output_image = input_image.Copy(o_pix_fmt, debug)
+            output_image.ToFile(outfile, debug)
+            # write it to a file
+            output_image.ToFile(outfile, debug)
             with open(outfile, "rb") as f:
                 output = f.read()
             # check the values
+            expected_output = test_case["output"]
             self.assertEqual(
-                test_case["output"],
+                expected_output,
                 output,
-                f"error on output loop test {test_case['name']}",
-            )
-
-            # 3. run input loop conversion (convert input to input)
-            _ = itools_bayer.convert_image_format(
-                infile,
-                i_pix_fmt,
-                height,
-                width,
-                outfile,
-                i_pix_fmt,
-                debug,
-            )
-            # read output file
-            with open(outfile, "rb") as f:
-                output = f.read()
-            # check the values
-            self.assertEqual(
-                test_case["input"],
-                output,
-                f"error on input loop test {test_case['name']}",
+                f"error on forward write test {test_case['name']}",
             )
 
     def testProcessColorConversions(self):
@@ -878,65 +1331,101 @@ class MainTest(unittest.TestCase):
             # prepare output file(s)
             # prepare parameters
             pix_fmt = test_case["pix_fmt"]
-            height = test_case["height"]
             width = test_case["width"]
+            height = test_case["height"]
             debug = test_case["debug"]
 
             # 1. run forward conversion
             pix_fmt = itools_bayer.get_canonical_input_pix_fmt(pix_fmt)
             bayer_image = itools_bayer.BayerImage.FromFile(
-                infile, pix_fmt, height, width, debug
+                infile, pix_fmt, width, height, debug
             )
 
             # 2. check the Bayer planar representation is correct
             absolute_tolerance = 1
-            # a. check if the dictionaries have the same keys
-            expected_planar = test_case["bayer_planar_image"]
-            bayer_planar = bayer_image.GetPlanar()
-            assert set(expected_planar.keys()) == set(
-                bayer_planar.keys()
-            ), "Broken Bayer planar output"
-            # b. check if the numpy arrays have the same values
-            for key in expected_planar:
-                np.testing.assert_allclose(
-                    expected_planar[key],
-                    bayer_planar[key],
-                    atol=absolute_tolerance,
-                    err_msg=f"error on forward case {key=} {test_case['name']}",
-                )
+            expected_bayer_planar = test_case["bayer_planar"]
+            bayer_planar = bayer_image.GetBayerPlanar()
+            self.comparePlanar(
+                bayer_planar,
+                expected_bayer_planar,
+                absolute_tolerance,
+                test_case["name"],
+            )
 
             # 3. check the RGB planar representation is correct
-            # a. check if the dictionaries have the same keys
-            expected_planar = test_case["rgb_planar_image"]
+            expected_rgb_planar = test_case["rgb_planar"]
             rgb_planar = bayer_image.GetRGBPlanar()
-            assert set(expected_planar.keys()) == set(
-                rgb_planar.keys()
-            ), "Broken RGB planar output"
-            # b. check if the numpy arrays have the same values
-            for key in expected_planar:
-                np.testing.assert_allclose(
-                    expected_planar[key],
-                    rgb_planar[key],
-                    atol=absolute_tolerance,
-                    err_msg=f"error on forward case {key=} {test_case['name']}",
-                )
+            self.comparePlanar(
+                rgb_planar, expected_rgb_planar, absolute_tolerance, test_case["name"]
+            )
 
             # 4. check the YUV planar representation is correct
-            # a. check if the dictionaries have the same keys
-            expected_planar = test_case["yuv_planar_image"]
+            expected_yuv_planar = test_case["yuv_planar"]
             yuv_planar = bayer_image.GetYUVPlanar()
-            assert set(expected_planar.keys()) == set(
-                yuv_planar.keys()
-            ), "Broken YUV planar output"
+            self.comparePlanar(
+                yuv_planar, expected_yuv_planar, absolute_tolerance, test_case["name"]
+            )
 
-            # b. check if the numpy arrays have the same values
-            for key in expected_planar:
-                np.testing.assert_allclose(
-                    expected_planar[key],
-                    yuv_planar[key],
-                    atol=absolute_tolerance,
-                    err_msg=f"error on forward case {key=} {test_case['name']}",
-                )
+    def testClipIntegerAndScale(self):
+        """clip_integer_and_scale test."""
+        for test_case in self.getTestCases(clipIntegerAndScaleTestCases):
+            print("...running %s" % test_case["name"])
+            arr = test_case["arr"]
+            depth = test_case["depth"]
+            expected_clipped_arr = test_case["clipped_arr"]
+            # 1. run forward clipping
+            clipped_arr = itools_bayer.clip_integer_and_scale(arr, depth)
+            np.testing.assert_array_equal(
+                expected_clipped_arr,
+                clipped_arr,
+                err_msg=f"error on forward case {test_case['name']}",
+            )
+            # 2. run backward clipping
+            new_arr = itools_bayer.unclip_integer_and_unscale(clipped_arr, depth)
+            absolute_tolerance = 1
+            np.testing.assert_allclose(
+                arr,
+                new_arr,
+                atol=absolute_tolerance,
+                err_msg=f"error on forward case {test_case['name']}",
+            )
+
+    def testConvertRg1g2bToYdgcocg(self):
+        """convert_rg1g2b_to_ydgcocg test."""
+        for test_case in self.getTestCases(convertRg1g2bToYdgcocgTestCases):
+            print("...running %s" % test_case["name"])
+            i_pix_fmt = test_case["i_pix_fmt"]
+            depth = itools_bayer.get_depth(i_pix_fmt)
+            # 1. run RG1G2B to YDgCoCg function
+            bayer_packed = test_case["bayer_packed"]
+            debug = test_case["debug"]
+            bayer_image = itools_bayer.BayerImage.FromBayerPacked(
+                bayer_packed, i_pix_fmt
+            )
+            ydgcocg_planar = bayer_image.GetYDgCoCgPlanar()
+            expected_ydgcocg_planar = test_case["ydgcocg_planar"]
+            # check the values
+            absolute_tolerance = 1
+            self.comparePlanar(
+                ydgcocg_planar,
+                expected_ydgcocg_planar,
+                absolute_tolerance,
+                test_case["name"],
+            )
+
+            # 2. run YDgCoCg to RG1G2B function (reverse)
+            o_pix_fmt = test_case["o_pix_fmt"]
+            bayer_image_prime = itools_bayer.BayerImage.FromYDgCoCgPlanar(
+                ydgcocg_planar, o_pix_fmt, debug
+            )
+            bayer_order = itools_bayer.get_order(i_pix_fmt)
+            bayer_packed_prime = bayer_image_prime.GetBayerPacked(order=bayer_order)
+            np.testing.assert_allclose(
+                test_case["bayer_packed"],
+                bayer_packed_prime,
+                atol=absolute_tolerance,
+                err_msg=f"error on forward case {test_case['name']}",
+            )
 
 
 if __name__ == "__main__":
