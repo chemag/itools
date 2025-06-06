@@ -1145,55 +1145,10 @@ class BayerImage:
         return self.packed
 
     def GetPlanarFromBuffer(self):
-        # convert file buffer to planar
-        # get format info
-        pix_fmt = self.pix_fmt
-        clen = INPUT_FORMATS[pix_fmt]["clen"]
-        order = INPUT_FORMATS[pix_fmt]["order"]
-        blen = INPUT_FORMATS[pix_fmt]["blen"]
-        rfun = INPUT_FORMATS[pix_fmt]["rfun"]
-        # create bayer planar image
-        dtype = np.uint16 if self.depth > 8 else np.uint8
-        self.planar = {
-            plane_id: np.zeros((self.height // 2, self.width // 2), dtype=dtype)
-            for plane_id in DEFAULT_PLANAR_ORDER
-        }
-        # fill it up
-        row = 0
-        col = 0
-        i = 0
-        while True:
-            if self.debug > 2:
-                print(f"debug: {row=} {col=}")
-            # 1. read components from the input
-            components = ()
-            while len(components) < clen:
-                idata = self.buffer[i : i + blen]
-                i += blen
-                if not idata:
-                    break
-                components += rfun(idata, self.debug)
-            if len(components) < clen:
-                # end of input
-                break
-            if self.debug > 2:
-                print(f"debug:  {components=}")
-            # 2. get affected plane IDs
-            plane_ids = self.GetPlaneIds(order, row)
-            # 3. convert component order
-            for component in components:
-                plane_id = plane_ids[col % len(plane_ids)]
-                # get planar row and col
-                prow = row // 2
-                pcol = col // 2
-                self.planar[plane_id][prow][pcol] = component
-                if self.debug > 3:
-                    print(f"debug: {plane_id=} {prow=} {pcol=}")
-                col += 1
-            # 4. update input row numbers
-            if col == self.width:
-                col = 0
-                row += 1
+        # make sure we have the packed
+        self.packed = self.GetPackedFromBuffer()
+        # then get the Planar
+        self.planar = self.GetPlanarFromPacked()
         return self.planar
 
     def GetBayerPlanar(self):
@@ -1311,39 +1266,11 @@ class BayerImage:
         return BayerImage(infile, None, None, planar, height, width, pix_fmt, debug)
 
     def GetBufferFromPlanar(self):
-        clen = OUTPUT_FORMATS[self.pix_fmt]["clen"]
-        order = OUTPUT_FORMATS[self.pix_fmt]["order"]
-        wfun = OUTPUT_FORMATS[self.pix_fmt]["wfun"]
-        # build the buffer
-        row = 0
-        col = 0
-        buffer = b""
-        while row < self.height:
-            # 1. get affected plane IDs
-            plane_ids = self.GetPlaneIds(order, row)
-            # 2. get components in order
-            components = []
-            for _ in range(clen):
-                plane_id = plane_ids[col % len(plane_ids)]
-                # get planar row and col
-                prow = row // 2
-                pcol = col // 2
-                if self.debug > 2:
-                    print(f"debug: {plane_id=} {prow=} {pcol=}")
-                # planar a dict of planes
-                component = self.planar[plane_id][prow][pcol]
-                components.append(component)
-                col += 1
-            if self.debug > 2:
-                print(f"debug: {components=}")
-            # 3. write components to the output
-            odata = wfun(*components[0:clen], self.debug)
-            buffer += odata
-            # 4. update row numbers
-            if col == self.width:
-                col = 0
-                row += 1
-        return buffer
+        # make sure we have the packed
+        self.packed = self.GetPackedFromPlanar()
+        # then get the Buffer
+        self.buffer = self.GetBufferFromPacked()
+        return self.buffer
 
     @classmethod
     def FromPacked(cls, packed, pix_fmt, debug=0):
@@ -1384,7 +1311,8 @@ class BayerImage:
             if col == self.width:
                 col = 0
                 row += 1
-        return buffer
+        self.buffer = buffer
+        return self.buffer
 
     def GetPackedFromPlanar(self):
         order = OUTPUT_FORMATS[self.pix_fmt]["order"]
