@@ -42,6 +42,7 @@ OPENCV_BAYER_FROM_CONVERSIONS = {
 
 # component read/write functions
 
+
 # 2 bytes -> 2 components
 def rfun_8(data, debug):
     return data[0], data[1]
@@ -1195,6 +1196,12 @@ class BayerImage:
                 row += 1
         return self.planar
 
+    def GetBayerPlanar(self):
+        return self.GetPlanar()
+
+    def GetBayerPacked(self):
+        return self.GetPacked()
+
     def GetRGBPlanar(self):
         if self.rgb_planar is not None:
             return self.rgb_planar
@@ -1207,7 +1214,7 @@ class BayerImage:
             return self.rgb_cv2_packed
         pix_fmt = self.pix_fmt
         order = INPUT_FORMATS[pix_fmt]["order"]
-        bayer_packed = self.GetPacked()
+        bayer_packed = self.GetBayerPacked()
         self.rgb_cv2_packed = bayer_packed_to_rgb_cv2_packed(
             bayer_packed, order, self.depth
         )
@@ -1528,24 +1535,26 @@ def convert_image_planar_mode(
 
     # read input image file
     bayer_image = BayerImage.FromFile(infile, i_pix_fmt, height, width, debug)
-    planar = bayer_image.GetPlanar()
+    bayer_planar = bayer_image.GetBayerPlanar()
 
     # convert depths
     i_depth = get_depth(i_pix_fmt)
     o_depth = get_depth(o_pix_fmt)
     o_dtype = np.uint16 if o_depth > 8 else np.uint8
     if i_depth > o_depth:
-        planar = {
-            k: (v >> (i_depth - o_depth)).astype(o_dtype) for k, v in planar.items()
+        bayer_planar = {
+            k: (v >> (i_depth - o_depth)).astype(o_dtype)
+            for k, v in bayer_planar.items()
         }
     elif i_depth < o_depth:
-        planar = {
-            k: (v.astype(o_dtype) << (o_depth - i_depth)) for k, v in planar.items()
+        bayer_planar = {
+            k: (v.astype(o_dtype) << (o_depth - i_depth))
+            for k, v in bayer_planar.items()
         }
 
-    # write planar into output image file (packed)
+    # write bayer_planar into output image file (packed)
     bayer_image_copy = BayerImage.FromPlanar(
-        planar,
+        bayer_planar,
         o_pix_fmt,
         debug,
     )

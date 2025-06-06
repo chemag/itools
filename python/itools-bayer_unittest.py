@@ -581,15 +581,15 @@ class MainTest(unittest.TestCase):
             absolute_tolerance = 1
             # a. check if the dictionaries have the same keys
             expected_planar = test_case["bayer_planar_image"]
-            planar = bayer_image.GetPlanar()
+            bayer_planar = bayer_image.GetBayerPlanar()
             assert set(expected_planar.keys()) == set(
-                planar.keys()
-            ), "Broken planar output"
+                bayer_planar.keys()
+            ), "Broken Bayer planar output"
             # b. check if the numpy arrays have the same values
             for key in expected_planar:
                 np.testing.assert_allclose(
                     expected_planar[key],
-                    planar[key],
+                    bayer_planar[key],
                     atol=absolute_tolerance,
                     err_msg=f"error on forward case {key=} {test_case['name']}",
                 )
@@ -597,15 +597,15 @@ class MainTest(unittest.TestCase):
             # 3. check the RGB planar representation is correct
             # a. check if the dictionaries have the same keys
             expected_planar = test_case["rgb_planar_image"]
-            planar = bayer_image.GetRGBPlanar()
+            rgb_planar = bayer_image.GetRGBPlanar()
             assert set(expected_planar.keys()) == set(
-                planar.keys()
-            ), "Broken planar output"
+                rgb_planar.keys()
+            ), "Broken RGB planar output"
             # b. check if the numpy arrays have the same values
             for key in expected_planar:
                 np.testing.assert_allclose(
                     expected_planar[key],
-                    planar[key],
+                    rgb_planar[key],
                     atol=absolute_tolerance,
                     err_msg=f"error on forward case {key=} {test_case['name']}",
                 )
@@ -613,16 +613,16 @@ class MainTest(unittest.TestCase):
             # 4. check the YUV planar representation is correct
             # a. check if the dictionaries have the same keys
             expected_planar = test_case["yuv_planar_image"]
-            planar = bayer_image.GetYUVPlanar()
+            yuv_planar = bayer_image.GetYUVPlanar()
             assert set(expected_planar.keys()) == set(
-                planar.keys()
-            ), "Broken planar output"
+                yuv_planar.keys()
+            ), "Broken YUV planar output"
 
             # b. check if the numpy arrays have the same values
             for key in expected_planar:
                 np.testing.assert_allclose(
                     expected_planar[key],
-                    planar[key],
+                    yuv_planar[key],
                     atol=absolute_tolerance,
                     err_msg=f"error on forward case {key=} {test_case['name']}",
                 )
@@ -663,15 +663,15 @@ class MainTest(unittest.TestCase):
             absolute_tolerance = 1
             # a. check if the dictionaries have the same keys
             expected_planar = test_case["bayer_planar_image"]
-            planar = bayer_image.GetPlanar()
+            bayer_planar = bayer_image.GetBayerPlanar()
             assert set(expected_planar.keys()) == set(
-                planar.keys()
-            ), "Broken planar output"
+                bayer_planar.keys()
+            ), "Broken Bayer planar output"
             # b. check if the numpy arrays have the same values
             for key in expected_planar:
                 np.testing.assert_allclose(
                     expected_planar[key],
-                    planar[key],
+                    bayer_planar[key],
                     atol=absolute_tolerance,
                     err_msg=f"error on forward case {key=} {test_case['name']}",
                 )
@@ -679,7 +679,7 @@ class MainTest(unittest.TestCase):
             # check the packed representation is correct
             np.testing.assert_allclose(
                 test_case["bayer_packed_image"],
-                bayer_image.GetPacked(),
+                bayer_image.GetBayerPacked(),
                 atol=absolute_tolerance,
                 err_msg=f"error on forward case {test_case['name']}",
             )

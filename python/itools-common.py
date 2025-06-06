@@ -260,7 +260,9 @@ def chroma_subsample_direct(in_chroma_matrix, colorspace):
         out_h = (in_h + 1) >> 1
         out_w = (in_w + 1) >> 1
         # pad the input chroma matrix to support odd height and width
-        in_chroma_matrix = np.pad(in_chroma_matrix, ((0, in_h % 2), (0, in_w % 2)), mode='edge')
+        in_chroma_matrix = np.pad(
+            in_chroma_matrix, ((0, in_h % 2), (0, in_w % 2)), mode="edge"
+        )
         out_chroma_matrix = np.zeros((out_h, out_w), dtype=np.uint16)
         out_chroma_matrix += in_chroma_matrix[0::2, 0::2]
         out_chroma_matrix += in_chroma_matrix[1::2, 0::2]
@@ -272,7 +274,9 @@ def chroma_subsample_direct(in_chroma_matrix, colorspace):
         out_h = in_h
         out_w = (in_w + 1) >> 1
         # pad the input chroma matrix to support odd height and width
-        in_chroma_matrix = np.pad(in_chroma_matrix, ((0, 0), (0, in_w % 2)), mode='edge')
+        in_chroma_matrix = np.pad(
+            in_chroma_matrix, ((0, 0), (0, in_w % 2)), mode="edge"
+        )
         out_chroma_matrix = np.zeros((out_h, out_w), dtype=np.uint16)
         out_chroma_matrix += in_chroma_matrix[:, 0::2]
         out_chroma_matrix += in_chroma_matrix[:, 1::2]

@@ -239,7 +239,7 @@ class MainTest(unittest.TestCase):
             absolute_tolerance = 1
             np.testing.assert_allclose(
                 test_case["bayer_packed_image"],
-                bayer_image_prime.GetPacked(),
+                bayer_image_prime.GetBayerPacked(),
                 atol=absolute_tolerance,
                 err_msg=f"error on forward case {test_case['name']}",
             )

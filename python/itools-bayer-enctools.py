@@ -214,11 +214,11 @@ def unclip_integer_and_unscale(arr, depth):
 # Array Images Using Macropixel Spectral Spatial Transformation", 2012
 def convert_rg1g2b_to_ydgcocg(bayer_image, depth):
     # 1. separate Bayer components
-    bayer_planar_image = bayer_image.GetPlanar()
-    bayer_r = bayer_planar_image["R"]
-    bayer_g1 = bayer_planar_image["G"]
-    bayer_g2 = bayer_planar_image["g"]
-    bayer_b = bayer_planar_image["B"]
+    bayer_planar = bayer_image.GetBayerPlanar()
+    bayer_r = bayer_planar["R"]
+    bayer_g1 = bayer_planar["G"]
+    bayer_g2 = bayer_planar["g"]
+    bayer_b = bayer_planar["B"]
     # 2. do the color conversion
     bayer_ydgcocg_planar = convert_rg1g2b_to_ydgcocg_components(
         bayer_r, bayer_g1, bayer_g2, bayer_b, depth
@@ -432,7 +432,7 @@ def read_bayer_image(infile, pix_fmt, height, width, debug):
     o_pix_fmt = CV2_OPERATION_PIX_FMT_DICT[depth]
     o_pix_fmt = itools_bayer.get_canonical_output_pix_fmt(o_pix_fmt)
     bayer_image_cv2 = itools_bayer.BayerImage.FromPlanar(
-        bayer_image.GetPlanar(),
+        bayer_image.GetBayerPlanar(),
         o_pix_fmt,
         bayer_image.infile,
         debug,
@@ -535,7 +535,10 @@ def process_file_bayer_ydgcocg_array(
         psnr_rgb = np.mean(list(psnr_rgb_dict.values()))
         # psnr values: Bayer
         psnr_bayer = itools_common.calculate_psnr(
-            bayer_image.GetPacked(), bayer_image_prime.GetPacked(), depth, psnr_infinity
+            bayer_image.GetBayerPacked(),
+            bayer_image_prime.GetBayerPacked(),
+            depth,
+            psnr_infinity,
         )
         # add new element
         df.loc[df.size] = (
@@ -643,7 +646,10 @@ def process_file_bayer_ydgcocg_420_array(
         psnr_rgb = np.mean(list(psnr_rgb_dict.values()))
         # psnr values: Bayer
         psnr_bayer = itools_common.calculate_psnr(
-            bayer_image.GetPacked(), bayer_image_prime.GetPacked(), depth, psnr_infinity
+            bayer_image.GetBayerPacked(),
+            bayer_image_prime.GetBayerPacked(),
+            depth,
+            psnr_infinity,
         )
         # add new element
         df.loc[df.size] = (
@@ -700,7 +706,7 @@ def process_file_bayer_single_array(
         if debug > 1:
             print(f"# ... {bayer_image.infile}: {experiment} {quality}")
         # 3. encode and decode the single planes
-        bayer_packed_dict = {"bayer": bayer_image.GetPacked()}
+        bayer_packed_dict = {"bayer": bayer_image.GetBayerPacked()}
         bayer_packed_prime_dict, encoded_size_dict = codec_process(
             codec, quality, depth, bayer_packed_dict, experiment, debug
         )
@@ -739,7 +745,10 @@ def process_file_bayer_single_array(
         psnr_rgb = np.mean(list(psnr_rgb_dict.values()))
         # psnr values: Bayer
         psnr_bayer = itools_common.calculate_psnr(
-            bayer_image.GetPacked(), bayer_image_prime.GetPacked(), depth, psnr_infinity
+            bayer_image.GetBayerPacked(),
+            bayer_image_prime.GetBayerPacked(),
+            depth,
+            psnr_infinity,
         )
         # add new element
         df.loc[df.size] = (
@@ -797,7 +806,7 @@ def process_file_bayer_rggb_array(
             print(f"# ... {bayer_image.infile}: {experiment} {quality}")
         # 3. encode and decode the 4 Bayer planes
         bayer_planar_prime, encoded_size_dict = codec_process(
-            codec, quality, depth, bayer_image.GetPlanar(), experiment, debug
+            codec, quality, depth, bayer_image.GetBayerPlanar(), experiment, debug
         )
         bayer_image_prime = itools_bayer.BayerImage.FromPlanar(
             bayer_planar_prime, bayer_image.pix_fmt
@@ -833,7 +842,10 @@ def process_file_bayer_rggb_array(
         psnr_rgb = np.mean(list(psnr_rgb_dict.values()))
         # psnr values: Bayer
         psnr_bayer = itools_common.calculate_psnr(
-            bayer_image.GetPacked(), bayer_image_prime.GetPacked(), depth, psnr_infinity
+            bayer_image.GetBayerPacked(),
+            bayer_image_prime.GetBayerPacked(),
+            depth,
+            psnr_infinity,
         )
         # add new element
         df.loc[df.size] = (
@@ -928,7 +940,10 @@ def process_file_yuv444_array(
         psnr_rgb = np.mean(list(psnr_rgb_dict.values()))
         # psnr values: Bayer
         psnr_bayer = itools_common.calculate_psnr(
-            bayer_image.GetPacked(), bayer_image_prime.GetPacked(), depth, psnr_infinity
+            bayer_image.GetBayerPacked(),
+            bayer_image_prime.GetBayerPacked(),
+            depth,
+            psnr_infinity,
         )
         # add new element
         df.loc[df.size] = (
@@ -1029,7 +1044,10 @@ def process_file_yuv420_array(
         psnr_rgb = np.mean(list(psnr_rgb_dict.values()))
         # psnr values: Bayer
         psnr_bayer = itools_common.calculate_psnr(
-            bayer_image.GetPacked(), bayer_image_prime.GetPacked(), depth, psnr_infinity
+            bayer_image.GetBayerPacked(),
+            bayer_image_prime.GetBayerPacked(),
+            depth,
+            psnr_infinity,
         )
         # add new element
         df.loc[df.size] = (
@@ -1124,7 +1142,10 @@ def process_file_rgb_array(
         psnr_rgb = np.mean(list(psnr_rgb_dict.values()))
         # psnr values: Bayer
         psnr_bayer = itools_common.calculate_psnr(
-            bayer_image.GetPacked(), bayer_image_prime.GetPacked(), depth, psnr_infinity
+            bayer_image.GetBayerPacked(),
+            bayer_image_prime.GetBayerPacked(),
+            depth,
+            psnr_infinity,
         )
         # add new element
         df.loc[df.size] = (
