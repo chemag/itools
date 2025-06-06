@@ -40,8 +40,7 @@ OPENCV_BAYER_FROM_CONVERSIONS = {
 }
 
 
-# planar read/write functions
-
+# component read/write functions
 
 # 2 bytes -> 2 components
 def rfun_8(data, debug):
@@ -267,9 +266,9 @@ BAYER_FORMATS = {
         "clen": 2,
         # component depth (in bits)
         "depth": 8,
-        # read function (planar)
+        # read function (component)
         "rfun": rfun_8,
-        # write function (planar)
+        # write function (component)
         "wfun": wfun_8,
         # ffmpeg support
         "ffmpeg": True,
@@ -1102,7 +1101,7 @@ class BayerImage:
         return self.planar
 
     def GetPackedFromBuffer(self):
-        # convert buffer to packed
+        # convert file buffer to packed
         # get format info
         pix_fmt = self.pix_fmt
         clen = INPUT_FORMATS[pix_fmt]["clen"]
@@ -1145,7 +1144,7 @@ class BayerImage:
         return self.packed
 
     def GetPlanarFromBuffer(self):
-        # convert buffer to planar
+        # convert file buffer to planar
         # get format info
         pix_fmt = self.pix_fmt
         clen = INPUT_FORMATS[pix_fmt]["clen"]
