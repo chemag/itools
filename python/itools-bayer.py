@@ -993,6 +993,62 @@ BAYER_FORMATS = {
         "wfun": wfun_planar,
         "ffmpeg": False,
     },
+    "RG10.planar": {
+        "alias": (
+            "SRGGB10.planar",
+            "bayer_rggb10.planar",
+        ),
+        "blen": 4,
+        "clen": 2,
+        "depth": 10,
+        "rfun": rfun_planar,
+        "wfun": wfun_planar,
+        "layout": LayoutType.planar,
+        "order": "RGgB",
+        "ffmpeg": False,
+    },
+    "BA10.planar": {
+        "alias": (
+            "SGRBG10.planar",
+            "bayer_grbg10.planar",
+        ),
+        "blen": 4,
+        "clen": 2,
+        "depth": 10,
+        "rfun": rfun_planar,
+        "wfun": wfun_planar,
+        "layout": LayoutType.planar,
+        "order": "GRBg",
+        "ffmpeg": False,
+    },
+    "GB10.planar": {
+        "alias": (
+            "SGBRG10.planar",
+            "bayer_gbrg10.planar",
+        ),
+        "blen": 4,
+        "clen": 2,
+        "depth": 10,
+        "rfun": rfun_planar,
+        "wfun": wfun_planar,
+        "layout": LayoutType.planar,
+        "order": "GBRg",
+        "ffmpeg": False,
+    },
+    "BG10.planar": {
+        "alias": (
+            "SBGGR10.planar",
+            "bayer_bggr10.planar",
+        ),
+        "blen": 4,
+        "clen": 2,
+        "depth": 10,
+        "rfun": rfun_planar,
+        "wfun": wfun_planar,
+        "layout": LayoutType.planar,
+        "order": "BGgR",
+        "ffmpeg": False,
+    },
 }
 
 # calculate INPUT_FORMATS and OUTPUT_FORMATS

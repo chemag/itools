@@ -476,6 +476,107 @@ processImageTestCases = [
         ),
         "output": b"\x01\x03\x09\x0b\x02\x04\x0a\x0c\x05\x07\x0d\x0f\x06\x08\x0e\x10",
     },
+    # bayer10 (extended)
+    {
+        "name": "basic-10bit.planar.1",
+        "height": 4,
+        "width": 4,
+        "i_pix_fmt": "RG10",
+        "o_pix_fmt": "RG10",
+        "debug": 0,
+        "input": b"\x01\x00\x03\x01\x05\x02\x07\x03\x09\x00\x0b\x01\x0d\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
+        "planar_image": {
+            "R": np.array([[0x001, 0x205], [0x011, 0x215]], dtype=np.uint16),
+            "G": np.array([[0x103, 0x307], [0x113, 0x317]], dtype=np.uint16),
+            "g": np.array([[0x009, 0x20D], [0x019, 0x21D]], dtype=np.uint16),
+            "B": np.array([[0x10B, 0x30F], [0x11B, 0x31F]], dtype=np.uint16),
+        },
+        "packed_image": np.array(
+            [
+                [0x001, 0x103, 0x205, 0x307],
+                [0x009, 0x10B, 0x20D, 0x30F],
+                [0x011, 0x113, 0x215, 0x317],
+                [0x019, 0x11B, 0x21D, 0x31F],
+            ],
+            dtype=np.uint16,
+        ),
+        "output": b"\x01\x00\x03\x01\x05\x02\x07\x03\x09\x00\x0b\x01\x0d\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
+    },
+    {
+        "name": "basic-10bit.planar.2",
+        "height": 4,
+        "width": 4,
+        "i_pix_fmt": "RG10",
+        "o_pix_fmt": "RG10.planar",
+        "debug": 0,
+        "input": b"\x01\x00\x03\x01\x05\x02\x07\x03\x09\x00\x0b\x01\x0d\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
+        "planar_image": {
+            "R": np.array([[0x001, 0x205], [0x011, 0x215]], dtype=np.uint16),
+            "G": np.array([[0x103, 0x307], [0x113, 0x317]], dtype=np.uint16),
+            "g": np.array([[0x009, 0x20D], [0x019, 0x21D]], dtype=np.uint16),
+            "B": np.array([[0x10B, 0x30F], [0x11B, 0x31F]], dtype=np.uint16),
+        },
+        "packed_image": np.array(
+            [
+                [0x001, 0x103, 0x205, 0x307],
+                [0x009, 0x10B, 0x20D, 0x30F],
+                [0x011, 0x113, 0x215, 0x317],
+                [0x019, 0x11B, 0x21D, 0x31F],
+            ],
+            dtype=np.uint16,
+        ),
+        "output": b"\x01\x00\x05\x02\x11\x00\x15\x02\x03\x01\x07\x03\x13\x01\x17\x03\x09\x00\x0d\x02\x19\x00\x1d\x02\x0b\x01\x0f\x03\x1b\x01\x1f\x03",
+    },
+    {
+        "name": "basic-10bit.planar.3",
+        "height": 4,
+        "width": 4,
+        "i_pix_fmt": "RG10.planar",
+        "o_pix_fmt": "RG10",
+        "debug": 0,
+        "input": b"\x01\x00\x03\x01\x05\x02\x07\x03\x09\x00\x0b\x01\x0d\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
+        "planar_image": {
+            "R": np.array([[0x001, 0x103], [0x205, 0x307]], dtype=np.uint16),
+            "G": np.array([[0x009, 0x10B], [0x20D, 0x30F]], dtype=np.uint16),
+            "g": np.array([[0x011, 0x113], [0x215, 0x317]], dtype=np.uint16),
+            "B": np.array([[0x019, 0x11B], [0x21D, 0x31F]], dtype=np.uint16),
+        },
+        "packed_image": np.array(
+            [
+                [0x001, 0x009, 0x103, 0x10B],
+                [0x011, 0x019, 0x113, 0x11B],
+                [0x205, 0x20D, 0x307, 0x30F],
+                [0x215, 0x21D, 0x317, 0x31F],
+            ],
+            dtype=np.uint16,
+        ),
+        "output": b"\x01\x00\x09\x00\x03\x01\x0b\x01\x11\x00\x19\x00\x13\x01\x1b\x01\x05\x02\x0d\x02\x07\x03\x0f\x03\x15\x02\x1d\x02\x17\x03\x1f\x03",
+    },
+    {
+        "name": "basic-10bit.planar.4",
+        "height": 4,
+        "width": 4,
+        "i_pix_fmt": "RG10.planar",
+        "o_pix_fmt": "RG10.planar",
+        "debug": 0,
+        "input": b"\x01\x00\x03\x01\x05\x02\x07\x03\x09\x00\x0b\x01\x0d\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
+        "planar_image": {
+            "R": np.array([[0x001, 0x103], [0x205, 0x307]], dtype=np.uint16),
+            "G": np.array([[0x009, 0x10B], [0x20D, 0x30F]], dtype=np.uint16),
+            "g": np.array([[0x011, 0x113], [0x215, 0x317]], dtype=np.uint16),
+            "B": np.array([[0x019, 0x11B], [0x21D, 0x31F]], dtype=np.uint16),
+        },
+        "packed_image": np.array(
+            [
+                [0x001, 0x009, 0x103, 0x10B],
+                [0x011, 0x019, 0x113, 0x11B],
+                [0x205, 0x20D, 0x307, 0x30F],
+                [0x215, 0x21D, 0x317, 0x31F],
+            ],
+            dtype=np.uint16,
+        ),
+        "output": b"\x01\x00\x03\x01\x05\x02\x07\x03\x09\x00\x0b\x01\x0d\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
+    },
 ]
 
 
