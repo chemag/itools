@@ -731,79 +731,6 @@ processColorConversions = [
 
 
 class MainTest(unittest.TestCase):
-    def testProcessColorConversions(self):
-        """Test color conversions."""
-        for test_case in processColorConversions:
-            print("...running %s" % test_case["name"])
-            # prepare input file
-            infile = tempfile.NamedTemporaryFile(
-                prefix="itools-bayer_unittest.", suffix=".bin"
-            ).name
-            with open(infile, "wb") as f:
-                f.write(test_case["input"])
-            # prepare output file(s)
-            # prepare parameters
-            pix_fmt = test_case["pix_fmt"]
-            height = test_case["height"]
-            width = test_case["width"]
-            debug = test_case["debug"]
-
-            # 1. run forward conversion
-            pix_fmt = itools_bayer.get_canonical_input_pix_fmt(pix_fmt)
-            bayer_image = itools_bayer.BayerImage.FromFile(
-                infile, pix_fmt, height, width, debug
-            )
-
-            # 2. check the Bayer planar representation is correct
-            absolute_tolerance = 1
-            # a. check if the dictionaries have the same keys
-            expected_planar = test_case["bayer_planar_image"]
-            bayer_planar = bayer_image.GetPlanar()
-            assert set(expected_planar.keys()) == set(
-                bayer_planar.keys()
-            ), "Broken Bayer planar output"
-            # b. check if the numpy arrays have the same values
-            for key in expected_planar:
-                np.testing.assert_allclose(
-                    expected_planar[key],
-                    bayer_planar[key],
-                    atol=absolute_tolerance,
-                    err_msg=f"error on forward case {key=} {test_case['name']}",
-                )
-
-            # 3. check the RGB planar representation is correct
-            # a. check if the dictionaries have the same keys
-            expected_planar = test_case["rgb_planar_image"]
-            rgb_planar = bayer_image.GetRGBPlanar()
-            assert set(expected_planar.keys()) == set(
-                rgb_planar.keys()
-            ), "Broken RGB planar output"
-            # b. check if the numpy arrays have the same values
-            for key in expected_planar:
-                np.testing.assert_allclose(
-                    expected_planar[key],
-                    rgb_planar[key],
-                    atol=absolute_tolerance,
-                    err_msg=f"error on forward case {key=} {test_case['name']}",
-                )
-
-            # 4. check the YUV planar representation is correct
-            # a. check if the dictionaries have the same keys
-            expected_planar = test_case["yuv_planar_image"]
-            yuv_planar = bayer_image.GetYUVPlanar()
-            assert set(expected_planar.keys()) == set(
-                yuv_planar.keys()
-            ), "Broken YUV planar output"
-
-            # b. check if the numpy arrays have the same values
-            for key in expected_planar:
-                np.testing.assert_allclose(
-                    expected_planar[key],
-                    yuv_planar[key],
-                    atol=absolute_tolerance,
-                    err_msg=f"error on forward case {key=} {test_case['name']}",
-                )
-
     def testProcessImage(self):
         """Simplest get_data test."""
         for test_case in processImageTestCases:
@@ -909,6 +836,79 @@ class MainTest(unittest.TestCase):
                 output,
                 f"error on input loop test {test_case['name']}",
             )
+
+    def testProcessColorConversions(self):
+        """Test color conversions."""
+        for test_case in processColorConversions:
+            print("...running %s" % test_case["name"])
+            # prepare input file
+            infile = tempfile.NamedTemporaryFile(
+                prefix="itools-bayer_unittest.", suffix=".bin"
+            ).name
+            with open(infile, "wb") as f:
+                f.write(test_case["input"])
+            # prepare output file(s)
+            # prepare parameters
+            pix_fmt = test_case["pix_fmt"]
+            height = test_case["height"]
+            width = test_case["width"]
+            debug = test_case["debug"]
+
+            # 1. run forward conversion
+            pix_fmt = itools_bayer.get_canonical_input_pix_fmt(pix_fmt)
+            bayer_image = itools_bayer.BayerImage.FromFile(
+                infile, pix_fmt, height, width, debug
+            )
+
+            # 2. check the Bayer planar representation is correct
+            absolute_tolerance = 1
+            # a. check if the dictionaries have the same keys
+            expected_planar = test_case["bayer_planar_image"]
+            bayer_planar = bayer_image.GetPlanar()
+            assert set(expected_planar.keys()) == set(
+                bayer_planar.keys()
+            ), "Broken Bayer planar output"
+            # b. check if the numpy arrays have the same values
+            for key in expected_planar:
+                np.testing.assert_allclose(
+                    expected_planar[key],
+                    bayer_planar[key],
+                    atol=absolute_tolerance,
+                    err_msg=f"error on forward case {key=} {test_case['name']}",
+                )
+
+            # 3. check the RGB planar representation is correct
+            # a. check if the dictionaries have the same keys
+            expected_planar = test_case["rgb_planar_image"]
+            rgb_planar = bayer_image.GetRGBPlanar()
+            assert set(expected_planar.keys()) == set(
+                rgb_planar.keys()
+            ), "Broken RGB planar output"
+            # b. check if the numpy arrays have the same values
+            for key in expected_planar:
+                np.testing.assert_allclose(
+                    expected_planar[key],
+                    rgb_planar[key],
+                    atol=absolute_tolerance,
+                    err_msg=f"error on forward case {key=} {test_case['name']}",
+                )
+
+            # 4. check the YUV planar representation is correct
+            # a. check if the dictionaries have the same keys
+            expected_planar = test_case["yuv_planar_image"]
+            yuv_planar = bayer_image.GetYUVPlanar()
+            assert set(expected_planar.keys()) == set(
+                yuv_planar.keys()
+            ), "Broken YUV planar output"
+
+            # b. check if the numpy arrays have the same values
+            for key in expected_planar:
+                np.testing.assert_allclose(
+                    expected_planar[key],
+                    yuv_planar[key],
+                    atol=absolute_tolerance,
+                    err_msg=f"error on forward case {key=} {test_case['name']}",
+                )
 
 
 if __name__ == "__main__":
