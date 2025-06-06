@@ -402,7 +402,7 @@ processImageTestCases = [
     },
     # planar bayer
     {
-        "name": "basic-8x8.planar",
+        "name": "basic-8x8.planar.1",
         "height": 4,
         "width": 4,
         "i_pix_fmt": "bayer_rggb8.planar",
@@ -425,6 +425,56 @@ processImageTestCases = [
             dtype=np.uint8,
         ),
         "output": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
+    },
+    {
+        "name": "basic-8x8.planar.2",
+        "height": 4,
+        "width": 4,
+        "i_pix_fmt": "bayer_rggb8.planar",
+        "o_pix_fmt": "bayer_rggb8",
+        "debug": 0,
+        "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
+        "planar_image": {
+            "R": np.array([[1, 2], [3, 4]], dtype=np.uint8),
+            "G": np.array([[5, 6], [7, 8]], dtype=np.uint8),
+            "g": np.array([[9, 10], [11, 12]], dtype=np.uint8),
+            "B": np.array([[13, 14], [15, 16]], dtype=np.uint8),
+        },
+        "packed_image": np.array(
+            [
+                [1, 5, 2, 6],
+                [9, 13, 10, 14],
+                [3, 7, 4, 8],
+                [11, 15, 12, 16],
+            ],
+            dtype=np.uint8,
+        ),
+        "output": b"\x01\x05\x02\x06\x09\x0d\x0a\x0e\x03\x07\x04\x08\x0b\x0f\x0c\x10",
+    },
+    {
+        "name": "basic-8x8.planar.3",
+        "height": 4,
+        "width": 4,
+        "i_pix_fmt": "bayer_rggb8",
+        "o_pix_fmt": "bayer_rggb8.planar",
+        "debug": 0,
+        "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
+        "planar_image": {
+            "R": np.array([[1, 3], [9, 11]], dtype=np.uint8),
+            "G": np.array([[2, 4], [10, 12]], dtype=np.uint8),
+            "g": np.array([[5, 7], [13, 15]], dtype=np.uint8),
+            "B": np.array([[6, 8], [14, 16]], dtype=np.uint8),
+        },
+        "packed_image": np.array(
+            [
+                [1, 2, 3, 4],
+                [5, 6, 7, 8],
+                [9, 10, 11, 12],
+                [13, 14, 15, 16],
+            ],
+            dtype=np.uint8,
+        ),
+        "output": b"\x01\x03\x09\x0b\x02\x04\x0a\x0c\x05\x07\x0d\x0f\x06\x08\x0e\x10",
     },
 ]
 
