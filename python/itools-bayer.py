@@ -1714,9 +1714,7 @@ def get_options(argv):
     return options
 
 
-def convert_image_planar_mode(
-    infile, i_pix_fmt, height, width, outfile, o_pix_fmt, debug
-):
+def convert_image_format(infile, i_pix_fmt, height, width, outfile, o_pix_fmt, debug):
     # 1. read input image file
     bayer_image = BayerImage.FromFile(infile, i_pix_fmt, height, width, debug)
 
@@ -1751,7 +1749,7 @@ def main(argv):
     if options.debug > 0:
         print(f"debug: {options}")
 
-    convert_image_planar_mode(
+    convert_image_format(
         options.infile,
         options.i_pix_fmt,
         options.height,

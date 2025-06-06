@@ -18,7 +18,7 @@ import unittest
 itools_bayer = importlib.import_module("itools-bayer")
 
 
-processImageTestCases = [
+convertImageFormatTestCases = [
     # (a) component order
     {
         "name": "basic-8x8.noop",
@@ -731,9 +731,9 @@ processColorConversions = [
 
 
 class MainTest(unittest.TestCase):
-    def testProcessImage(self):
+    def testConvertImageFormat(self):
         """Simplest get_data test."""
-        for test_case in processImageTestCases:
+        for test_case in convertImageFormatTestCases:
             print("...running %s" % test_case["name"])
             # prepare input file
             infile = tempfile.NamedTemporaryFile(
@@ -754,7 +754,7 @@ class MainTest(unittest.TestCase):
             debug = test_case["debug"]
 
             # 1. run forward conversion
-            bayer_image = itools_bayer.convert_image_planar_mode(
+            bayer_image = itools_bayer.convert_image_format(
                 infile,
                 i_pix_fmt,
                 height,
@@ -798,7 +798,7 @@ class MainTest(unittest.TestCase):
             )
 
             # 2. run output loop conversion (convert output to output)
-            _ = itools_bayer.convert_image_planar_mode(
+            _ = itools_bayer.convert_image_format(
                 outfile,
                 o_pix_fmt,
                 height,
@@ -818,7 +818,7 @@ class MainTest(unittest.TestCase):
             )
 
             # 3. run input loop conversion (convert input to input)
-            _ = itools_bayer.convert_image_planar_mode(
+            _ = itools_bayer.convert_image_format(
                 infile,
                 i_pix_fmt,
                 height,
