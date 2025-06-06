@@ -1428,6 +1428,32 @@ class BayerImage:
         plane_ids = planar_order[0:2] if row % 2 == 0 else planar_order[2:4]
         return plane_ids
 
+    def ToFile(self, outfile, debug):
+        with open(outfile, "wb") as fout:
+            fout.write(self.GetBuffer())
+
+    def Copy(self, o_pix_fmt, debug):
+        bayer_planar = self.GetBayerPlanar().copy()
+        i_depth = get_depth(self.pix_fmt)
+        o_depth = get_depth(o_pix_fmt)
+        o_dtype = np.uint16 if o_depth > 8 else np.uint8
+        if i_depth > o_depth:
+            bayer_planar = {
+                k: (v >> (i_depth - o_depth)).astype(o_dtype)
+                for k, v in bayer_planar.items()
+            }
+        elif i_depth < o_depth:
+            bayer_planar = {
+                k: (v.astype(o_dtype) << (o_depth - i_depth))
+                for k, v in bayer_planar.items()
+            }
+        bayer_image_copy = BayerImage.FromPlanar(
+            bayer_planar,
+            o_pix_fmt,
+            debug,
+        )
+        return bayer_image_copy
+
     # factory methods
     @classmethod
     def FromFile(cls, infile, pix_fmt, height, width, debug=0):
@@ -1691,39 +1717,16 @@ def get_options(argv):
 def convert_image_planar_mode(
     infile, i_pix_fmt, height, width, outfile, o_pix_fmt, debug
 ):
-    # check the input pixel format
-    i_pix_fmt = get_canonical_input_pix_fmt(i_pix_fmt)
-    # check the output pixel format
-    o_pix_fmt = get_canonical_output_pix_fmt(o_pix_fmt)
-
-    # read input image file
+    # 1. read input image file
     bayer_image = BayerImage.FromFile(infile, i_pix_fmt, height, width, debug)
-    bayer_planar = bayer_image.GetBayerPlanar()
 
-    # convert depths
-    i_depth = get_depth(i_pix_fmt)
-    o_depth = get_depth(o_pix_fmt)
-    o_dtype = np.uint16 if o_depth > 8 else np.uint8
-    if i_depth > o_depth:
-        bayer_planar = {
-            k: (v >> (i_depth - o_depth)).astype(o_dtype)
-            for k, v in bayer_planar.items()
-        }
-    elif i_depth < o_depth:
-        bayer_planar = {
-            k: (v.astype(o_dtype) << (o_depth - i_depth))
-            for k, v in bayer_planar.items()
-        }
+    # 2. convert image to new pixel format
+    bayer_image_copy = bayer_image.Copy(o_pix_fmt, debug)
 
-    # write bayer_planar into output image file (packed)
-    bayer_image_copy = BayerImage.FromPlanar(
-        bayer_planar,
-        o_pix_fmt,
-        debug,
-    )
-    with open(outfile, "wb") as fout:
-        fout.write(bayer_image_copy.GetBuffer())
+    # 3. write converted image into output file
+    bayer_image_copy.ToFile(outfile, debug)
 
+    o_pix_fmt = get_canonical_output_pix_fmt(o_pix_fmt)
     ffmpeg_support = OUTPUT_FORMATS[o_pix_fmt]["ffmpeg"]
     if debug > 0 and ffmpeg_support:
         print(
