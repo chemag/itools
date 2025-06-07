@@ -306,7 +306,7 @@ def codec_process(codec, quality, depth, planar, experiment, debug):
     if codec == "nocodec":
         return nocodec_process(quality, planar, depth, experiment, debug)
     elif codec == "jpeg/cv2" and depth == 8:
-        return cv2_jpeg_process(quality, planar, experiment, debug)
+        return cv2_jpeg_process(quality, planar, depth, experiment, debug)
     elif codec == "heic/libheif" and depth in (8, 10):
         return libheif_heic_process(quality, planar, depth, experiment, debug)
     raise ValueError(f"Unimplemented {codec=}/{depth=} pair")
@@ -333,7 +333,7 @@ def nocodec_process(quality, planar, depth, experiment, debug):
     return planar_prime, encoded_size_dict
 
 
-def cv2_jpeg_process(quality, planar, experiment, debug):
+def cv2_jpeg_process(quality, planar, depth, experiment, debug):
     codec = "jpeg"
     planar_prime = {}
     encoded_size_dict = {}
