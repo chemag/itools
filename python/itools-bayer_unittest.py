@@ -6,12 +6,14 @@
 # $ ./itools-bayer_unittest.py
 """
 
+import argparse
 import importlib
 import math
 import numpy as np
 import os
 import shlex
 import string
+import sys
 import tempfile
 import unittest
 
@@ -731,9 +733,35 @@ processColorConversions = [
 
 
 class MainTest(unittest.TestCase):
+    def getTestCases(self, test_case_list):
+        global EXPERIMENT_NAME
+        global EXPERIMENT_LIST
+
+        test_case_name_list = [test_case["name"] for test_case in test_case_list]
+        if EXPERIMENT_LIST:
+            print(f"experiment list: {test_case_name_list}")
+            self.skipTest(f"experiment list: {test_case_name_list}")
+
+        elif EXPERIMENT_NAME is not None:
+            try:
+                test_case = next(
+                    test_case
+                    for test_case in test_case_list
+                    if test_case["name"] == EXPERIMENT_NAME
+                )
+            except StopIteration:
+                raise AssertionError(
+                    f'unknown experiment: "{EXPERIMENT_NAME}" list: {test_case_name_list}'
+                )
+            return [
+                test_case,
+            ]
+        else:
+            return test_case_list
+
     def testConvertImageFormat(self):
         """Simplest get_data test."""
-        for test_case in convertImageFormatTestCases:
+        for test_case in self.getTestCases(convertImageFormatTestCases):
             print("...running %s" % test_case["name"])
             # prepare input file
             infile = tempfile.NamedTemporaryFile(
@@ -839,7 +867,7 @@ class MainTest(unittest.TestCase):
 
     def testProcessColorConversions(self):
         """Test color conversions."""
-        for test_case in processColorConversions:
+        for test_case in self.getTestCases(processColorConversions):
             print("...running %s" % test_case["name"])
             # prepare input file
             infile = tempfile.NamedTemporaryFile(
@@ -912,4 +940,21 @@ class MainTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
+    global EXPERIMENT_NAME
+    global EXPERIMENT_LIST
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("test_name", nargs="?", help="Test to run")
+    parser.add_argument("--experiment", type=str)
+    parser.add_argument(
+        "--experiment-list", action="store_true", help="Enable experiment listing"
+    )
+    args, unknown = parser.parse_known_args()
+    EXPERIMENT_NAME = args.experiment
+    EXPERIMENT_LIST = args.experiment_list
+    # clean sys.argv before passing to unittest
+    if args.test_name:
+        sys.argv = [sys.argv[0], args.test_name] + unknown
+    else:
+        sys.argv = [sys.argv[0]] + unknown
     unittest.main()

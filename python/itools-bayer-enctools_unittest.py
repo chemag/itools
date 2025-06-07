@@ -6,11 +6,13 @@
 # $ ./itools-bayer-enctool_unittest.py
 """
 
+import argparse
 import importlib
 import math
 import os
 import shlex
 import string
+import sys
 import tempfile
 import numpy as np
 import unittest
@@ -178,9 +180,35 @@ convertRg1g2bToYdgcocgTestCases = [
 
 
 class MainTest(unittest.TestCase):
+    def getTestCases(self, test_case_list):
+        global EXPERIMENT_NAME
+        global EXPERIMENT_LIST
+
+        test_case_name_list = [test_case["name"] for test_case in test_case_list]
+        if EXPERIMENT_LIST:
+            print(f"experiment list: {test_case_name_list}")
+            self.skipTest(f"experiment list: {test_case_name_list}")
+
+        elif EXPERIMENT_NAME is not None:
+            try:
+                test_case = next(
+                    test_case
+                    for test_case in test_case_list
+                    if test_case["name"] == EXPERIMENT_NAME
+                )
+            except StopIteration:
+                raise AssertionError(
+                    f'unknown experiment: "{EXPERIMENT_NAME}" list: {test_case_name_list}'
+                )
+            return [
+                test_case,
+            ]
+        else:
+            return test_case_list
+
     def testClipIntegerAndScale(self):
         """clip_integer_and_scale test."""
-        for test_case in clipIntegerAndScaleTestCases:
+        for test_case in self.getTestCases(clipIntegerAndScaleTestCases):
             print("...running %s" % test_case["name"])
             arr = test_case["arr"]
             depth = test_case["depth"]
@@ -206,7 +234,7 @@ class MainTest(unittest.TestCase):
 
     def testConvertRg1g2bToYdgcocg(self):
         """convert_rg1g2b_to_ydgcocg test."""
-        for test_case in convertRg1g2bToYdgcocgTestCases:
+        for test_case in self.getTestCases(convertRg1g2bToYdgcocgTestCases):
             print("...running %s" % test_case["name"])
             depth = itools_bayer.get_depth(test_case["pix_fmt"])
             # 1. run RG1G2B to YDgCoCg function
@@ -246,4 +274,21 @@ class MainTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
+    global EXPERIMENT_NAME
+    global EXPERIMENT_LIST
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("test_name", nargs="?", help="Test to run")
+    parser.add_argument("--experiment", type=str)
+    parser.add_argument(
+        "--experiment-list", action="store_true", help="Enable experiment listing"
+    )
+    args, unknown = parser.parse_known_args()
+    EXPERIMENT_NAME = args.experiment
+    EXPERIMENT_LIST = args.experiment_list
+    # clean sys.argv before passing to unittest
+    if args.test_name:
+        sys.argv = [sys.argv[0], args.test_name] + unknown
+    else:
+        sys.argv = [sys.argv[0]] + unknown
     unittest.main()
