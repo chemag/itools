@@ -848,6 +848,86 @@ convertImageFormatTestCases = [
         },
         "output": b"\x01\x00\x03\x01\x05\x02\x07\x03\x09\x00\x0b\x01\x0d\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
     },
+    {
+        "name": "ydgcocg8/10-maxmin-16x4",
+        "width": 16,
+        "height": 4,
+        "i_pix_fmt": "ydgcocg8.planar",
+        "o_pix_fmt": "ydgcocg10.planar",
+        "debug": 0,
+        "input": b"\x00\x00\x00\x00\x00\x00\x00\x00\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF\x00\x00\xFF\xFF\x00\x00\xFF\xFF\x00\x00\xFF\xFF\x00\x00\xFF\xFF\x00\xFF\x00\xFF\x00\xFF\x00\xFF\x00\xFF\x00\xFF\x00\xFF\x00\xFF",
+        "ydgcocg_planar": {
+            "Y": np.array(
+                [
+                    [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
+                    [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF],
+                ],
+                dtype=np.uint8,
+            ),
+            "D": np.array(
+                [
+                    [0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF],
+                    [0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF],
+                ],
+                dtype=np.uint8,
+            ),
+            "C": np.array(
+                [
+                    [0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF],
+                    [0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF],
+                ],
+                dtype=np.uint8,
+            ),
+            "c": np.array(
+                [
+                    [0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF],
+                    [0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF],
+                ],
+                dtype=np.uint8,
+            ),
+        },
+        "output": b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xfc\x03\xfc\x03\xfc\x03\xfc\x03\xfc\x03\xfc\x03\xfc\x03\xfc\x03\x00\x00\x00\x00\x00\x00\x00\x00\xfc\x03\xfc\x03\xfc\x03\xfc\x03\x00\x00\x00\x00\x00\x00\x00\x00\xfc\x03\xfc\x03\xfc\x03\xfc\x03\x00\x00\x00\x00\xfc\x03\xfc\x03\x00\x00\x00\x00\xfc\x03\xfc\x03\x00\x00\x00\x00\xfc\x03\xfc\x03\x00\x00\x00\x00\xfc\x03\xfc\x03\x00\x00\xfc\x03\x00\x00\xfc\x03\x00\x00\xfc\x03\x00\x00\xfc\x03\x00\x00\xfc\x03\x00\x00\xfc\x03\x00\x00\xfc\x03\x00\x00\xfc\x03",
+    },
+    {
+        "name": "ydgcocg10/8-maxmin-16x4",
+        "width": 16,
+        "height": 4,
+        "i_pix_fmt": "ydgcocg10.planar",
+        "o_pix_fmt": "ydgcocg8.planar",
+        "debug": 0,
+        "input": b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\x03\xff\x03\xff\x03\xff\x03\xff\x03\xff\x03\xff\x03\xff\x03\x00\x00\x00\x00\x00\x00\x00\x00\xff\x03\xff\x03\xff\x03\xff\x03\x00\x00\x00\x00\x00\x00\x00\x00\xff\x03\xff\x03\xff\x03\xff\x03\x00\x00\x00\x00\xff\x03\xff\x03\x00\x00\x00\x00\xff\x03\xff\x03\x00\x00\x00\x00\xff\x03\xff\x03\x00\x00\x00\x00\xff\x03\xff\x03\x00\x00\xff\x03\x00\x00\xff\x03\x00\x00\xff\x03\x00\x00\xff\x03\x00\x00\xff\x03\x00\x00\xff\x03\x00\x00\xff\x03\x00\x00\xff\x03",
+        "ydgcocg_planar": {
+            "Y": np.array(
+                [
+                    [0x000, 0x000, 0x000, 0x000, 0x000, 0x000, 0x000, 0x000],
+                    [0x3FF, 0x3FF, 0x3FF, 0x3FF, 0x3FF, 0x3FF, 0x3FF, 0x3FF],
+                ],
+                dtype=np.uint16,
+            ),
+            "D": np.array(
+                [
+                    [0x000, 0x000, 0x000, 0x000, 0x3FF, 0x3FF, 0x3FF, 0x3FF],
+                    [0x000, 0x000, 0x000, 0x000, 0x3FF, 0x3FF, 0x3FF, 0x3FF],
+                ],
+                dtype=np.uint16,
+            ),
+            "C": np.array(
+                [
+                    [0x000, 0x000, 0x3FF, 0x3FF, 0x000, 0x000, 0x3FF, 0x3FF],
+                    [0x000, 0x000, 0x3FF, 0x3FF, 0x000, 0x000, 0x3FF, 0x3FF],
+                ],
+                dtype=np.uint16,
+            ),
+            "c": np.array(
+                [
+                    [0x000, 0x3FF, 0x000, 0x3FF, 0x000, 0x3FF, 0x000, 0x3FF],
+                    [0x000, 0x3FF, 0x000, 0x3FF, 0x000, 0x3FF, 0x000, 0x3FF],
+                ],
+                dtype=np.uint16,
+            ),
+        },
+        "output": b"\x00\x00\x00\x00\x00\x00\x00\x00\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF\x00\x00\xFF\xFF\x00\x00\xFF\xFF\x00\x00\xFF\xFF\x00\x00\xFF\xFF\x00\xFF\x00\xFF\x00\xFF\x00\xFF\x00\xFF\x00\xFF\x00\xFF\x00\xFF",
+    },
 ]
 
 
@@ -1305,7 +1385,6 @@ class MainTest(unittest.TestCase):
             # 7. run forward conversion
             if "output" in test_case:
                 output_image = input_image.Copy(o_pix_fmt, debug)
-                output_image.ToFile(outfile, debug)
                 # write it to a file
                 output_image.ToFile(outfile, debug)
                 with open(outfile, "rb") as f:
