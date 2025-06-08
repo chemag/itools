@@ -1213,8 +1213,8 @@ class MainTest(unittest.TestCase):
         assert set(expected_planar.keys()) == set(planar.keys()), "Broken planar output"
         for key in expected_planar:
             np.testing.assert_allclose(
-                expected_planar[key],
                 planar[key],
+                expected_planar[key],
                 atol=absolute_tolerance,
                 err_msg=f"error on {label} case {key=}",
             )
@@ -1233,7 +1233,6 @@ class MainTest(unittest.TestCase):
             outfile = tempfile.NamedTemporaryFile(
                 prefix="itools-bayer_unittest.", suffix=".bin"
             ).name
-            expected_output = test_case["output"]
             # prepare parameters
             i_pix_fmt = test_case["i_pix_fmt"]
             width = test_case["width"]
@@ -1254,8 +1253,8 @@ class MainTest(unittest.TestCase):
             # check the values
             expected_output = test_case["input"]
             self.assertEqual(
-                expected_output,
                 output,
+                expected_output,
                 f"error on input write test {test_case['name']}",
             )
 
@@ -1275,8 +1274,8 @@ class MainTest(unittest.TestCase):
                 bayer_packed = input_image.GetBayerPacked()
                 expected_bayer_packed = test_case["bayer_packed"]
                 np.testing.assert_allclose(
-                    expected_bayer_packed,
                     bayer_packed,
+                    expected_bayer_packed,
                     atol=absolute_tolerance,
                     err_msg=f"error on bayer_packed case {test_case['name']}",
                 )
@@ -1297,8 +1296,8 @@ class MainTest(unittest.TestCase):
                 expected_ydgcocg_packed = test_case["ydgcocg_packed"]
                 ydgcocg_packed = input_image.GetYDgCoCgPacked()
                 np.testing.assert_allclose(
-                    expected_ydgcocg_packed,
                     ydgcocg_packed,
+                    expected_ydgcocg_packed,
                     atol=absolute_tolerance,
                     err_msg=f"error on ydgcocg_packed case {test_case['name']}",
                 )
@@ -1313,8 +1312,8 @@ class MainTest(unittest.TestCase):
             # check the values
             expected_output = test_case["output"]
             self.assertEqual(
-                expected_output,
                 output,
+                expected_output,
                 f"error on forward write test {test_case['name']}",
             )
 
@@ -1376,8 +1375,8 @@ class MainTest(unittest.TestCase):
             # 1. run forward clipping
             clipped_arr = itools_bayer.clip_integer_and_scale(arr, depth)
             np.testing.assert_array_equal(
-                expected_clipped_arr,
                 clipped_arr,
+                expected_clipped_arr,
                 err_msg=f"error on forward case {test_case['name']}",
             )
             # 2. run backward clipping
