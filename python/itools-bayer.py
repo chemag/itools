@@ -1670,7 +1670,8 @@ class BayerImage:
         assert self.layout == LayoutType.packed, f"error: invalid call"
         row = 0
         col = 0
-        buffer = b""
+        buffer = bytearray()
+        MAX_BUFFER = 500000
         while row < self.height:
             # 1. get components in order
             components = []
@@ -1684,13 +1685,13 @@ class BayerImage:
                 print(f"debug:  {components=}")
             # 2. write components to the output
             odata = self.wfun(*components[0 : self.clen], self.debug)
-            buffer += odata
+            buffer.extend(odata)
             # 3. update row numbers
             if col == self.width:
                 col = 0
                 row += 1
-        self.buffer = buffer
-        return self.buffer
+        self.buffer = bytes(buffer)
+        return buffer
 
     def GetBufferFromPlanar(self, planar):
         assert self.layout == LayoutType.planar, f"error: invalid call"
