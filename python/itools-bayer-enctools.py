@@ -46,11 +46,11 @@ OP_DTYPE = np.int32
 
 
 EXPERIMENT_DICT = {
-    "bayer-ydgcocg": {
-        "name": "Bayer-ydgcocg",
+    "ydgcocg": {
+        "name": "YDgCoCg",
     },
-    "bayer-ydgcocg-420": {
-        "name": "Bayer-ydgcocg-subsampled",
+    "ydgcocg-420": {
+        "name": "YDgCoCg-subsampled",
     },
     "yuv444": {
         "name": "YUV444",
@@ -61,11 +61,11 @@ EXPERIMENT_DICT = {
     "rgb": {
         "name": "RGB",
     },
-    "bayer-single": {
-        "name": "Bayer-single",
+    "bayer-packed": {
+        "name": "Bayer-packed",
     },
-    "bayer-rggb": {
-        "name": "Bayer-rggb",
+    "bayer-planar": {
+        "name": "Bayer-planar",
     },
 }
 
@@ -180,7 +180,7 @@ def cv2_jpeg_process(quality, planar, depth, experiment, debug):
             ".jpg", array, [cv2.IMWRITE_JPEG_QUALITY, quality]
         )
         if debug > 1:
-            filename = f"/tmp/itools.bayer.test.experiment_{experiment}.quality_{quality}.codec_{codec}.plane_{key}.quality_{quality}.output.jpg"
+            filename = f"/tmp/itools-bayer-enctools.experiment_{experiment}.quality_{quality}.codec_{codec}.plane_{key}.quality_{quality}.output.jpg"
             array_encoded.tofile(filename)
 
         encoded_size_dict[key] = len(array_encoded)
@@ -510,8 +510,8 @@ def process_file_ydgcocg_420_array(
     return df
 
 
-# Bayer processing stack (single plane encoding)
-def process_file_bayer_single_array(
+# Bayer processing stack (single-plane encoding)
+def process_file_bayer_packed_array(
     experiment,
     bayer_image,
     codec,
@@ -537,7 +537,7 @@ def process_file_bayer_single_array(
     for quality in quality_list:
         if debug > 1:
             print(f"# ... {bayer_image.infile}: {experiment} {quality}")
-        # 3. encode and decode the single planes
+        # 3. encode and decode the packed plane
         bayer_packed_dict = {"bayer": bayer_image.GetBayerPacked()}
         bayer_packed_prime_dict, encoded_size_dict = codec_process(
             codec, quality, depth, bayer_packed_dict, experiment, debug
@@ -609,8 +609,8 @@ def process_file_bayer_single_array(
     return df
 
 
-# Bayer processing stack (plane encoding)
-def process_file_bayer_rggb_array(
+# Bayer processing stack (planar encoding)
+def process_file_bayer_planar_array(
     experiment,
     bayer_image,
     codec,
@@ -1007,13 +1007,13 @@ def process_file_rgb_array(
 
 
 PROCESS_FILE_ARRAY_FUN = {
-    "bayer-ydgcocg": process_file_ydgcocg_array,
-    "bayer-ydgcocg-420": process_file_ydgcocg_420_array,
+    "ydgcocg": process_file_ydgcocg_array,
+    "ydgcocg-420": process_file_ydgcocg_420_array,
     "yuv444": process_file_yuv444_array,
     "yuv420": process_file_yuv420_array,
     "rgb": process_file_rgb_array,
-    "bayer-single": process_file_bayer_single_array,
-    "bayer-rggb": process_file_bayer_rggb_array,
+    "bayer-packed": process_file_bayer_packed_array,
+    "bayer-planar": process_file_bayer_planar_array,
 }
 
 
