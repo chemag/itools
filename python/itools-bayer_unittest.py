@@ -375,6 +375,32 @@ convertImageFormatTestCases = [
         ),
         "output": b"\x40\x00\xc0\x40\x40\x81\xc0\xc1\x40\x02\xc0\x42\x40\x83\xc0\xc3\x40\x04\xc0\x44\x40\x85\xc0\xc5\x40\x06\xc0\x46\x40\x87\xc0\xc7",
     },
+    # bayer10 packed read/write
+    {
+        "name": "bayer10-packed.rw",
+        "width": 4,
+        "height": 4,
+        "i_pix_fmt": "pRAA",  # SRGGB10P
+        "o_pix_fmt": "pRAA",  # SRGGB10P
+        "debug": 0,
+        "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14",
+        "bayer_planar": {
+            "R": np.array([[0x005, 0x00C], [0x02F, 0x034]], dtype=np.uint16),
+            "G": np.array([[0x009, 0x010], [0x033, 0x038]], dtype=np.uint16),
+            "g": np.array([[0x01A, 0x020], [0x040, 0x049]], dtype=np.uint16),
+            "B": np.array([[0x01E, 0x024], [0x045, 0x04C]], dtype=np.uint16),
+        },
+        "bayer_packed": np.array(
+            [
+                [0x005, 0x009, 0x00C, 0x010],
+                [0x01A, 0x01E, 0x020, 0x024],
+                [0x02F, 0x033, 0x034, 0x038],
+                [0x040, 0x045, 0x049, 0x04C],
+            ],
+            dtype=np.uint16,
+        ),
+        "output": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14",
+    },
     # bayer10->bayer16 (packed)
     {
         "name": "basic-packed10x16.le",
