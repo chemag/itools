@@ -1303,19 +1303,20 @@ class MainTest(unittest.TestCase):
                 )
 
             # 7. run forward conversion
-            output_image = input_image.Copy(o_pix_fmt, debug)
-            output_image.ToFile(outfile, debug)
-            # write it to a file
-            output_image.ToFile(outfile, debug)
-            with open(outfile, "rb") as f:
-                output = f.read()
-            # check the values
-            expected_output = test_case["output"]
-            self.assertEqual(
-                output,
-                expected_output,
-                f"error on forward write test {test_case['name']}",
-            )
+            if "output" in test_case:
+                output_image = input_image.Copy(o_pix_fmt, debug)
+                output_image.ToFile(outfile, debug)
+                # write it to a file
+                output_image.ToFile(outfile, debug)
+                with open(outfile, "rb") as f:
+                    output = f.read()
+                # check the values
+                expected_output = test_case["output"]
+                self.assertEqual(
+                    output,
+                    expected_output,
+                    f"error on forward write test {test_case['name']}",
+                )
 
     def testProcessColorConversions(self):
         """Test color conversions."""
