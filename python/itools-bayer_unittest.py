@@ -1331,13 +1331,13 @@ class MainTest(unittest.TestCase):
             print("...running %s" % test_case["name"])
             # prepare input file
             infile = tempfile.NamedTemporaryFile(
-                prefix="itools-bayer_unittest.", suffix=".bin"
+                prefix="itools-bayer_unittest.infile.", suffix=".bin"
             ).name
             with open(infile, "wb") as f:
                 f.write(test_case["input"])
             # prepare output file(s)
             outfile = tempfile.NamedTemporaryFile(
-                prefix="itools-bayer_unittest.", suffix=".bin"
+                prefix="itools-bayer_unittest.outfile.", suffix=".bin"
             ).name
             # prepare parameters
             i_pix_fmt = test_case["i_pix_fmt"]
