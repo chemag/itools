@@ -1975,7 +1975,15 @@ class BayerImage:
         # get format info
         height, width = bayer_packed.shape
         pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
-        return BayerImage("", None, bayer_packed, None, width, height, pix_fmt, debug)
+        bayer_image = BayerImage(
+            "", None, bayer_packed, None, width, height, pix_fmt, debug
+        )
+        # ensure the image is correct
+        order = get_order(pix_fmt)
+        if cls.GetComponentType(order) == ComponentType.ydgcocg:
+            # ensure there is a ydgcocg planar
+            bayer_image.ydgcocg_planar = bayer_image.GetYDgCoCgPlanarFromBayerPlanar()
+        return bayer_image
 
     @classmethod
     def FromYDgCoCgPlanar(cls, ydgcocg_planar, pix_fmt, debug=0):
@@ -1984,6 +1992,11 @@ class BayerImage:
         pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
         bayer_image = BayerImage("", None, None, None, width, height, pix_fmt, debug)
         bayer_image.ydgcocg_planar = ydgcocg_planar
+        # ensure the image is correct
+        order = get_order(pix_fmt)
+        if cls.GetComponentType(order) == ComponentType.bayer:
+            # ensure there is a bayer planar
+            bayer_image.bayer_planar = bayer_image.GetBayerPlanarFromYDgCoCgPlanar()
         return bayer_image
 
 

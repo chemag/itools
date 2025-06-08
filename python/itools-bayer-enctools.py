@@ -80,8 +80,8 @@ default_values = {
     "quality_list": ",".join(str(v) for v in DEFAULT_QUALITY_LIST),
     "experiment_list": ",".join(str(k) for k in EXPERIMENT_DICT.keys()),
     "workdir": tempfile.gettempdir(),
-    "height": -1,
     "width": -1,
+    "height": -1,
     "pix_fmt": "bayer_rggb8",
     "infile_list": None,
     "outfile": None,
@@ -90,8 +90,8 @@ default_values = {
 
 COLUMN_LIST = [
     "infile",
-    "height",
     "width",
+    "height",
     "pix_fmt",
     "depth",
     "approach",
@@ -114,19 +114,19 @@ COLUMN_LIST = [
 
 def ydgcocg_subsample_planar(ydgcocg_planar):
     ydgcocg_subsampled_planar = ydgcocg_planar.copy()
-    ydgcocg_subsampled_planar["co"] = ydgcocg_subsampled_planar["co"][::2, ::2]
-    ydgcocg_subsampled_planar["cg"] = ydgcocg_subsampled_planar["cg"][::2, ::2]
+    ydgcocg_subsampled_planar["C"] = ydgcocg_subsampled_planar["C"][::2, ::2]
+    ydgcocg_subsampled_planar["c"] = ydgcocg_subsampled_planar["c"][::2, ::2]
     return ydgcocg_subsampled_planar
 
 
 def ydgcocg_upsample_planar(ydgcocg_subsampled_planar):
     ydgcocg_planar = ydgcocg_subsampled_planar.copy()
-    original_shape = ydgcocg_planar["y"].shape
-    ydgcocg_planar["co"] = itools_bayer.upsample_matrix(
-        ydgcocg_planar["co"], original_shape
+    original_shape = ydgcocg_planar["Y"].shape
+    ydgcocg_planar["C"] = itools_bayer.upsample_matrix(
+        ydgcocg_planar["C"], original_shape
     )
-    ydgcocg_planar["cg"] = itools_bayer.upsample_matrix(
-        ydgcocg_planar["cg"], original_shape
+    ydgcocg_planar["c"] = itools_bayer.upsample_matrix(
+        ydgcocg_planar["c"], original_shape
     )
     return ydgcocg_planar
 
@@ -156,7 +156,7 @@ def nocodec_process(quality, planar, depth, experiment, debug):
             )
         # 1. encode array into blob
         height, width = array.shape
-        encoded_size_dict[key] = height * width * (1 if depth == 8 else 2)
+        encoded_size_dict[key] = width * height * (1 if depth == 8 else 2)
         # 2. decode blob into array
         array_prime = array.copy()
         planar_prime[key] = array_prime
@@ -251,17 +251,17 @@ def libheif_heic_process(quality, planar, depth, experiment, debug):
 
 
 # read a Bayer image, and make sure the packed version is opencv-friendly
-def read_bayer_image(infile, pix_fmt, height, width, debug):
+def read_bayer_image(infile, pix_fmt, width, height, debug):
     pix_fmt = itools_bayer.get_canonical_input_pix_fmt(pix_fmt)
 
     # read the input image
-    bayer_image = itools_bayer.BayerImage.FromFile(infile, pix_fmt, height, width)
+    bayer_image = itools_bayer.BayerImage.FromFile(infile, pix_fmt, width, height)
     depth = itools_bayer.get_depth(bayer_image.pix_fmt)
 
     # convert to a same-depth format that is opencv-friendly
     o_pix_fmt = itools_bayer.CV2_OPERATION_PIX_FMT_DICT[depth]
     o_pix_fmt = itools_bayer.get_canonical_output_pix_fmt(o_pix_fmt)
-    bayer_image_cv2 = itools_bayer.BayerImage.FromPlanar(
+    bayer_image_cv2 = itools_bayer.BayerImage.FromBayerPlanar(
         bayer_image.GetBayerPlanar(),
         o_pix_fmt,
         bayer_image.infile,
@@ -277,11 +277,11 @@ def yuv_planar_to_opencv_yvu(yuv_planar):
 
 
 def write_yuv_planar_to_y4m(
-    yuv_planar, experiment, depth, colorrange=itools_common.ColorRange.full
+    yuv_planar, label, depth, colorrange=itools_common.ColorRange.full
 ):
     plane_yvu = yuv_planar_to_opencv_yvu(yuv_planar)
     y4mfile = tempfile.NamedTemporaryFile(
-        prefix=f"itools-bayer-enctools.experiment_{experiment}.", suffix=".y4m"
+        prefix=f"itools-bayer-enctools.{label}.", suffix=".y4m"
     ).name
     colorspace = "444" if depth == 8 else "444p10"
     itools_y4m.write_y4m(
@@ -290,10 +290,10 @@ def write_yuv_planar_to_y4m(
 
 
 def write_single_plane_to_y4m(
-    array, experiment, depth, colorrange=itools_common.ColorRange.full
+    array, label, depth, colorrange=itools_common.ColorRange.full
 ):
     y4mfile = tempfile.NamedTemporaryFile(
-        prefix=f"itools-bayer-enctools.experiment_{experiment}.", suffix=".y4m"
+        prefix=f"itools-bayer-enctools.{label}.", suffix=".y4m"
     ).name
     colorspace = "mono" if depth == 8 else "mono10"
     itools_y4m.write_y4m(y4mfile, array, colorspace=colorspace, colorrange=colorrange)
@@ -310,7 +310,7 @@ def process_file_ydgcocg_array(
     if debug > 0:
         print(f"# {bayer_image.infile}: {experiment}")
     df = pd.DataFrame(columns=COLUMN_LIST)
-    height, width = bayer_image.height, bayer_image.width
+    width, height = bayer_image.width, bayer_image.height
     depth = itools_bayer.get_depth(bayer_image.pix_fmt)
 
     # 1. demosaic raw image to RGB
@@ -328,7 +328,9 @@ def process_file_ydgcocg_array(
 
     for quality in quality_list:
         if debug > 1:
-            print(f"# ... {bayer_image.infile}: {experiment} {quality}")
+            print(
+                f"# ... {bayer_image.infile}: experiment: {experiment} quality: {quality}"
+            )
         # 4. encode and decode the 4 planes
         ydgcocg_planar_prime, encoded_size_dict = codec_process(
             codec, quality, depth, ydgcocg_planar, experiment, debug
@@ -375,8 +377,8 @@ def process_file_ydgcocg_array(
         # add new element
         df.loc[df.size] = (
             bayer_image.infile,
-            bayer_image.height,
             bayer_image.width,
+            bayer_image.height,
             bayer_image.pix_fmt,
             bayer_image.depth,
             experiment,
@@ -410,7 +412,7 @@ def process_file_ydgcocg_420_array(
     if debug > 0:
         print(f"# {bayer_image.infile}: {experiment}")
     df = pd.DataFrame(columns=COLUMN_LIST)
-    height, width = bayer_image.height, bayer_image.width
+    width, height = bayer_image.width, bayer_image.height
     depth = itools_bayer.get_depth(bayer_image.pix_fmt)
 
     # 1. demosaic raw image to RGB
@@ -484,8 +486,8 @@ def process_file_ydgcocg_420_array(
         # add new element
         df.loc[df.size] = (
             bayer_image.infile,
-            bayer_image.height,
             bayer_image.width,
+            bayer_image.height,
             bayer_image.pix_fmt,
             bayer_image.depth,
             experiment,
@@ -519,7 +521,7 @@ def process_file_bayer_single_array(
     if debug > 0:
         print(f"# {bayer_image.infile}: {experiment}")
     df = pd.DataFrame(columns=COLUMN_LIST)
-    height, width = bayer_image.height, bayer_image.width
+    width, height = bayer_image.width, bayer_image.height
     depth = itools_bayer.get_depth(bayer_image.pix_fmt)
 
     # 1. demosaic raw image to RGB
@@ -541,7 +543,7 @@ def process_file_bayer_single_array(
             codec, quality, depth, bayer_packed_dict, experiment, debug
         )
         bayer_packed_prime = bayer_packed_prime_dict["bayer"]
-        bayer_image_prime = itools_bayer.BayerImage.FromPacked(
+        bayer_image_prime = itools_bayer.BayerImage.FromBayerPacked(
             bayer_packed_prime, bayer_image.pix_fmt
         )
 
@@ -583,8 +585,8 @@ def process_file_bayer_single_array(
         # add new element
         df.loc[df.size] = (
             bayer_image.infile,
-            bayer_image.height,
             bayer_image.width,
+            bayer_image.height,
             bayer_image.pix_fmt,
             bayer_image.depth,
             experiment,
@@ -618,7 +620,7 @@ def process_file_bayer_rggb_array(
     if debug > 0:
         print(f"# {bayer_image.infile}: {experiment}")
     df = pd.DataFrame(columns=COLUMN_LIST)
-    height, width = bayer_image.height, bayer_image.width
+    width, height = bayer_image.width, bayer_image.height
     depth = itools_bayer.get_depth(bayer_image.pix_fmt)
 
     # 1. demosaic raw image to RGB
@@ -638,7 +640,7 @@ def process_file_bayer_rggb_array(
         bayer_planar_prime, encoded_size_dict = codec_process(
             codec, quality, depth, bayer_image.GetBayerPlanar(), experiment, debug
         )
-        bayer_image_prime = itools_bayer.BayerImage.FromPlanar(
+        bayer_image_prime = itools_bayer.BayerImage.FromBayerPlanar(
             bayer_planar_prime, bayer_image.pix_fmt
         )
 
@@ -680,8 +682,8 @@ def process_file_bayer_rggb_array(
         # add new element
         df.loc[df.size] = (
             bayer_image.infile,
-            bayer_image.height,
             bayer_image.width,
+            bayer_image.height,
             bayer_image.pix_fmt,
             bayer_image.depth,
             experiment,
@@ -715,7 +717,7 @@ def process_file_yuv444_array(
     if debug > 0:
         print(f"# {bayer_image.infile}: {experiment}")
     df = pd.DataFrame(columns=COLUMN_LIST)
-    height, width = bayer_image.height, bayer_image.width
+    width, height = bayer_image.width, bayer_image.height
     depth = itools_bayer.get_depth(bayer_image.pix_fmt)
 
     # 1. demosaic raw image to RGB
@@ -778,8 +780,8 @@ def process_file_yuv444_array(
         # add new element
         df.loc[df.size] = (
             bayer_image.infile,
-            bayer_image.height,
             bayer_image.width,
+            bayer_image.height,
             bayer_image.pix_fmt,
             bayer_image.depth,
             experiment,
@@ -813,7 +815,7 @@ def process_file_yuv420_array(
     if debug > 0:
         print(f"# {bayer_image.infile}: {experiment}")
     df = pd.DataFrame(columns=COLUMN_LIST)
-    height, width = bayer_image.height, bayer_image.width
+    width, height = bayer_image.width, bayer_image.height
     depth = itools_bayer.get_depth(bayer_image.pix_fmt)
 
     # 1. demosaic raw image to RGB
@@ -882,8 +884,8 @@ def process_file_yuv420_array(
         # add new element
         df.loc[df.size] = (
             bayer_image.infile,
-            bayer_image.height,
             bayer_image.width,
+            bayer_image.height,
             bayer_image.pix_fmt,
             bayer_image.depth,
             experiment,
@@ -917,7 +919,7 @@ def process_file_rgb_array(
     if debug > 0:
         print(f"# {bayer_image.infile}: {experiment}")
     df = pd.DataFrame(columns=COLUMN_LIST)
-    height, width = bayer_image.height, bayer_image.width
+    width, height = bayer_image.width, bayer_image.height
     depth = itools_bayer.get_depth(bayer_image.pix_fmt)
 
     # 1. demosaic raw image to RGB
@@ -980,8 +982,8 @@ def process_file_rgb_array(
         # add new element
         df.loc[df.size] = (
             bayer_image.infile,
-            bayer_image.height,
             bayer_image.width,
+            bayer_image.height,
             bayer_image.pix_fmt,
             bayer_image.depth,
             experiment,
@@ -1044,8 +1046,8 @@ def get_average_results(df):
         derived_dict["encoded_size_breakdown"] = ""
         # average a few columns
         COLUMNS_MEAN = (
-            "height",
             "width",
+            "height",
             "encoded_size",
             "encoded_bpp",
             "psnr_bayer",
@@ -1069,8 +1071,8 @@ def process_data(
     experiment_list,
     codec,
     quality_list,
-    height,
     width,
+    height,
     pix_fmt,
     workdir,
     outfile,
@@ -1083,7 +1085,7 @@ def process_data(
     # 1. run the camera pipelines
     for infile in infile_list:
         # 1.1. read input image
-        bayer_image = read_bayer_image(infile, pix_fmt, height, width, debug)
+        bayer_image = read_bayer_image(infile, pix_fmt, width, height, debug)
         for experiment in experiment_list:
             # 1.2. run experiment
             tmp_df = process_file_array(
@@ -1358,8 +1360,8 @@ def main(argv):
         options.experiment_list,
         options.codec,
         options.quality_list,
-        options.height,
         options.width,
+        options.height,
         options.pix_fmt,
         options.workdir,
         options.outfile,
