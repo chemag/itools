@@ -303,7 +303,7 @@ def read_y4m(infile, output_colorrange=None, cleanup=0, logfd=sys.stdout, debug=
     return frame, header, offset, status
 
 
-def write_header(height, width, colorspace, colorrange):
+def write_header(height, width, colorspace, colorrange, extcs=None):
     header = f"YUV4MPEG2 W{width} H{height} F25:1 Ip A0:0 C{colorspace}"
     if colorrange in (
         itools_common.ColorRange.limited,
@@ -311,12 +311,18 @@ def write_header(height, width, colorspace, colorrange):
     ):
         colorrange_str = itools_common.ColorRange.to_str(colorrange).upper()
         header += f" XCOLORRANGE={colorrange_str}"
+    if extcs is not None:
+        header += f" XEXTCS={extcs}"
     header += "\n"
     return header
 
 
 def write_y4m(
-    outfile, outyvu, colorspace="420", colorrange=itools_common.ColorRange.full
+    outfile,
+    outyvu,
+    colorspace="420",
+    colorrange=itools_common.ColorRange.full,
+    extcs=None,
 ):
     assert colorspace in (
         "mono",
@@ -332,7 +338,7 @@ def write_y4m(
             height, width, _ = outyvu.shape
         except ValueError:
             height, width = outyvu.shape
-        header = write_header(height, width, colorspace, colorrange)
+        header = write_header(height, width, colorspace, colorrange, extcs)
         fout.write(header.encode("utf-8"))
         # write frame line
         frame = "FRAME\n"
