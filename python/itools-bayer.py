@@ -24,6 +24,7 @@ import os
 import sys
 
 itools_common = importlib.import_module("itools-common")
+itools_y4m = importlib.import_module("itools-y4m")
 
 __version__ = "0.1"
 
@@ -1870,9 +1871,25 @@ class BayerImage:
         plane_ids = planar_order[0:2] if row % 2 == 0 else planar_order[2:4]
         return plane_ids
 
+    def ToY4MFile(self, outfile, debug):
+        colorspace = "mono" if self.depth == 8 else "mono10"
+        width = self.width >> 1
+        height = self.height << 1
+        outyvu = np.frombuffer(self.GetBuffer(), dtype="<u2").reshape((height, width))
+        itools_y4m.write_y4m(
+            outfile,
+            outyvu,
+            colorspace=colorspace,
+            colorrange=itools_common.ColorRange.full,
+            extcs=self.pix_fmt,
+        )
+
     def ToFile(self, outfile, debug):
-        with open(outfile, "wb") as fout:
-            fout.write(self.GetBuffer())
+        if os.path.splitext(outfile)[1] == ".y4m":
+            self.ToY4MFile(outfile, debug)
+        else:
+            with open(outfile, "wb") as fout:
+                fout.write(self.GetBuffer())
 
     # create a new BayerImage from a depth-aware copy of another
     def Copy(self, o_pix_fmt, debug):
@@ -1924,7 +1941,49 @@ class BayerImage:
 
     # factory methods
     @classmethod
+    def FromY4MFile(cls, infile, debug=0):
+        # check whether the image is self-describing
+        frame, header, offset, status = itools_y4m.read_y4m(
+            infile, output_colorrange=None, cleanup=0, logfd=sys.stdout, debug=debug
+        )
+        if header.colorspace in ("mono", "mono10"):
+            # check that the image is annotated
+            assert (
+                "EXTCS" in header.comment
+            ), f"error: monochrome image does not contain extended color space (EXTCS)"
+            i_pix_fmt = header.comment["EXTCS"]
+            i_pix_fmt = get_canonical_input_pix_fmt(i_pix_fmt)
+            assert (
+                i_pix_fmt in BAYER_FORMATS
+            ), f"error: unknown extended color space: {i_pix_fmt}"
+            # (height, width) plane
+            frame = frame[:, :, 0]
+            # process the frame as packed/planar
+            layout = BAYER_FORMATS[i_pix_fmt]["layout"]
+            bayer_formats = BAYER_FORMATS
+            order = BAYER_FORMATS[i_pix_fmt]["order"]
+            if layout == LayoutType.packed:
+                if BayerImage.IsBayer(order):
+                    return BayerImage.FromBayerPacked(frame, i_pix_fmt, debug)
+                else:  # BayerImage.IsYDgCoCg(order):
+                    raise AssertionError("error: unimplemented BayerImage.IsYDgCoCg()")
+            elif layout == LayoutType.planar:
+                height, width = frame.shape
+                assert height % 4 == 0, f"error: invalid height: {height}"
+                planar = dict(zip(order, np.split(frame, 4, axis=0)))
+                if BayerImage.IsBayer(order):
+                    return BayerImage.FromBayerPlanar(planar, i_pix_fmt, debug)
+                else:  # BayerImage.IsYDgCoCg(order):
+                    return BayerImage.FromYDgCoCgPlanar(planar, i_pix_fmt, debug)
+        elif header.colorspace in ("yuv420", "yuv420p10", "yuv444", "yuv444p10"):
+            raise AssertionError("error: unimplemented yuv/rgb reading")
+        raise AssertionError(f"error: invalid y4m colorspace: {header.colorspace}")
+
+    @classmethod
     def FromFile(cls, infile, pix_fmt, width, height, debug=0):
+        # check whether the image is self-describing
+        if os.path.splitext(infile)[1] == ".y4m":
+            return cls.FromY4MFile(infile, debug)
         # check image resolution
         assert width % 2 == 0, f"error: only accept images with even width {width=}"
         assert height % 2 == 0, f"error: only accept images with even height {height=}"
@@ -2046,7 +2105,10 @@ def get_options(argv):
         type=str,
         dest="i_pix_fmt",
         default=default_values["i_pix_fmt"],
-        choices=I_PIX_FMT_LIST,
+        choices=I_PIX_FMT_LIST
+        + [
+            None,
+        ],
         metavar=f"[{input_choices_str}]",
         help="input pixel format",
     )
