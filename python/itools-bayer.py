@@ -1876,7 +1876,7 @@ class BayerImage:
         width = self.width >> 1
         height = self.height << 1
         outyvu = np.frombuffer(self.GetBuffer(), dtype="<u2").reshape((height, width))
-        itools_y4m.write_y4m(
+        itools_y4m.write_y4m_image(
             outfile,
             outyvu,
             colorspace=colorspace,
@@ -1943,7 +1943,7 @@ class BayerImage:
     @classmethod
     def FromY4MFile(cls, infile, debug=0):
         # check whether the image is self-describing
-        frame, header, offset, status = itools_y4m.read_y4m(
+        frame, header, offset, status = itools_y4m.read_y4m_image(
             infile, output_colorrange=None, cleanup=0, logfd=sys.stdout, debug=debug
         )
         if header.colorspace in ("mono", "mono10"):

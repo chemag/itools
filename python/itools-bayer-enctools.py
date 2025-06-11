@@ -284,7 +284,7 @@ def write_yuv_planar_to_y4m(
         prefix=f"itools-bayer-enctools.{label}.", suffix=".y4m"
     ).name
     colorspace = "444" if depth == 8 else "444p10"
-    itools_y4m.write_y4m(
+    itools_y4m.write_y4m_image(
         y4mfile, plane_yvu, colorspace=colorspace, colorrange=colorrange
     )
 
@@ -296,7 +296,9 @@ def write_single_plane_to_y4m(
         prefix=f"itools-bayer-enctools.{label}.", suffix=".y4m"
     ).name
     colorspace = "mono" if depth == 8 else "mono10"
-    itools_y4m.write_y4m(y4mfile, array, colorspace=colorspace, colorrange=colorrange)
+    itools_y4m.write_y4m_image(
+        y4mfile, array, colorspace=colorspace, colorrange=colorrange
+    )
 
 
 # Bayer processing stack

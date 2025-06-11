@@ -35,7 +35,7 @@ def read_image_file(
     outbgr = None
     infile_extension = os.path.splitext(infile)[1]
     if infile_extension == ".y4m":
-        outyvu, _, _, status = itools_y4m.read_y4m(
+        outyvu, _, _, status = itools_y4m.read_y4m_image(
             infile,
             output_colorrange=itools_common.ColorRange.full,
             cleanup=cleanup,
@@ -142,7 +142,7 @@ def write_image_file(outfile, outimg, proc_color=itools_common.ProcColor.bgr, **
             outyvu = cv2.cvtColor(outimg, cv2.COLOR_BGR2YCrCb)
         colorspace = kwargs.get("colorspace", "420")
         colorrange = kwargs.get("colorrange", itools_common.ColorRange.get_default())
-        itools_y4m.write_y4m(outfile, outyvu, colorspace, colorrange)
+        itools_y4m.write_y4m_image(outfile, outyvu, colorspace, colorrange)
     else:
         # cv2 writer requires BGR
         if proc_color == itools_common.ProcColor.yvu:

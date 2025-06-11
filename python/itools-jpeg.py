@@ -29,7 +29,7 @@ def read_jpeg(infile, config_dict, logfd, cleanup=True, debug=0):
     tmpy4m = tempfile.NamedTemporaryFile(prefix="itools.jpeg.", suffix=".y4m").name
     decode_jpeg(infile, tmpy4m, logfd=logfd, debug=debug)
     # 2. read the y4m
-    outyvu, _, _, _ = itools_y4m.read_y4m(
+    outyvu, _, _, _ = itools_y4m.read_y4m_image(
         tmpy4m,
         output_colorrange=itools_common.ColorRange.full,
         logfd=logfd,

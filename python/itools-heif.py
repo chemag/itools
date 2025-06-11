@@ -514,7 +514,7 @@ def read_heif(infile, config_dict, cleanup, logfd, debug=0):
         assert returncode == 0, f"error in {command}\n{err}"
         tmpy4m = parse_heif_convert_output(tmpy4m, out, logfd, debug)
         # 2.2. read the y4m frame ignoring the color range
-        outyvu, _, _, tmp_status = itools_y4m.read_y4m(
+        outyvu, _, _, tmp_status = itools_y4m.read_y4m_image(
             tmpy4m, output_colorrange=None, logfd=logfd, debug=debug
         )
         status.update(tmp_status)
@@ -602,4 +602,4 @@ def decode_heif(
     else:
         outyvu = inyvu
         output_colorrange = input_colorrange
-    itools_y4m.write_y4m(outfile_y4m, inyvu, colorspace, output_colorrange)
+    itools_y4m.write_y4m_image(outfile_y4m, inyvu, colorspace, output_colorrange)

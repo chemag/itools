@@ -358,7 +358,7 @@ def decode_resolution(codec, height, width, colorspace, block_size, stream, debu
 
 def encode_file(infile, outfile, codec, block_size, debug):
     # 1. read y4m input as numpy array
-    outyvu, _, _, _ = itools_y4m.read_y4m(
+    outyvu, _, _, _ = itools_y4m.read_y4m_image(
         infile,
         output_colorrange=itools_common.ColorRange.full,
         logfd=None,
@@ -440,7 +440,7 @@ def decode_file(infile, outfile, debug):
         yarray = yarray[:, :width]
 
     # 4. write the array into a y4m file
-    itools_y4m.write_y4m(outfile, yarray, colorspace)
+    itools_y4m.write_y4m_image(outfile, yarray, colorspace)
     return stats
 
 

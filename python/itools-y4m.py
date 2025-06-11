@@ -290,7 +290,9 @@ class Y4MHeader:
         return outyvu, offset, status
 
 
-def read_y4m(infile, output_colorrange=None, cleanup=0, logfd=sys.stdout, debug=0):
+def read_y4m_image(
+    infile, output_colorrange=None, cleanup=0, logfd=sys.stdout, debug=0
+):
     # read the y4m frame
     with open(infile, "rb") as fin:
         # read y4m header
@@ -317,7 +319,7 @@ def write_header(height, width, colorspace, colorrange, extcs=None):
     return header
 
 
-def write_y4m(
+def write_y4m_image(
     outfile,
     outyvu,
     colorspace="420",
