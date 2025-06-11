@@ -358,10 +358,9 @@ def decode_resolution(codec, height, width, colorspace, block_size, stream, debu
 
 def encode_file(infile, outfile, codec, block_size, debug):
     # 1. read y4m input as numpy array
-    outyvu, _, _, _ = itools_y4m.read_y4m_image(
+    outyvu = itools_y4m.read_y4m_image(
         infile,
         output_colorrange=itools_common.ColorRange.full,
-        logfd=None,
         debug=debug,
     )
     # keep the luminance only

@@ -29,10 +29,9 @@ def read_jxl(infile, config_dict, cleanup, logfd, debug=0):
     tmpy4m = tempfile.NamedTemporaryFile(prefix="itools.jxl.", suffix=".y4m").name
     decode_jxl(infile, tmpy4m, cleanup, logfd, debug)
     # 2. read the y4m
-    outyvu, _, _, _ = itools_y4m.read_y4m_image(
+    outyvu = itools_y4m.read_y4m_image(
         tmpy4m,
         output_colorrange=itools_common.ColorRange.full,
-        logfd=logfd,
         debug=debug,
     )
     # 3. set read colorrange

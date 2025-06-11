@@ -1876,13 +1876,16 @@ class BayerImage:
         width = self.width >> 1
         height = self.height << 1
         outyvu = np.frombuffer(self.GetBuffer(), dtype="<u2").reshape((height, width))
-        itools_y4m.write_y4m_image(
-            outfile,
-            outyvu,
+        y4m_file_writer = itools_y4m.Y4MFileWriter(
+            height,
+            width,
             colorspace=colorspace,
             colorrange=itools_common.ColorRange.full,
+            outfile=outfile,
             extcs=self.pix_fmt,
+            debug=debug,
         )
+        y4m_file_writer.write_frame(outyvu)
 
     def ToFile(self, outfile, debug):
         if os.path.splitext(outfile)[1] == ".y4m":
@@ -1943,15 +1946,16 @@ class BayerImage:
     @classmethod
     def FromY4MFile(cls, infile, debug=0):
         # check whether the image is self-describing
-        frame, header, offset, status = itools_y4m.read_y4m_image(
-            infile, output_colorrange=None, cleanup=0, logfd=sys.stdout, debug=debug
+        y4m_file_reader = itools_y4m.Y4MFileReader(
+            infile, output_colorrange=None, debug=debug
         )
-        if header.colorspace in ("mono", "mono10"):
+        frame = y4m_file_reader.read_frame()
+        if y4m_file_reader.colorspace in ("mono", "mono10"):
             # check that the image is annotated
             assert (
-                "EXTCS" in header.comment
+                "EXTCS" in y4m_file_reader.comments
             ), f"error: monochrome image does not contain extended color space (EXTCS)"
-            i_pix_fmt = header.comment["EXTCS"]
+            i_pix_fmt = y4m_file_reader.comments["EXTCS"]
             i_pix_fmt = get_canonical_input_pix_fmt(i_pix_fmt)
             assert (
                 i_pix_fmt in BAYER_FORMATS
@@ -1975,9 +1979,16 @@ class BayerImage:
                     return BayerImage.FromBayerPlanar(planar, i_pix_fmt, debug)
                 else:  # BayerImage.IsYDgCoCg(order):
                     return BayerImage.FromYDgCoCgPlanar(planar, i_pix_fmt, debug)
-        elif header.colorspace in ("yuv420", "yuv420p10", "yuv444", "yuv444p10"):
+        elif y4m_file_reader.colorspace in (
+            "yuv420",
+            "yuv420p10",
+            "yuv444",
+            "yuv444p10",
+        ):
             raise AssertionError("error: unimplemented yuv/rgb reading")
-        raise AssertionError(f"error: invalid y4m colorspace: {header.colorspace}")
+        raise AssertionError(
+            f"error: invalid y4m colorspace: {y4m_file_reader.colorspace}"
+        )
 
     @classmethod
     def FromFile(cls, infile, pix_fmt, width, height, debug=0):

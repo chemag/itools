@@ -35,13 +35,12 @@ def read_image_file(
     outbgr = None
     infile_extension = os.path.splitext(infile)[1]
     if infile_extension == ".y4m":
-        outyvu, _, _, status = itools_y4m.read_y4m_image(
+        y4m_file_reader = itools_y4m.Y4MFileReader(
             infile,
             output_colorrange=itools_common.ColorRange.full,
-            cleanup=cleanup,
-            logfd=logfd,
             debug=debug,
         )
+        status = y4m_file_reader.status
         if status is not None and status.get("broken", False):
             print(f"error: file {infile} is broken")
 

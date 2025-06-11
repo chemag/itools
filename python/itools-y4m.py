@@ -14,6 +14,8 @@ import sys
 
 itools_common = importlib.import_module("itools-common")
 
+FRAME_INDICATOR = "FRAME\n"
+
 
 def color_range_conversion(inyvu, input_colorrange, output_colorrange, colorspace):
     # get components
@@ -107,26 +109,23 @@ def chroma_range_conversion(va, colorspace, src, dst):
         return do_range_conversion(va, srcmin, srcmax, dstmin, dstmax, np.uint8)
 
 
-class Y4MHeader:
+class Y4MFileReader:
     VALID_INTERLACED = ("p", "t", "b", "m")
     VALID_COLORRANGES = ("FULL", "LIMITED")
     DEFAULT_COLORSPACE = "420"
 
-    def __init__(
-        self, height, width, framerate, interlaced, aspect, colorspace, comment
-    ):
-        self.height = height
-        self.width = width
-        self.framerate = framerate
-        self.interlaced = interlaced
-        self.aspect = aspect
-        self.colorspace = (
-            colorspace if colorspace is not None else self.DEFAULT_COLORSPACE
-        )
-        self.comment = comment
+    def __init__(self, infile, output_colorrange=None, debug=0):
+        # store the input parameters
+        self.infile = infile
+        self.output_colorrange = itools_common.ColorRange.parse(output_colorrange)
+        self.debug = debug
+        # open the file descriptor
+        self.fin = open(self.infile, "rb")
+        # read the header line
+        header_line = self.fin.readline()
+        self.parse_header_line(header_line)
 
-    @classmethod
-    def parse(cls, header_line):
+    def parse_header_line(self, header_line):
         parameters = header_line.decode("ascii").split(" ")
         assert (
             parameters[0] == "YUV4MPEG2"
@@ -143,7 +142,7 @@ class Y4MHeader:
         ), "error: no frame-rate parameter in y4m header"
         # default parameters
         height = width = framerate = interlaced = aspect = colorspace = None
-        comment = {}
+        comments = {}
         # parse parameters
         for v in parameters[1:]:
             key, val = v[0], v[1:]
@@ -156,7 +155,7 @@ class Y4MHeader:
             elif key == "I":
                 interlaced = val
                 assert (
-                    interlaced in cls.VALID_INTERLACED
+                    interlaced in self.VALID_INTERLACED
                 ), f"error: invalid interlace: {interlace}"
             elif key == "A":
                 aspect = val
@@ -170,22 +169,40 @@ class Y4MHeader:
                 if key2 == "COLORRANGE":
                     colorrange = val2
                     assert (
-                        colorrange in cls.VALID_COLORRANGES
+                        colorrange in self.VALID_COLORRANGES
                     ), f"error: invalid colorrange: {colorrange}"
-                comment[key2] = val2
-        return Y4MHeader(
-            height, width, framerate, interlaced, aspect, colorspace, comment
+                comments[key2] = val2.strip()
+        self.height = height
+        self.width = width
+        self.framerate = framerate
+        self.interlaced = interlaced
+        self.aspect = aspect
+        self.colorspace = (
+            colorspace if colorspace is not None else self.DEFAULT_COLORSPACE
         )
-
-    @classmethod
-    def read(cls, data):
-        # parameters are in the first line
-        header_line = data.split(b"\n", 1)[0]
-        header = Y4MHeader.parse(header_line)
-        offset = len(header_line) + 1
-        return header, offset
+        self.comments = comments
+        # derived values
+        self.input_colorrange = itools_common.ColorRange.parse(
+            self.comments.get("COLORRANGE")
+        )
+        self.chroma_subsample = itools_common.COLORSPACES[self.colorspace][
+            "chroma_subsample"
+        ]
+        self.input_colordepth = itools_common.COLORSPACES[self.colorspace]["depth"]
+        if self.debug > 0:
+            print(
+                f"debug: y4m frame read with input_colorrange: {input_colorrange.name}",
+            )
+        self.status = {
+            "y4m:colorrange": self.input_colorrange.name,
+            "y4m:broken": 0,
+            "colorrange_input": self.input_colorrange,
+            "colorrange": self.output_colorrange.name,
+            "colordepth": self.input_colordepth,
+        }
 
     def get_frame_size(self):
+        # TODO(chema): this is broken with odd dimensions
         if self.colorspace.startswith("420"):
             return self.width * self.height * 3 // 2
         if self.colorspace.startswith("422"):
@@ -194,129 +211,149 @@ class Y4MHeader:
             return self.width * self.height * 3
         raise f"only support 420, 422, 444 colorspaces (not {self.colorspace})"
 
-    def read_frame(self, data, output_colorrange, logfd, debug):
-        # 1. read "FRAME\n" tidbit
-        assert data[:6] == b"FRAME\n", f"error: invalid FRAME: starts with {data[:6]}"
-        offset = 6
+    def read_frame(self):
+        # 1. read the "FRAME\n" tidbit
+        frame_line = self.fin.read(len(FRAME_INDICATOR))
+        assert len(frame_line) == len(FRAME_INDICATOR)
+        # 2. get the exact frame size
+        # 2.1. get the number of pixels
         luma_size_pixels = self.width * self.height
-
         # process chroma subsampling
-        chroma_subsample = itools_common.COLORSPACES[self.colorspace][
-            "chroma_subsample"
-        ]
-        if chroma_subsample == itools_common.ChromaSubsample.chroma_420:
+        if self.chroma_subsample == itools_common.ChromaSubsample.chroma_420:
             chroma_w_pixels = self.width >> 1
             chroma_h_pixels = self.height >> 1
-        elif chroma_subsample == itools_common.ChromaSubsample.chroma_422:
+        elif self.chroma_subsample == itools_common.ChromaSubsample.chroma_422:
             chroma_w_pixels = self.width >> 1
             chroma_h_pixels = self.height
-        elif chroma_subsample == itools_common.ChromaSubsample.chroma_444:
+        elif self.chroma_subsample == itools_common.ChromaSubsample.chroma_444:
             chroma_w_pixels = self.width
             chroma_h_pixels = self.height
-        elif chroma_subsample == itools_common.ChromaSubsample.chroma_400:
+        elif self.chroma_subsample == itools_common.ChromaSubsample.chroma_400:
             chroma_w_pixels = 0
             chroma_h_pixels = 0
         chroma_size_pixels = chroma_w_pixels * chroma_h_pixels
-
-        # process pixel depth
-        input_colordepth = itools_common.COLORSPACES[self.colorspace]["depth"]
-        if input_colordepth == itools_common.ColorDepth.depth_8:
+        # 2.2. get the pixel depth
+        if self.input_colordepth == itools_common.ColorDepth.depth_8:
             dt = np.dtype(np.uint8)
             luma_size = luma_size_pixels
             chroma_size = chroma_size_pixels
-        elif input_colordepth == itools_common.ColorDepth.depth_10:
+        elif self.input_colordepth == itools_common.ColorDepth.depth_10:
             dt = np.dtype(np.uint16)
             luma_size = 2 * luma_size_pixels
             chroma_size = 2 * chroma_size_pixels
-
-        # 2. read luminance
-        ya = np.frombuffer(data[offset : offset + luma_size], dtype=dt).reshape(
+        # 3. read the exact frame size
+        ya = np.fromfile(self.fin, dtype=dt, count=luma_size).reshape(
             self.height, self.width
         )
-        offset += luma_size
-        # 3. read chromas
-        ua = np.frombuffer(data[offset : offset + chroma_size], dtype=dt).reshape(
+        ua = np.fromfile(self.fin, dtype=dt, count=chroma_size).reshape(
             chroma_h_pixels, chroma_w_pixels
         )
-        offset += chroma_size
-        va = np.frombuffer(data[offset : offset + chroma_size], dtype=dt).reshape(
+        va = np.fromfile(self.fin, dtype=dt, count=chroma_size).reshape(
             chroma_h_pixels, chroma_w_pixels
         )
-        offset += chroma_size
-        # 4. combine the color components
-        # undo chroma subsample in order to combine same-size matrices
+        # 4. undo chroma subsample in order to combine same-size matrices
         ua_full = itools_common.chroma_subsample_reverse(ya, ua, self.colorspace)
         va_full = itools_common.chroma_subsample_reverse(ya, va, self.colorspace)
-        # 5. fix color range
-        input_colorrange = itools_common.ColorRange.parse(
-            self.comment.get("COLORRANGE")
-        )
-        if debug > 0:
-            print(
-                f"debug: y4m frame read with input_colorrange: {input_colorrange.name}",
-                file=logfd,
-            )
-        status = {
-            "y4m:colorrange": input_colorrange.name,
-            "y4m:broken": 0,
-            "colorrange": input_colorrange,
-            "colordepth": input_colordepth,
-        }
+        # 5. fix color range if needed
         if (
-            output_colorrange is not None
-            and output_colorrange is not itools_common.ColorRange.unspecified
-            and input_colorrange is not itools_common.ColorRange.unspecified
-            and output_colorrange != input_colorrange
+            self.output_colorrange is not None
+            and self.output_colorrange is not itools_common.ColorRange.unspecified
+            and self.input_colorrange is not itools_common.ColorRange.unspecified
+            and self.output_colorrange != self.input_colorrange
         ):
-            if debug > 0:
-                print(
-                    f"debug: Y4MHeader.read_frame() converting colorrange from {input_colorrange.name} to {output_colorrange.name}",
-                    file=logfd,
-                )
             ya, ua_full, va_full, tmp_status = color_range_conversion_components(
                 ya,
                 ua_full,
                 va_full,
-                input_colorrange,
-                output_colorrange,
+                self.input_colorrange,
+                self.output_colorrange,
                 self.colorspace,
             )
             status.update(tmp_status)
-            # overwrite the new color range
-            status["colorrange"] = output_colorrange
         # 6. stack the components
         # note that OpenCV conversions use YCrCb (YVU) instead of YCbCr (YUV)
         outyvu = np.stack((ya, va_full, ua_full), axis=2)
-        return outyvu, offset, status
+        return outyvu
 
 
-def read_y4m_image(
-    infile, output_colorrange=None, cleanup=0, logfd=sys.stdout, debug=0
-):
-    # read the y4m frame
-    with open(infile, "rb") as fin:
-        # read y4m header
-        data = fin.read()
-    header, offset = Y4MHeader.read(data)
-    # read y4m frame
-    frame, offset, status = header.read_frame(
-        data[offset:], output_colorrange, logfd, debug
+def read_y4m_image(infile, output_colorrange=None, debug=0):
+    # read the y4m file
+    y4m_file_reader = Y4MFileReader(infile, output_colorrange, debug)
+    # read one frame
+    frame = y4m_file_reader.read_frame()
+    return frame
+
+
+class Y4MFileWriter:
+    SUPPORTED_COLORSPACES = (
+        "mono",
+        "420",
+        "444",
+        "mono10",
+        "420p10",
+        "444p10",
     )
-    return frame, header, offset, status
 
-
-def write_header(height, width, colorspace, colorrange, extcs=None):
-    header = f"YUV4MPEG2 W{width} H{height} F25:1 Ip A0:0 C{colorspace}"
-    if colorrange in (
-        itools_common.ColorRange.limited,
-        itools_common.ColorRange.full,
+    def __init__(
+        self, height, width, colorspace, colorrange, outfile, extcs=None, debug=0
     ):
-        colorrange_str = itools_common.ColorRange.to_str(colorrange).upper()
-        header += f" XCOLORRANGE={colorrange_str}"
-    if extcs is not None:
-        header += f" XEXTCS={extcs}"
-    header += "\n"
-    return header
+        # store the input parameters
+        self.height = height
+        self.width = width
+        assert (
+            colorspace in self.SUPPORTED_COLORSPACES
+        ), f"error: unsupported {colorspace=}"
+        self.colorspace = colorspace
+        self.colorrange = colorrange
+        self.outfile = outfile
+        self.extcs = extcs
+        self.debug = debug
+        self.fout = open(outfile, "wb")
+        self.write_header()
+
+    def get_header(self):
+        header = (
+            f"YUV4MPEG2 W{self.width} H{self.height} F25:1 Ip A0:0 C{self.colorspace}"
+        )
+        if self.colorrange in (
+            itools_common.ColorRange.limited,
+            itools_common.ColorRange.full,
+        ):
+            colorrange_str = itools_common.ColorRange.to_str(self.colorrange).upper()
+            header += f" XCOLORRANGE={colorrange_str}"
+        if self.extcs is not None:
+            header += f" XEXTCS={self.extcs}"
+        header += "\n"
+        return header.encode("utf-8")
+
+    def write_header(self):
+        header = self.get_header()
+        self.fout.write(header)
+
+    def write_frame(self, outyvu):
+        # 1. write frame line
+        self.fout.write(FRAME_INDICATOR.encode("utf-8"))
+        # 2. write grayscale
+        if self.colorspace in ("mono", "mono10"):
+            self.fout.write(outyvu.flatten())
+            return
+        # 3. write y
+        ya = outyvu[:, :, 0]
+        self.fout.write(ya.flatten())
+        # 4. write u (implementing chroma subsample)
+        ua_full = outyvu[:, :, 2]
+        if self.colorspace in ("420", "420p10"):
+            ua = itools_common.chroma_subsample_direct(ua_full, self.colorspace)
+        elif self.colorspace in ("444", "444p10"):
+            ua = ua_full
+        self.fout.write(ua.flatten())
+        # 5. write v (implementing chroma subsample)
+        va_full = outyvu[:, :, 1]
+        if self.colorspace in ("420", "420p10"):
+            va = itools_common.chroma_subsample_direct(va_full, self.colorspace)
+        elif self.colorspace in ("444", "444p10"):
+            va = va_full
+        self.fout.write(va.flatten())
 
 
 def write_y4m_image(
@@ -325,44 +362,16 @@ def write_y4m_image(
     colorspace="420",
     colorrange=itools_common.ColorRange.full,
     extcs=None,
+    debug=0,
 ):
-    assert colorspace in (
-        "mono",
-        "420",
-        "444",
-        "mono10",
-        "420p10",
-        "444p10",
-    ), f"error: unsupported {colorspace=}"
-    with open(outfile, "wb") as fout:
-        # write header
-        try:
-            height, width, _ = outyvu.shape
-        except ValueError:
-            height, width = outyvu.shape
-        header = write_header(height, width, colorspace, colorrange, extcs)
-        fout.write(header.encode("utf-8"))
-        # write frame line
-        frame = "FRAME\n"
-        fout.write(frame.encode("utf-8"))
-        # write grayscale
-        if colorspace in ("mono", "mono10"):
-            fout.write(outyvu.flatten())
-            return
-        # write y
-        ya = outyvu[:, :, 0]
-        fout.write(ya.flatten())
-        # write u (implementing chroma subsample)
-        ua_full = outyvu[:, :, 2]
-        if colorspace in ("420", "420p10"):
-            ua = itools_common.chroma_subsample_direct(ua_full, colorspace)
-        elif colorspace in ("444", "444p10"):
-            ua = ua_full
-        fout.write(ua.flatten())
-        # write v (implementing chroma subsample)
-        va_full = outyvu[:, :, 1]
-        if colorspace in ("420", "420p10"):
-            va = itools_common.chroma_subsample_direct(va_full, colorspace)
-        elif colorspace in ("444", "444p10"):
-            va = va_full
-        fout.write(va.flatten())
+    # 1. get file dimensions from frame
+    try:
+        height, width, _ = outyvu.shape
+    except ValueError:
+        height, width = outyvu.shape
+    # 2. write header
+    y4m_file_writer = Y4MFileWriter(
+        height, width, colorspace, colorrange, outfile, extcs, debug
+    )
+    # 3. write frame
+    y4m_file_writer.write_frame(outyvu)

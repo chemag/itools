@@ -116,18 +116,16 @@ def process_data(
         ).name
         stats = itools_alpha.decode_file(alpha_file, out_y4m_file, debug)
         # 3. calculate the error
-        outyvu1, _, _, _ = itools_y4m.read_y4m_image(
+        outyvu1 = itools_y4m.read_y4m_image(
             infile,
             output_colorrange=itools_common.ColorRange.full,
-            logfd=None,
             debug=debug,
         )
         yarray1 = outyvu1[:, :, 0]
         height1, width1 = yarray1.shape
-        outyvu2, _, _, _ = itools_y4m.read_y4m_image(
+        outyvu2 = itools_y4m.read_y4m_image(
             out_y4m_file,
             output_colorrange=itools_common.ColorRange.full,
-            logfd=None,
             debug=debug,
         )
         yarray2 = outyvu2[:, :, 0]
