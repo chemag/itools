@@ -2198,8 +2198,11 @@ class BayerVideoWriter:
             debug,
         )
 
-    def AddFrame(self, frame):
-        outyvu = frame.ToY4MBuffer(self.debug)
+    def AddFrame(self, bayer_image):
+        # convert input frame to the write pixel format
+        bayer_image_copy = bayer_image.Copy(self.o_pix_fmt, self.debug)
+        # write up to file
+        outyvu = bayer_image_copy.ToY4MBuffer(self.debug)
         self.y4m_file_writer.write_frame(outyvu)
 
 
