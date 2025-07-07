@@ -1873,9 +1873,16 @@ class BayerImage:
 
     def ToY4MBuffer(self, debug):
         colorspace = "mono" if self.depth == 8 else "mono10"
-        width = self.width >> 1
-        height = self.height << 1
-        outyvu = np.frombuffer(self.GetBuffer(), dtype="<u2").reshape((height, width))
+        if self.depth == 8:
+            height = self.height
+            width = self.width
+            dtype = "<u1"
+        else:
+            # XXX: This is broken?
+            width = self.width >> 1
+            height = self.height << 1
+            dtype = "<u2"
+        outyvu = np.frombuffer(self.GetBuffer(), dtype=dtype).reshape((height, width))
         return outyvu
 
     def ToY4MFile(self, outfile, debug):
