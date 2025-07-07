@@ -1964,7 +1964,6 @@ class BayerImage:
             frame = frame[:, :, 0]
             # process the frame as packed/planar
             layout = BAYER_FORMATS[i_pix_fmt]["layout"]
-            bayer_formats = BAYER_FORMATS
             order = BAYER_FORMATS[i_pix_fmt]["order"]
             if layout == LayoutType.packed:
                 if BayerImage.IsBayer(order):
