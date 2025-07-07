@@ -1286,6 +1286,19 @@ convertRg1g2bToYdgcocgTestCases = [
     },
 ]
 
+readVideoY4MTestCases = [
+    # (a) component order
+    {
+        "name": "basic-8x8.noop",
+        "debug": 0,
+        "input": b"YUV4MPEG2 W4 H4 F30:1 Ip Cmono XCOLORRANGE=FULL XEXTCS=bayer_bggr8\nFRAME\n\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0fFRAME\n\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f",
+        "frames": (
+            b"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f",
+            b"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f",
+        ),
+    },
+]
+
 
 class MainTest(unittest.TestCase):
     def getTestCases(self, test_case_list):
@@ -1531,6 +1544,31 @@ class MainTest(unittest.TestCase):
                 atol=absolute_tolerance,
                 err_msg=f"error on forward case {test_case['name']}",
             )
+
+    def testVideoY4M(self):
+        """video reading test."""
+        for test_case in self.getTestCases(readVideoY4MTestCases):
+            print("...running %s" % test_case["name"])
+            debug = test_case["debug"]
+            # prepare input file
+            infile = tempfile.NamedTemporaryFile(
+                prefix="itools-bayer_unittest.infile.", suffix=".y4m"
+            ).name
+            with open(infile, "wb") as f:
+                f.write(test_case["input"])
+            # read y4m file
+            bayer_video_reader = itools_bayer.BayerVideoReader.FromY4MFile(infile, debug)
+            for expected_bayer_buffer in test_case["frames"]:
+                bayer_image = bayer_video_reader.GetFrame()
+                bayer_buffer = bayer_image.GetBuffer()
+                self.assertEqual(
+                    bayer_buffer,
+                    expected_bayer_buffer,
+                    f"error on frame {test_case['name']}",
+                )
+            # ensure no more frames
+            bayer_image = bayer_video_reader.GetFrame()
+            assert bayer_image is None, f"error: found added frames"
 
 
 if __name__ == "__main__":

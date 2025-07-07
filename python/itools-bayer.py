@@ -1418,7 +1418,7 @@ def unclip_integer_and_unscale(arr, depth):
     return (arr.astype(OP_DTYPE) - shift) << 1
 
 
-# main class
+# main image class
 class BayerImage:
 
     @classmethod
@@ -1949,7 +1949,13 @@ class BayerImage:
         y4m_file_reader = itools_y4m.Y4MFileReader(
             infile, output_colorrange=None, debug=debug
         )
+        return cls.FromY4MFileReader(y4m_file_reader, debug)
+
+    @classmethod
+    def FromY4MFileReader(cls, y4m_file_reader, debug=0):
         frame = y4m_file_reader.read_frame()
+        if frame is None:
+            return None
         if y4m_file_reader.colorspace in ("mono", "mono10"):
             # check that the image is annotated
             assert (
@@ -2068,6 +2074,66 @@ class BayerImage:
             # ensure there is a bayer planar
             bayer_image.bayer_planar = bayer_image.GetBayerPlanarFromYDgCoCgPlanar()
         return bayer_image
+
+
+# main video classes
+class BayerVideoReader:
+
+    # assume Y4M source only for now
+    def __init__(
+        self,
+        infile,
+        y4m_file_reader,
+        i_pix_fmt,
+        debug=0,
+    ):
+        # input elements
+        self.infile = infile
+        self.y4m_file_reader = y4m_file_reader
+        self.i_pix_fmt = i_pix_fmt
+        self.debug = debug
+        # derived elements
+        self.layout = BAYER_FORMATS[self.i_pix_fmt]["layout"]
+        self.order = BAYER_FORMATS[self.i_pix_fmt]["order"]
+
+    def __del__(self):
+        # clean up
+        del self.y4m_file_reader
+
+    @classmethod
+    def FromY4MFile(cls, infile, debug=0):
+        # read the video header
+        y4m_file_reader = itools_y4m.Y4MFileReader(
+            infile, output_colorrange=None, debug=debug
+        )
+        # check that the image is annotated
+        assert (
+            "EXTCS" in y4m_file_reader.comments
+        ), f"error: monochrome image does not contain extended color space (EXTCS)"
+        i_pix_fmt = y4m_file_reader.comments["EXTCS"]
+        i_pix_fmt = get_canonical_input_pix_fmt(i_pix_fmt)
+        assert (
+            i_pix_fmt in BAYER_FORMATS
+        ), f"error: unknown extended color space: {i_pix_fmt}"
+        # check the color space is supported
+        assert y4m_file_reader.colorspace in (
+            "mono",
+            "mono10",
+            "yuv420",
+            "yuv420p10",
+            "yuv444",
+            "yuv444p10",
+        ), f"error: invalid y4m colorspace: {y4m_file_reader.colorspace}"
+        # support only mono/mono10 for now
+        assert y4m_file_reader.colorspace in (
+            "mono",
+            "mono10",
+        ), f"error: unsupported y4m colorspace: {y4m_file_reader.colorspace}"
+        # create the video object
+        return BayerVideoReader(infile, y4m_file_reader, i_pix_fmt, debug)
+
+    def GetFrame(self):
+        return BayerImage.FromY4MFileReader(self.y4m_file_reader, self.debug)
 
 
 def get_options(argv):
