@@ -190,7 +190,7 @@ def parse_com(blob):
 
 def parse_dqt(blob):
     contents = collections.OrderedDict()
-    assert len(blob) == 65, f"invalid DQT length: {len(blob)} [should be 65]"
+    # assert len(blob) == 65, f"invalid DQT length: {len(blob)} [should be 65]"
     idx = 0
     first_byte = blob[idx]
     idx += 1
