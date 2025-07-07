@@ -1871,11 +1871,15 @@ class BayerImage:
         plane_ids = planar_order[0:2] if row % 2 == 0 else planar_order[2:4]
         return plane_ids
 
-    def ToY4MFile(self, outfile, debug):
+    def ToY4MBuffer(self, debug):
         colorspace = "mono" if self.depth == 8 else "mono10"
         width = self.width >> 1
         height = self.height << 1
         outyvu = np.frombuffer(self.GetBuffer(), dtype="<u2").reshape((height, width))
+        return outyvu
+
+    def ToY4MFile(self, outfile, debug):
+        outyvu = self.ToY4MBuffer(debug)
         y4m_file_writer = itools_y4m.Y4MFileWriter(
             height,
             width,
@@ -2134,6 +2138,62 @@ class BayerVideoReader:
 
     def GetFrame(self):
         return BayerImage.FromY4MFileReader(self.y4m_file_reader, self.debug)
+
+
+class BayerVideoWriter:
+
+    # assume Y4M source only for now
+    def __init__(
+        self,
+        outfile,
+        y4m_file_writer,
+        height,
+        width,
+        colorspace,
+        colorrange,
+        o_pix_fmt,
+        debug=0,
+    ):
+        # input elements
+        self.outfile = outfile
+        self.y4m_file_writer = y4m_file_writer
+        self.height = height
+        self.width = width
+        self.colorspace = colorspace
+        self.colorrange = colorrange
+        self.o_pix_fmt = o_pix_fmt
+        self.debug = debug
+
+    def __del__(self):
+        # clean up
+        del self.y4m_file_writer
+
+    @classmethod
+    def ToY4MFile(
+        cls, outfile, height, width, colorspace, colorrange, o_pix_fmt, debug=0
+    ):
+        # create the EXTCS header
+        o_pix_fmt = get_canonical_input_pix_fmt(o_pix_fmt)
+        extcs = o_pix_fmt
+        # create a writer and write the header
+        y4m_file_writer = itools_y4m.Y4MFileWriter(
+            height, width, colorspace, colorrange, outfile, extcs, debug
+        )
+        # create the video object
+        return BayerVideoWriter(
+            outfile,
+            y4m_file_writer,
+            height,
+            width,
+            colorspace,
+            colorrange,
+            o_pix_fmt,
+            debug,
+        )
+
+    def AddFrame(self, frame):
+        outyvu = frame.ToY4MBuffer(self.debug)
+        self.y4m_file_writer.write_frame(outyvu)
 
 
 def get_options(argv):
