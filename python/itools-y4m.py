@@ -14,7 +14,7 @@ import sys
 
 itools_common = importlib.import_module("itools-common")
 
-FRAME_INDICATOR = "FRAME\n"
+FRAME_INDICATOR = b"FRAME\n"
 
 
 def color_range_conversion(inyvu, input_colorrange, output_colorrange, colorspace):
@@ -217,7 +217,12 @@ class Y4MFileReader:
     def read_frame(self):
         # 1. read the "FRAME\n" tidbit
         frame_line = self.fin.read(len(FRAME_INDICATOR))
-        assert len(frame_line) == len(FRAME_INDICATOR)
+        if len(frame_line) == 0:
+            # no more frames
+            return None
+        assert (
+            frame_line == FRAME_INDICATOR
+        ), f"error: invalid frame indicator: '{frame_line}'"
         # 2. get the exact frame size
         # 2.1. get the number of pixels
         luma_size_pixels = self.width * self.height
@@ -338,7 +343,7 @@ class Y4MFileWriter:
 
     def write_frame(self, outyvu):
         # 1. write frame line
-        self.fout.write(FRAME_INDICATOR.encode("utf-8"))
+        self.fout.write(FRAME_INDICATOR)
         # 2. write grayscale
         if self.colorspace in ("mono", "mono10"):
             self.fout.write(outyvu.flatten())
