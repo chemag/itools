@@ -125,6 +125,9 @@ class Y4MFileReader:
         header_line = self.fin.readline()
         self.parse_header_line(header_line)
 
+    def __del__(self):
+        self.fin.close()
+
     def parse_header_line(self, header_line):
         parameters = header_line.decode("ascii").split(" ")
         assert (
@@ -310,6 +313,9 @@ class Y4MFileWriter:
         self.debug = debug
         self.fout = open(outfile, "wb")
         self.write_header()
+
+    def __del__(self):
+        self.fout.close()
 
     def get_header(self):
         header = (
