@@ -145,7 +145,7 @@ class Y4MFileReader:
         ), "error: no frame-rate parameter in y4m header"
         # default parameters
         height = width = framerate = interlaced = aspect = colorspace = None
-        comments = {}
+        extension_dict = {}
         # parse parameters
         for v in parameters[1:]:
             key, val = v[0], v[1:]
@@ -174,7 +174,7 @@ class Y4MFileReader:
                     assert (
                         colorrange in self.VALID_COLORRANGES
                     ), f"error: invalid colorrange: {colorrange}"
-                comments[key2] = val2.strip()
+                extension_dict[key2] = val2.strip()
         self.height = height
         self.width = width
         self.framerate = framerate
@@ -183,10 +183,10 @@ class Y4MFileReader:
         self.colorspace = (
             colorspace if colorspace is not None else self.DEFAULT_COLORSPACE
         )
-        self.comments = comments
+        self.extension_dict = extension_dict
         # derived values
         self.input_colorrange = itools_common.ColorRange.parse(
-            self.comments.get("COLORRANGE")
+            self.extension_dict.get("COLORRANGE")
         )
         self.chroma_subsample = itools_common.COLORSPACES[self.colorspace][
             "chroma_subsample"
@@ -303,7 +303,14 @@ class Y4MFileWriter:
     )
 
     def __init__(
-        self, height, width, colorspace, colorrange, outfile, extcs=None, debug=0
+        self,
+        height,
+        width,
+        colorspace,
+        colorrange,
+        outfile,
+        extension_dict=None,
+        debug=0,
     ):
         # store the input parameters
         self.height = height
@@ -314,7 +321,7 @@ class Y4MFileWriter:
         self.colorspace = colorspace
         self.colorrange = colorrange
         self.outfile = outfile
-        self.extcs = extcs
+        self.extension_dict = extension_dict
         self.debug = debug
         self.fout = open(outfile, "wb")
         self.write_header()
@@ -332,8 +339,9 @@ class Y4MFileWriter:
         ):
             colorrange_str = itools_common.ColorRange.to_str(self.colorrange).upper()
             header += f" XCOLORRANGE={colorrange_str}"
-        if self.extcs is not None:
-            header += f" XEXTCS={self.extcs}"
+        if self.extension_dict is not None:
+            for key, val in self.extension_dict.items():
+                header += f" X{key}={val}"
         header += "\n"
         return header.encode("utf-8")
 
@@ -372,7 +380,7 @@ def write_y4m_image(
     outyvu,
     colorspace="420",
     colorrange=itools_common.ColorRange.full,
-    extcs=None,
+    extension_dict=None,
     debug=0,
 ):
     # 1. get file dimensions from frame
@@ -382,7 +390,7 @@ def write_y4m_image(
         height, width = outyvu.shape
     # 2. write header
     y4m_file_writer = Y4MFileWriter(
-        height, width, colorspace, colorrange, outfile, extcs, debug
+        height, width, colorspace, colorrange, outfile, extension_dict, debug
     )
     # 3. write frame
     y4m_file_writer.write_frame(outyvu)

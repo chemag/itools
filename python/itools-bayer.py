@@ -1887,13 +1887,14 @@ class BayerImage:
 
     def ToY4MFile(self, outfile, debug):
         outyvu = self.ToY4MBuffer(debug)
+        extension_dict = {"EXTCS": self.pix_fmt}
         y4m_file_writer = itools_y4m.Y4MFileWriter(
             height,
             width,
             colorspace=colorspace,
             colorrange=itools_common.ColorRange.full,
             outfile=outfile,
-            extcs=self.pix_fmt,
+            extension_dict=extension_dict,
             debug=debug,
         )
         y4m_file_writer.write_frame(outyvu)
@@ -1970,9 +1971,9 @@ class BayerImage:
         if y4m_file_reader.colorspace in ("mono", "mono10"):
             # check that the image is annotated
             assert (
-                "EXTCS" in y4m_file_reader.comments
+                "EXTCS" in y4m_file_reader.extension_dict.keys()
             ), f"error: monochrome image does not contain extended color space (EXTCS)"
-            i_pix_fmt = y4m_file_reader.comments["EXTCS"]
+            i_pix_fmt = y4m_file_reader.extension_dict["EXTCS"]
             i_pix_fmt = get_canonical_input_pix_fmt(i_pix_fmt)
             assert (
                 i_pix_fmt in BAYER_FORMATS
@@ -2119,9 +2120,9 @@ class BayerVideoReader:
         )
         # check that the image is annotated
         assert (
-            "EXTCS" in y4m_file_reader.comments
+            "EXTCS" in y4m_file_reader.extension_dict.keys()
         ), f"error: monochrome image does not contain extended color space (EXTCS)"
-        i_pix_fmt = y4m_file_reader.comments["EXTCS"]
+        i_pix_fmt = y4m_file_reader.extension_dict["EXTCS"]
         i_pix_fmt = get_canonical_input_pix_fmt(i_pix_fmt)
         assert (
             i_pix_fmt in BAYER_FORMATS
@@ -2181,10 +2182,10 @@ class BayerVideoWriter:
     ):
         # create the EXTCS header
         o_pix_fmt = get_canonical_input_pix_fmt(o_pix_fmt)
-        extcs = o_pix_fmt
+        extension_dict = {"EXTCS": o_pix_fmt}
         # create a writer and write the header
         y4m_file_writer = itools_y4m.Y4MFileWriter(
-            height, width, colorspace, colorrange, outfile, extcs, debug
+            height, width, colorspace, colorrange, outfile, extension_dict, debug
         )
         # create the video object
         return BayerVideoWriter(
