@@ -24,7 +24,6 @@ import os
 import sys
 
 itools_common = importlib.import_module("itools-common")
-itools_y4m = importlib.import_module("itools-y4m")
 
 __version__ = "0.1"
 
@@ -1703,7 +1702,6 @@ class BayerImage:
     # converters: Bayer-Buffer
     def GetBayerPackedFromBuffer(self):
         assert self.IsBayer(self.order), f"error: invalid call"
-        layout = BAYER_FORMATS[self.pix_fmt]["layout"]
         if self.layout == LayoutType.planar:
             # make sure we have the planar
             self.bayer_planar = self.GetBayerPlanarFromBuffer()
@@ -1871,40 +1869,9 @@ class BayerImage:
         plane_ids = planar_order[0:2] if row % 2 == 0 else planar_order[2:4]
         return plane_ids
 
-    def ToY4MBuffer(self, debug):
-        colorspace = "mono" if self.depth == 8 else "mono10"
-        if self.depth == 8:
-            height = self.height
-            width = self.width
-            dtype = "<u1"
-        else:
-            # XXX: This is broken?
-            width = self.width >> 1
-            height = self.height << 1
-            dtype = "<u2"
-        outyvu = np.frombuffer(self.GetBuffer(), dtype=dtype).reshape((height, width))
-        return outyvu
-
-    def ToY4MFile(self, outfile, debug):
-        outyvu = self.ToY4MBuffer(debug)
-        extension_dict = {"EXTCS": self.pix_fmt}
-        y4m_file_writer = itools_y4m.Y4MFileWriter(
-            height,
-            width,
-            colorspace=colorspace,
-            colorrange=itools_common.ColorRange.full,
-            outfile=outfile,
-            extension_dict=extension_dict,
-            debug=debug,
-        )
-        y4m_file_writer.write_frame(outyvu)
-
     def ToFile(self, outfile, debug):
-        if os.path.splitext(outfile)[1] == ".y4m":
-            self.ToY4MFile(outfile, debug)
-        else:
-            with open(outfile, "wb") as fout:
-                fout.write(self.GetBuffer())
+        with open(outfile, "wb") as fout:
+            fout.write(self.GetBuffer())
 
     # create a new BayerImage from a depth-aware copy of another
     def Copy(self, o_pix_fmt, debug):
@@ -1956,62 +1923,7 @@ class BayerImage:
 
     # factory methods
     @classmethod
-    def FromY4MFile(cls, infile, debug=0):
-        # check whether the image is self-describing
-        y4m_file_reader = itools_y4m.Y4MFileReader(
-            infile, output_colorrange=None, debug=debug
-        )
-        return cls.FromY4MFileReader(y4m_file_reader, debug)
-
-    @classmethod
-    def FromY4MFileReader(cls, y4m_file_reader, debug=0):
-        frame = y4m_file_reader.read_frame()
-        if frame is None:
-            return None
-        if y4m_file_reader.colorspace in ("mono", "mono10"):
-            # check that the image is annotated
-            assert (
-                "EXTCS" in y4m_file_reader.extension_dict.keys()
-            ), f"error: monochrome image does not contain extended color space (EXTCS)"
-            i_pix_fmt = y4m_file_reader.extension_dict["EXTCS"]
-            i_pix_fmt = get_canonical_input_pix_fmt(i_pix_fmt)
-            assert (
-                i_pix_fmt in BAYER_FORMATS
-            ), f"error: unknown extended color space: {i_pix_fmt}"
-            # (height, width) plane
-            frame = frame[:, :, 0]
-            # process the frame as packed/planar
-            layout = BAYER_FORMATS[i_pix_fmt]["layout"]
-            order = BAYER_FORMATS[i_pix_fmt]["order"]
-            if layout == LayoutType.packed:
-                if BayerImage.IsBayer(order):
-                    return BayerImage.FromBayerPacked(frame, i_pix_fmt, debug)
-                else:  # BayerImage.IsYDgCoCg(order):
-                    raise AssertionError("error: unimplemented BayerImage.IsYDgCoCg()")
-            elif layout == LayoutType.planar:
-                height, width = frame.shape
-                assert height % 4 == 0, f"error: invalid height: {height}"
-                planar = dict(zip(order, np.split(frame, 4, axis=0)))
-                if BayerImage.IsBayer(order):
-                    return BayerImage.FromBayerPlanar(planar, i_pix_fmt, debug)
-                else:  # BayerImage.IsYDgCoCg(order):
-                    return BayerImage.FromYDgCoCgPlanar(planar, i_pix_fmt, debug)
-        elif y4m_file_reader.colorspace in (
-            "yuv420",
-            "yuv420p10",
-            "yuv444",
-            "yuv444p10",
-        ):
-            raise AssertionError("error: unimplemented yuv/rgb reading")
-        raise AssertionError(
-            f"error: invalid y4m colorspace: {y4m_file_reader.colorspace}"
-        )
-
-    @classmethod
     def FromFile(cls, infile, pix_fmt, width, height, debug=0):
-        # check whether the image is self-describing
-        if os.path.splitext(infile)[1] == ".y4m":
-            return cls.FromY4MFile(infile, debug)
         # check image resolution
         assert width % 2 == 0, f"error: only accept images with even width {width=}"
         assert height % 2 == 0, f"error: only accept images with even height {height=}"
@@ -2086,125 +1998,6 @@ class BayerImage:
             # ensure there is a bayer planar
             bayer_image.bayer_planar = bayer_image.GetBayerPlanarFromYDgCoCgPlanar()
         return bayer_image
-
-
-# main video classes
-class BayerVideoReader:
-
-    # assume Y4M source only for now
-    def __init__(
-        self,
-        infile,
-        y4m_file_reader,
-        i_pix_fmt,
-        debug=0,
-    ):
-        # input elements
-        self.infile = infile
-        self.y4m_file_reader = y4m_file_reader
-        self.i_pix_fmt = i_pix_fmt
-        self.debug = debug
-        # derived elements
-        self.layout = BAYER_FORMATS[self.i_pix_fmt]["layout"]
-        self.order = BAYER_FORMATS[self.i_pix_fmt]["order"]
-
-    def __del__(self):
-        # clean up
-        del self.y4m_file_reader
-
-    @classmethod
-    def FromY4MFile(cls, infile, debug=0):
-        # read the video header
-        y4m_file_reader = itools_y4m.Y4MFileReader(
-            infile, output_colorrange=None, debug=debug
-        )
-        # check that the image is annotated
-        assert (
-            "EXTCS" in y4m_file_reader.extension_dict.keys()
-        ), f"error: monochrome image does not contain extended color space (EXTCS)"
-        i_pix_fmt = y4m_file_reader.extension_dict["EXTCS"]
-        i_pix_fmt = get_canonical_input_pix_fmt(i_pix_fmt)
-        assert (
-            i_pix_fmt in BAYER_FORMATS
-        ), f"error: unknown extended color space: {i_pix_fmt}"
-        # check the color space is supported
-        assert y4m_file_reader.colorspace in (
-            "mono",
-            "mono10",
-            "yuv420",
-            "yuv420p10",
-            "yuv444",
-            "yuv444p10",
-        ), f"error: invalid y4m colorspace: {y4m_file_reader.colorspace}"
-        # support only mono/mono10 for now
-        assert y4m_file_reader.colorspace in (
-            "mono",
-            "mono10",
-        ), f"error: unsupported y4m colorspace: {y4m_file_reader.colorspace}"
-        # create the video object
-        return BayerVideoReader(infile, y4m_file_reader, i_pix_fmt, debug)
-
-    def GetFrame(self):
-        return BayerImage.FromY4MFileReader(self.y4m_file_reader, self.debug)
-
-
-class BayerVideoWriter:
-
-    # assume Y4M source only for now
-    def __init__(
-        self,
-        outfile,
-        y4m_file_writer,
-        height,
-        width,
-        colorspace,
-        colorrange,
-        o_pix_fmt,
-        debug=0,
-    ):
-        # input elements
-        self.outfile = outfile
-        self.y4m_file_writer = y4m_file_writer
-        self.height = height
-        self.width = width
-        self.colorspace = colorspace
-        self.colorrange = colorrange
-        self.o_pix_fmt = o_pix_fmt
-        self.debug = debug
-
-    def __del__(self):
-        # clean up
-        del self.y4m_file_writer
-
-    @classmethod
-    def ToY4MFile(
-        cls, outfile, height, width, colorspace, colorrange, o_pix_fmt, debug=0
-    ):
-        # create the EXTCS header
-        o_pix_fmt = get_canonical_input_pix_fmt(o_pix_fmt)
-        extension_dict = {"EXTCS": o_pix_fmt}
-        # create a writer and write the header
-        y4m_file_writer = itools_y4m.Y4MFileWriter(
-            height, width, colorspace, colorrange, outfile, extension_dict, debug
-        )
-        # create the video object
-        return BayerVideoWriter(
-            outfile,
-            y4m_file_writer,
-            height,
-            width,
-            colorspace,
-            colorrange,
-            o_pix_fmt,
-            debug,
-        )
-
-    def AddFrame(self, bayer_image):
-        # convert input frame to the write pixel format
-        bayer_image_copy = bayer_image.Copy(self.o_pix_fmt, self.debug)
-        # write up to file
-        outyvu = bayer_image_copy.ToY4MBuffer(self.debug)
-        self.y4m_file_writer.write_frame(outyvu)
 
 
 def get_options(argv):

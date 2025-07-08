@@ -214,7 +214,8 @@ class Y4MFileReader:
             return self.width * self.height * 3
         raise f"only support 420, 422, 444 colorspaces (not {self.colorspace})"
 
-    def read_frame(self):
+    # returns the next frame, as a raw buffer
+    def read_frame_raw(self):
         # 1. read the "FRAME\n" tidbit
         frame_line = self.fin.read(len(FRAME_INDICATOR))
         if len(frame_line) == 0:
@@ -250,19 +251,25 @@ class Y4MFileReader:
             luma_size = 2 * luma_size_pixels
             chroma_size = 2 * chroma_size_pixels
         # 3. read the exact frame size
-        ya = np.fromfile(self.fin, dtype=dt, count=luma_size).reshape(
-            self.height, self.width
-        )
-        ua = np.fromfile(self.fin, dtype=dt, count=chroma_size).reshape(
+        total_size = luma_size + 2 * chroma_size
+        buf = self.fin.read(total_size)
+        return buf
+
+    # returns the next frame, in YVU format (OpenCV-preferred)
+    def read_frame(self):
+        # 1. read the raw buffer
+        buf_raw = self.read_frame_raw()
+        buf = np.frombuffer(buf_raw, dtype=dt, count=total_size)
+        # 2. slice the buffer
+        ya = buf[0:luma_size].reshape(self.height, self.width)
+        ua = buf[luma_size : luma_size + chroma_size].reshape(
             chroma_h_pixels, chroma_w_pixels
         )
-        va = np.fromfile(self.fin, dtype=dt, count=chroma_size).reshape(
-            chroma_h_pixels, chroma_w_pixels
-        )
-        # 4. undo chroma subsample in order to combine same-size matrices
+        va = buf[luma_size + chroma_size :].reshape(chroma_h_pixels, chroma_w_pixels)
+        # 3. undo chroma subsample in order to combine same-size matrices
         ua_full = itools_common.chroma_subsample_reverse(ya, ua, self.colorspace)
         va_full = itools_common.chroma_subsample_reverse(ya, va, self.colorspace)
-        # 5. fix color range if needed
+        # 4. fix color range if needed
         if (
             self.output_colorrange is not None
             and self.output_colorrange is not itools_common.ColorRange.unspecified
@@ -278,7 +285,9 @@ class Y4MFileReader:
                 self.colorspace,
             )
             status.update(tmp_status)
-        # 6. stack the components
+        # 7. stack the components
+        if self.chroma_subsample == itools_common.ChromaSubsample.chroma_400:
+            return ya
         # note that OpenCV conversions use YCrCb (YVU) instead of YCbCr (YUV)
         outyvu = np.stack((ya, va_full, ua_full), axis=2)
         return outyvu
@@ -350,29 +359,35 @@ class Y4MFileWriter:
         self.fout.write(header)
 
     def write_frame(self, outyvu):
+        if self.colorspace in ("mono", "mono10"):
+            # write grayscale only
+            self.write_frame_raw(outyvu.flatten())
+        else:
+            # get y
+            ya = outyvu[:, :, 0]
+            # get u (implementing chroma subsample)
+            ua_full = outyvu[:, :, 2]
+            if self.colorspace in ("420", "420p10"):
+                ua = itools_common.chroma_subsample_direct(ua_full, self.colorspace)
+            elif self.colorspace in ("444", "444p10"):
+                ua = ua_full
+            # get v (implementing chroma subsample)
+            va_full = outyvu[:, :, 1]
+            if self.colorspace in ("420", "420p10"):
+                va = itools_common.chroma_subsample_direct(va_full, self.colorspace)
+            elif self.colorspace in ("444", "444p10"):
+                va = va_full
+            self.write_frame_raw.write(ya.flatten(), ua.flatten(), va.flatten())
+
+    def write_frame_raw(self, y, u=None, v=None):
         # 1. write frame line
         self.fout.write(FRAME_INDICATOR)
-        # 2. write grayscale
-        if self.colorspace in ("mono", "mono10"):
-            self.fout.write(outyvu.flatten())
-            return
-        # 3. write y
-        ya = outyvu[:, :, 0]
-        self.fout.write(ya.flatten())
-        # 4. write u (implementing chroma subsample)
-        ua_full = outyvu[:, :, 2]
-        if self.colorspace in ("420", "420p10"):
-            ua = itools_common.chroma_subsample_direct(ua_full, self.colorspace)
-        elif self.colorspace in ("444", "444p10"):
-            ua = ua_full
-        self.fout.write(ua.flatten())
-        # 5. write v (implementing chroma subsample)
-        va_full = outyvu[:, :, 1]
-        if self.colorspace in ("420", "420p10"):
-            va = itools_common.chroma_subsample_direct(va_full, self.colorspace)
-        elif self.colorspace in ("444", "444p10"):
-            va = va_full
-        self.fout.write(va.flatten())
+        # 2. write planes
+        self.fout.write(y)
+        if u is not None:
+            self.fout.write(u)
+        if v is not None:
+            self.fout.write(v)
 
 
 def write_y4m_image(

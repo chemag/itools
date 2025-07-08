@@ -1,0 +1,322 @@
+#!/usr/bin/env python3
+
+"""Module to convert (raw) Bayer (CFA) image pixel formats.
+
+Supported formats:
+* all ffmpeg formats
+* all Linux V4L2 formats
+* some MIPI-RAW formats.
+
+Notes:
+* ffmpeg only supports 8 Bayer formats (12 when considering that the 16-bit
+  formats exist in both BE and LE flavors). We want to allow converting
+  other Bayer formats to any of the ffmpeg ones. Main goal is to allow
+  ffmpeg access to generic Bayer formats.
+"""
+
+
+import argparse
+import cv2
+import enum
+import importlib
+import numpy as np
+import os
+import sys
+
+itools_common = importlib.import_module("itools-common")
+itools_y4m = importlib.import_module("itools-y4m")
+itools_bayer = importlib.import_module("itools-bayer")
+
+
+# assume Y4M files with EXTCS metadata
+class BayerY4MReader:
+
+    def __init__(
+        self,
+        infile,
+        y4m_file_reader,
+        debug=0,
+    ):
+        # input elements
+        self.infile = infile
+        self.y4m_file_reader = y4m_file_reader
+        self.debug = debug
+        # derived elements
+        # ensure that the image is annotated
+        assert (
+            "EXTCS" in self.y4m_file_reader.extension_dict.keys()
+        ), f"error: monochrome image does not contain extended color space (EXTCS)"
+        i_pix_fmt = self.y4m_file_reader.extension_dict["EXTCS"]
+        i_pix_fmt = itools_bayer.get_canonical_input_pix_fmt(i_pix_fmt)
+        assert (
+            i_pix_fmt in itools_bayer.BAYER_FORMATS
+        ), f"error: unknown extended color space: {i_pix_fmt}"
+        self.i_pix_fmt = i_pix_fmt
+        self.layout = itools_bayer.BAYER_FORMATS[self.i_pix_fmt]["layout"]
+        self.order = itools_bayer.BAYER_FORMATS[self.i_pix_fmt]["order"]
+        # check the color space is supported
+        assert self.y4m_file_reader.colorspace in (
+            "mono",
+            "mono10",
+            "yuv420",
+            "yuv420p10",
+            "yuv444",
+            "yuv444p10",
+        ), f"error: invalid y4m colorspace: {self.y4m_file_reader.colorspace}"
+        # TODO(chema): support only mono/mono10 for now
+        assert self.y4m_file_reader.colorspace in (
+            "mono",
+            "mono10",
+        ), f"error: unsupported y4m colorspace: {self.y4m_file_reader.colorspace}"
+
+    def __del__(self):
+        # clean up
+        del self.y4m_file_reader
+
+    @classmethod
+    def FromY4MFile(cls, infile, debug=0):
+        # read the video header
+        y4m_file_reader = itools_y4m.Y4MFileReader(
+            infile, output_colorrange=None, debug=debug
+        )
+        return cls(infile, y4m_file_reader, debug)
+
+    def GetFrame(self, debug=0):
+        buf_raw = self.y4m_file_reader.read_frame_raw()
+        if buf_raw is None:
+            return None
+        # plug the buffer into a bayer image
+        width = self.y4m_file_reader.width
+        height = self.y4m_file_reader.height
+        pix_fmt = self.y4m_file_reader.extension_dict["EXTCS"]
+        infile = self.infile
+        # create the BayerImage object
+        return itools_bayer.BayerImage.FromBuffer(
+            buf_raw, width, height, pix_fmt, infile, debug
+        )
+
+
+class BayerY4MWriter:
+
+    # assume Y4M source only for now
+    def __init__(
+        self,
+        outfile,
+        y4m_file_writer,
+        height,
+        width,
+        colorspace,
+        colorrange,
+        o_pix_fmt,
+        debug=0,
+    ):
+        # input elements
+        self.outfile = outfile
+        self.y4m_file_writer = y4m_file_writer
+        self.height = height
+        self.width = width
+        self.colorspace = colorspace
+        self.colorrange = colorrange
+        self.o_pix_fmt = o_pix_fmt
+        self.debug = debug
+
+    def __del__(self):
+        # clean up
+        del self.y4m_file_writer
+
+    @classmethod
+    def ToY4MFile(
+        cls, outfile, height, width, colorspace, colorrange, o_pix_fmt, debug=0
+    ):
+        # create the EXTCS header
+        o_pix_fmt = itools_bayer.get_canonical_input_pix_fmt(o_pix_fmt)
+        extension_dict = {"EXTCS": o_pix_fmt}
+        # create a writer and write the header
+        y4m_file_writer = itools_y4m.Y4MFileWriter(
+            height, width, colorspace, colorrange, outfile, extension_dict, debug
+        )
+        # create the video object
+        return cls(
+            outfile,
+            y4m_file_writer,
+            height,
+            width,
+            colorspace,
+            colorrange,
+            o_pix_fmt,
+            debug,
+        )
+
+    def AddFrame(self, bayer_image):
+        # convert input frame to the write pixel format
+        bayer_image_copy = bayer_image.Copy(self.o_pix_fmt, self.debug)
+        # write up to file
+        buffer = bayer_image_copy.GetBuffer()
+        self.y4m_file_writer.write_frame_raw(buffer)
+
+
+def get_options(argv):
+    """Generic option parser.
+
+    Args:
+        argv: list containing arguments
+
+    Returns:
+        Namespace - An argparse.ArgumentParser-generated option object
+    """
+    # init parser
+    # usage = 'usage: %prog [options] arg1 arg2'
+    # parser = argparse.OptionParser(usage=usage)
+    # parser.print_help() to get argparse.usage (large help)
+    # parser.print_usage() to get argparse.usage (just usage line)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "-v",
+        "--version",
+        action="store_true",
+        dest="version",
+        default=False,
+        help="Print version",
+    )
+    parser.add_argument(
+        "-d",
+        "--debug",
+        action="count",
+        dest="debug",
+        default=default_values["debug"],
+        help="Increase verbosity (use multiple times for more)",
+    )
+    parser.add_argument(
+        "--quiet",
+        action="store_const",
+        dest="debug",
+        const=-1,
+        help="Zero verbosity",
+    )
+    input_choices_str = " | ".join(I_PIX_FMT_LIST)
+    parser.add_argument(
+        "--i_pix_fmt",
+        action="store",
+        type=str,
+        dest="i_pix_fmt",
+        default=default_values["i_pix_fmt"],
+        choices=I_PIX_FMT_LIST
+        + [
+            None,
+        ],
+        metavar=f"[{input_choices_str}]",
+        help="input pixel format",
+    )
+    output_choices_str = " | ".join(O_PIX_FMT_LIST)
+    parser.add_argument(
+        "--o_pix_fmt",
+        action="store",
+        type=str,
+        dest="o_pix_fmt",
+        default=default_values["o_pix_fmt"],
+        choices=O_PIX_FMT_LIST,
+        metavar=f"[{output_choices_str}]",
+        help="output pixel format",
+    )
+    # 2-parameter setter using argparse.Action
+    parser.add_argument(
+        "--width",
+        action="store",
+        type=int,
+        dest="width",
+        default=default_values["width"],
+        metavar="WIDTH",
+        help=("use WIDTH width (default: %i)" % default_values["width"]),
+    )
+    parser.add_argument(
+        "--height",
+        action="store",
+        type=int,
+        dest="height",
+        default=default_values["height"],
+        metavar="HEIGHT",
+        help=("HEIGHT height (default: %i)" % default_values["height"]),
+    )
+
+    class VideoSizeAction(argparse.Action):
+        def __call__(self, parser, namespace, values, option_string=None):
+            namespace.width, namespace.height = [int(v) for v in values[0].split("x")]
+
+    parser.add_argument(
+        "--video-size",
+        action=VideoSizeAction,
+        nargs=1,
+        help="use <width>x<height>",
+    )
+
+    parser.add_argument(
+        "-i",
+        "--infile",
+        action="store",
+        type=str,
+        default=default_values["infile"],
+        metavar="input-file",
+        help="input file",
+    )
+    parser.add_argument(
+        "-o",
+        "--outfile",
+        action="store",
+        type=str,
+        default=default_values["outfile"],
+        metavar="output-file",
+        help="output file",
+    )
+
+    # do the parsing
+    options = parser.parse_args(argv[1:])
+    if options.version:
+        return options
+    return options
+
+
+def convert_video_format(infile, outfile, o_pix_fmt, debug):
+    bayer_video_reader = BayerY4MReader.FromY4MFile(infile, debug)
+    bayer_video_writer = None
+    # read the frame
+    bayer_image = bayer_video_reader.GetFrame()
+    while bayer_image is not None:
+        # create the writer
+        if bayer_video_writer is None:
+            height = bayer_image.height
+            width = bayer_image.width
+            colorspace = bayer_video_reader.y4m_file_reader.colorspace
+            colorrange = bayer_video_reader.y4m_file_reader.input_colorrange
+            bayer_video_writer = BayerY4MWriter.ToY4MFile(
+                outfile, height, width, colorspace, colorrange, o_pix_fmt, debug
+            )
+        # write the frame
+        bayer_video_writer.AddFrame(bayer_image)
+
+
+def main(argv):
+    # parse options
+    options = get_options(argv)
+    if options.version:
+        print("version: %s" % __version__)
+        sys.exit(0)
+    # get infile/outfile
+    if options.infile == "-" or options.infile is None:
+        options.infile = "/dev/fd/0"
+    if options.outfile == "-" or options.outfile is None:
+        options.outfile = "/dev/fd/1"
+    # print results
+    if options.debug > 0:
+        print(f"debug: {options}")
+
+    convert_video_format(
+        options.infile,
+        options.outfile,
+        options.o_pix_fmt,
+        options.debug,
+    )
+
+
+if __name__ == "__main__":
+    # at least the CLI program name: (CLI) execution
+    main(sys.argv)
