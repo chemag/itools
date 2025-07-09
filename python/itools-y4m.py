@@ -341,10 +341,8 @@ class Y4MFileWriter:
     def __del__(self):
         self.fout.close()
 
-    def get_header(self):
-        header = (
-            f"YUV4MPEG2 W{self.width} H{self.height} F25:1 Ip A0:0 C{self.colorspace}"
-        )
+    def get_header(self, framerate="25:1", interlace="p", aspect="0:0"):
+        header = f"YUV4MPEG2 W{self.width} H{self.height} F{framerate} I{interlace} A{aspect} C{self.colorspace}"
         if self.colorrange in (
             itools_common.ColorRange.limited,
             itools_common.ColorRange.full,
