@@ -127,15 +127,18 @@ class BayerY4MWriter:
         del self.y4m_file_writer
 
     @classmethod
-    def ToY4MFile(
-        cls, outfile, height, width, colorspace, colorrange, o_pix_fmt, debug=0
-    ):
-        # create the EXTCS header
+    def ToY4MFile(cls, outfile, height, width, colorrange, o_pix_fmt, debug=0):
+        # canonicalize the pixel format
         o_pix_fmt = itools_bayer.get_canonical_input_pix_fmt(o_pix_fmt)
+        # set the colorspace from the pixel format
+        y4m_colorspace = itools_bayer.BAYER_FORMATS[o_pix_fmt].get(
+            "y4m", itools_bayer.DEFAULT_Y4M_COLORSPACE
+        )
+        # create the EXTCS header
         extension_dict = {"EXTCS": o_pix_fmt}
         # create a writer and write the header
         y4m_file_writer = itools_y4m.Y4MFileWriter(
-            height, width, colorspace, colorrange, outfile, extension_dict, debug
+            height, width, y4m_colorspace, colorrange, outfile, extension_dict, debug
         )
         # create the video object
         return cls(
@@ -143,7 +146,7 @@ class BayerY4MWriter:
             y4m_file_writer,
             height,
             width,
-            colorspace,
+            y4m_colorspace,
             colorrange,
             o_pix_fmt,
             debug,
@@ -155,6 +158,7 @@ class BayerY4MWriter:
         # write up to file
         buffer = bayer_image_copy.GetBuffer()
         self.y4m_file_writer.write_frame_raw(buffer)
+        return bayer_image_copy
 
 
 def get_options(argv):

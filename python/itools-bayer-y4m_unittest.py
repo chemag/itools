@@ -28,48 +28,146 @@ readVideoY4MTestCases = [
         "name": "basic-8x8.copy",
         "debug": 0,
         "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono XCOLORRANGE=FULL XEXTCS=bayer_bggr8\nFRAME\n\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0fFRAME\n\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f",
-        "frames": (
+        "num_frames": 2,
+        "i_frames": (
             b"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f",
             b"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f",
+        ),
+        "i_bayer_packed": (
+            np.array(
+                [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]],
+                dtype=np.uint8,
+            ),
+            np.array(
+                [
+                    [16, 17, 18, 19],
+                    [20, 21, 22, 23],
+                    [24, 25, 26, 27],
+                    [28, 29, 30, 31],
+                ],
+                dtype=np.uint8,
+            ),
+        ),
+        "o_bayer_packed": (
+            np.array(
+                [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]],
+                dtype=np.uint8,
+            ),
+            np.array(
+                [
+                    [16, 17, 18, 19],
+                    [20, 21, 22, 23],
+                    [24, 25, 26, 27],
+                    [28, 29, 30, 31],
+                ],
+                dtype=np.uint8,
+            ),
         ),
         "o_pix_fmt": "bayer_bggr8",
         "output": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono XCOLORRANGE=FULL XEXTCS=bayer_bggr8\nFRAME\n\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0fFRAME\n\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f",
     },
     # bayer8->bayer16
     {
-        "name": "basic-8x16.be.conversion",
+        "name": "basic-8x16.le.conversion",
         "debug": 0,
         "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono XCOLORRANGE=FULL XEXTCS=bayer_bggr8\nFRAME\n\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0fFRAME\n\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f",
-        "frames": (
+        "num_frames": 2,
+        "i_frames": (
             b"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f",
             b"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f",
         ),
-        "o_pix_fmt": "bayer_bggr16be",
-        "output": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono16 XCOLORRANGE=FULL XEXTCS=bayer_bggr16be\nFRAME\n\x00\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08\x00\x09\x00\x0a\x00\x0b\x00\x0c\x00\x0d\x00\x0e\x00\x0f\x00FRAME\n\x10\x00\x11\x00\x12\x00\x13\x00\x14\x00\x15\x00\x16\x00\x17\x00\x18\x00\x19\x00\x1a\x00\x1b\x00\x1c\x00\x1d\x00\x1e\x00\x1f\x00",
+        "i_bayer_packed": (
+            np.array(
+                [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]],
+                dtype=np.uint8,
+            ),
+            np.array(
+                [
+                    [16, 17, 18, 19],
+                    [20, 21, 22, 23],
+                    [24, 25, 26, 27],
+                    [28, 29, 30, 31],
+                ],
+                dtype=np.uint8,
+            ),
+        ),
+        "o_bayer_packed": (
+            np.array(
+                [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]],
+                dtype=np.uint16,
+            )
+            << 8,
+            np.array(
+                [
+                    [16, 17, 18, 19],
+                    [20, 21, 22, 23],
+                    [24, 25, 26, 27],
+                    [28, 29, 30, 31],
+                ],
+                dtype=np.uint16,
+            )
+            << 8,
+        ),
+        "o_pix_fmt": "bayer_bggr16le",
+        "output": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono16 XCOLORRANGE=FULL XEXTCS=bayer_bggr16le\nFRAME\n\x00\x00\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08\x00\x09\x00\x0a\x00\x0b\x00\x0c\x00\x0d\x00\x0e\x00\x0fFRAME\n\x00\x10\x00\x11\x00\x12\x00\x13\x00\x14\x00\x15\x00\x16\x00\x17\x00\x18\x00\x19\x00\x1a\x00\x1b\x00\x1c\x00\x1d\x00\x1e\x00\x1f",
     },
     # bayer16->bayer8
     {
-        "name": "basic-16x8.be.conversion",
+        "name": "basic-16x8.le.conversion",
         "debug": 0,
-        "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono16 XCOLORRANGE=FULL XEXTCS=bayer_bggr16be\nFRAME\n\x00\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08\x00\x09\x00\x0a\x00\x0b\x00\x0c\x00\x0d\x00\x0e\x00\x0f\x00FRAME\n\x10\x00\x11\x00\x12\x00\x13\x00\x14\x00\x15\x00\x16\x00\x17\x00\x18\x00\x19\x00\x1a\x00\x1b\x00\x1c\x00\x1d\x00\x1e\x00\x1f\x00",
-        "frames": (
-            b"\x00\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08\x00\x09\x00\x0a\x00\x0b\x00\x0c\x00\x0d\x00\x0e\x00\x0f\x00",
-            b"\x10\x00\x11\x00\x12\x00\x13\x00\x14\x00\x15\x00\x16\x00\x17\x00\x18\x00\x19\x00\x1a\x00\x1b\x00\x1c\x00\x1d\x00\x1e\x00\x1f\x00",
+        "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono16 XCOLORRANGE=FULL XEXTCS=bayer_bggr16le\nFRAME\n\x00\x00\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08\x00\x09\x00\x0a\x00\x0b\x00\x0c\x00\x0d\x00\x0e\x00\x0fFRAME\n\x00\x10\x00\x11\x00\x12\x00\x13\x00\x14\x00\x15\x00\x16\x00\x17\x00\x18\x00\x19\x00\x1a\x00\x1b\x00\x1c\x00\x1d\x00\x1e\x00\x1f",
+        "num_frames": 2,
+        "i_frames": (
+            b"\x00\x00\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08\x00\x09\x00\x0a\x00\x0b\x00\x0c\x00\x0d\x00\x0e\x00\x0f",
+            b"\x00\x10\x00\x11\x00\x12\x00\x13\x00\x14\x00\x15\x00\x16\x00\x17\x00\x18\x00\x19\x00\x1a\x00\x1b\x00\x1c\x00\x1d\x00\x1e\x00\x1f",
+        ),
+        "i_bayer_packed": (
+            np.array(
+                [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]],
+                dtype=np.uint16,
+            )
+            << 8,
+            np.array(
+                [
+                    [16, 17, 18, 19],
+                    [20, 21, 22, 23],
+                    [24, 25, 26, 27],
+                    [28, 29, 30, 31],
+                ],
+                dtype=np.uint16,
+            )
+            << 8,
+        ),
+        "o_bayer_packed": (
+            np.array(
+                [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]],
+                dtype=np.uint8,
+            ),
+            np.array(
+                [
+                    [16, 17, 18, 19],
+                    [20, 21, 22, 23],
+                    [24, 25, 26, 27],
+                    [28, 29, 30, 31],
+                ],
+                dtype=np.uint8,
+            ),
         ),
         "o_pix_fmt": "bayer_bggr8",
         "output": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono XCOLORRANGE=FULL XEXTCS=bayer_bggr8\nFRAME\n\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0fFRAME\n\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f",
     },
     # bayer16->bayer16
     {
-        "name": "basic-16x16.be.conversion",
+        "name": "basic-16x16.le.conversion",
         "debug": 0,
-        "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono16 XCOLORRANGE=FULL XEXTCS=bayer_bggr16be\nFRAME\n\x00\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08\x00\x09\x00\x0a\x00\x0b\x00\x0c\x00\x0d\x00\x0e\x00\x0f\x00FRAME\n\x10\x00\x11\x00\x12\x00\x13\x00\x14\x00\x15\x00\x16\x00\x17\x00\x18\x00\x19\x00\x1a\x00\x1b\x00\x1c\x00\x1d\x00\x1e\x00\x1f\x00",
-        "frames": (
-            b"\x00\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08\x00\x09\x00\x0a\x00\x0b\x00\x0c\x00\x0d\x00\x0e\x00\x0f\x00",
-            b"\x10\x00\x11\x00\x12\x00\x13\x00\x14\x00\x15\x00\x16\x00\x17\x00\x18\x00\x19\x00\x1a\x00\x1b\x00\x1c\x00\x1d\x00\x1e\x00\x1f\x00",
+        "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono16 XCOLORRANGE=FULL XEXTCS=bayer_bggr16le\nFRAME\n\x00\x00\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08\x00\x09\x00\x0a\x00\x0b\x00\x0c\x00\x0d\x00\x0e\x00\x0fFRAME\n\x00\x10\x00\x11\x00\x12\x00\x13\x00\x14\x00\x15\x00\x16\x00\x17\x00\x18\x00\x19\x00\x1a\x00\x1b\x00\x1c\x00\x1d\x00\x1e\x00\x1f",
+        "num_frames": 2,
+        "i_frames": (
+            b"\x00\x00\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08\x00\x09\x00\x0a\x00\x0b\x00\x0c\x00\x0d\x00\x0e\x00\x0f",
+            b"\x00\x10\x00\x11\x00\x12\x00\x13\x00\x14\x00\x15\x00\x16\x00\x17\x00\x18\x00\x19\x00\x1a\x00\x1b\x00\x1c\x00\x1d\x00\x1e\x00\x1f",
         ),
-        "o_pix_fmt": "bayer_bggr16be",
-        "output": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono16 XCOLORRANGE=FULL XEXTCS=bayer_bggr16be\nFRAME\n\x00\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08\x00\x09\x00\x0a\x00\x0b\x00\x0c\x00\x0d\x00\x0e\x00\x0f\x00FRAME\n\x10\x00\x11\x00\x12\x00\x13\x00\x14\x00\x15\x00\x16\x00\x17\x00\x18\x00\x19\x00\x1a\x00\x1b\x00\x1c\x00\x1d\x00\x1e\x00\x1f\x00",
+        "o_pix_fmt": "bayer_bggr16le",
+        "output": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono16 XCOLORRANGE=FULL XEXTCS=bayer_bggr16le\nFRAME\n\x00\x00\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08\x00\x09\x00\x0a\x00\x0b\x00\x0c\x00\x0d\x00\x0e\x00\x0fFRAME\n\x00\x10\x00\x11\x00\x12\x00\x13\x00\x14\x00\x15\x00\x16\x00\x17\x00\x18\x00\x19\x00\x1a\x00\x1b\x00\x1c\x00\x1d\x00\x1e\x00\x1f",
     },
 ]
 
@@ -117,6 +215,8 @@ class MainTest(unittest.TestCase):
         for test_case in self.getTestCases(readVideoY4MTestCases):
             print("...running %s" % test_case["name"])
             debug = test_case["debug"]
+            absolute_tolerance = 1
+
             # prepare input/output files
             infile = tempfile.NamedTemporaryFile(
                 prefix="itools-bayer_unittest.infile.", suffix=".y4m"
@@ -131,31 +231,49 @@ class MainTest(unittest.TestCase):
                 infile, debug
             )
             bayer_video_writer = None
-            for expected_bayer_buffer in test_case["frames"]:
+            num_frames = test_case["num_frames"]
+            for frame_id in range(num_frames):
                 # read the frame
                 bayer_image = bayer_video_reader.GetFrame()
-                bayer_buffer = bayer_image.GetBuffer()
-                self.assertEqual(
-                    bayer_buffer,
-                    expected_bayer_buffer,
-                    f"error on frame {test_case['name']}",
-                )
-                # write the frame
+                if "i_frames" in test_case:
+                    expected_bayer_buffer = test_case["i_frames"][frame_id]
+                    bayer_buffer = bayer_image.GetBuffer()
+                    self.assertEqual(
+                        bayer_buffer,
+                        expected_bayer_buffer,
+                        f"error on frame {test_case['name']}",
+                    )
+                if "i_bayer_packed" in test_case:
+                    expected_bayer_packed = test_case["i_bayer_packed"][frame_id]
+                    bayer_packed = bayer_image.GetBayerPacked()
+                    np.testing.assert_allclose(
+                        bayer_packed,
+                        expected_bayer_packed,
+                        atol=absolute_tolerance,
+                        err_msg=f"error on bayer_packed case {test_case['name']}",
+                    )
+
+                # create the frame writer
                 if bayer_video_writer is None:
                     height = bayer_image.height
                     width = bayer_image.width
                     colorrange = bayer_video_reader.y4m_file_reader.input_colorrange
                     o_pix_fmt = test_case["o_pix_fmt"]
-                    # convert colorspace to the new pixel format
-                    depth = itools_bayer.get_depth(o_pix_fmt)
-                    # colorspace = bayer_video_reader.y4m_file_reader.colorspace
-                    colorspace = itools_common.get_mono_colorspace(
-                        itools_common.depth_to_color_depth(depth)
-                    )
                     bayer_video_writer = itools_bayer_y4m.BayerY4MWriter.ToY4MFile(
-                        outfile, height, width, colorspace, colorrange, o_pix_fmt, debug
+                        outfile, height, width, colorrange, o_pix_fmt, debug
                     )
-                bayer_video_writer.AddFrame(bayer_image)
+                # write the frame
+                bayer_image_out = bayer_video_writer.AddFrame(bayer_image)
+                if "o_bayer_packed" in test_case:
+                    expected_bayer_packed_out = test_case["o_bayer_packed"][frame_id]
+                    bayer_packed_out = bayer_image_out.GetBayerPacked()
+                    np.testing.assert_allclose(
+                        bayer_packed_out,
+                        expected_bayer_packed_out,
+                        atol=absolute_tolerance,
+                        err_msg=f"error on bayer_packed case {test_case['name']}",
+                    )
+
             # ensure no more frames to read
             bayer_image = bayer_video_reader.GetFrame()
             assert bayer_image is None, f"error: found added frames"

@@ -309,6 +309,8 @@ def wfun_16le(c0, c1, debug):
     return int(c0).to_bytes(2, "little") + int(c1).to_bytes(2, "little")
 
 
+DEFAULT_Y4M_COLORSPACE = "mono"
+
 BAYER_FORMATS = {
     # 8-bit Bayer formats
     "bayer_bggr8": {
@@ -336,6 +338,8 @@ BAYER_FORMATS = {
         "wfun": wfun_8,
         # ffmpeg support
         "ffmpeg": True,
+        # preferred y4m format (default is "mono")
+        "y4m": "mono",
     },
     "bayer_rggb8": {
         "alias": (
@@ -433,6 +437,7 @@ BAYER_FORMATS = {
         "layout": LayoutType.packed,
         "order": "RGgB",
         "ffmpeg": False,
+        "y4m": "mono16",
     },
     "BA10": {
         "alias": (
@@ -447,6 +452,7 @@ BAYER_FORMATS = {
         "layout": LayoutType.packed,
         "order": "GRBg",
         "ffmpeg": False,
+        "y4m": "mono16",
     },
     "GB10": {
         "alias": (
@@ -461,6 +467,7 @@ BAYER_FORMATS = {
         "layout": LayoutType.packed,
         "order": "GBRg",
         "ffmpeg": False,
+        "y4m": "mono16",
     },
     "BG10": {
         "alias": (
@@ -475,6 +482,7 @@ BAYER_FORMATS = {
         "layout": LayoutType.packed,
         "order": "BGgR",
         "ffmpeg": False,
+        "y4m": "mono16",
     },
     # 10-bit Bayer formats (packed)
     "pRAA": {
@@ -667,6 +675,7 @@ BAYER_FORMATS = {
         "layout": LayoutType.packed,
         "order": "RGgB",
         "ffmpeg": False,
+        "y4m": "mono16",
     },
     "BA12": {
         "alias": ("SGRBG12",),
@@ -678,6 +687,7 @@ BAYER_FORMATS = {
         "layout": LayoutType.packed,
         "order": "GRBg",
         "ffmpeg": False,
+        "y4m": "mono16",
     },
     "GB12": {
         "alias": ("SGBRG12",),
@@ -689,6 +699,7 @@ BAYER_FORMATS = {
         "layout": LayoutType.packed,
         "order": "GBRg",
         "ffmpeg": False,
+        "y4m": "mono16",
     },
     "BG12": {
         "alias": ("SBGGR12",),
@@ -700,6 +711,7 @@ BAYER_FORMATS = {
         "layout": LayoutType.packed,
         "order": "BGgR",
         "ffmpeg": False,
+        "y4m": "mono16",
     },
     # 12-bit Bayer formats (packed)
     "pRCC": {
@@ -757,6 +769,7 @@ BAYER_FORMATS = {
         "layout": LayoutType.packed,
         "order": "RGgB",
         "ffmpeg": False,
+        "y4m": "mono16",
     },
     "GR14": {
         "alias": ("SGRBG14",),
@@ -768,6 +781,7 @@ BAYER_FORMATS = {
         "layout": LayoutType.packed,
         "order": "GRBg",
         "ffmpeg": False,
+        "y4m": "mono16",
     },
     "GB14": {
         "alias": ("SGBRG14",),
@@ -779,6 +793,7 @@ BAYER_FORMATS = {
         "layout": LayoutType.packed,
         "order": "GBRg",
         "ffmpeg": False,
+        "y4m": "mono16",
     },
     "BG14": {
         "alias": ("SBGGR14",),
@@ -790,6 +805,7 @@ BAYER_FORMATS = {
         "layout": LayoutType.packed,
         "order": "BGgR",
         "ffmpeg": False,
+        "y4m": "mono16",
     },
     # 14-bit Bayer formats (packed)
     "pREE": {
@@ -851,6 +867,7 @@ BAYER_FORMATS = {
         "depth": 16,
         "rfun": rfun_16le,
         "wfun": wfun_16le,
+        "y4m": "mono16",
     },
     "bayer_rggb16le": {
         "layout": LayoutType.packed,
@@ -865,6 +882,7 @@ BAYER_FORMATS = {
         "depth": 16,
         "rfun": rfun_16le,
         "wfun": wfun_16le,
+        "y4m": "mono16",
     },
     "bayer_gbrg16le": {
         "alias": (
@@ -879,6 +897,7 @@ BAYER_FORMATS = {
         "depth": 16,
         "rfun": rfun_16le,
         "wfun": wfun_16le,
+        "y4m": "mono16",
     },
     "bayer_grbg16le": {
         "alias": (
@@ -893,6 +912,7 @@ BAYER_FORMATS = {
         "depth": 16,
         "rfun": rfun_16le,
         "wfun": wfun_16le,
+        "y4m": "mono16",
     },
     "bayer_bggr16be": {
         "layout": LayoutType.packed,
