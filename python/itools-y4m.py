@@ -246,7 +246,7 @@ class Y4MFileReader:
             dt = np.dtype(np.uint8)
             luma_size = luma_size_pixels
             chroma_size = chroma_size_pixels
-        elif self.input_colordepth == itools_common.ColorDepth.depth_10:
+        else:
             dt = np.dtype(np.uint16)
             luma_size = 2 * luma_size_pixels
             chroma_size = 2 * chroma_size_pixels
@@ -309,6 +309,9 @@ class Y4MFileWriter:
         "mono10",
         "420p10",
         "444p10",
+        "mono12",
+        "mono14",
+        "mono16",
     )
 
     def __init__(
@@ -359,7 +362,7 @@ class Y4MFileWriter:
         self.fout.write(header)
 
     def write_frame(self, outyvu):
-        if self.colorspace in ("mono", "mono10"):
+        if self.colorspace in itools_common.MONO_COLORSPACES:
             # write grayscale only
             self.write_frame_raw(outyvu.flatten())
         else:

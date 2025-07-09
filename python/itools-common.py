@@ -88,18 +88,62 @@ class ChromaSubsample(enum.Enum):
 class ColorDepth(enum.Enum):
     depth_8 = 0
     depth_10 = 1
+    depth_12 = 2
+    depth_14 = 3
+    depth_16 = 4
 
     def get_max(self):
         if self == self.depth_8:
             return 255
         elif self == self.depth_10:
             return 1023
+        elif self == self.depth_12:
+            return 4095
+        elif self == self.depth_14:
+            return 16383
+        elif self == self.depth_16:
+            return 65535
 
     def get_depth(self):
         if self == self.depth_8:
             return 8
         elif self == self.depth_10:
             return 10
+        elif self == self.depth_12:
+            return 12
+        elif self == self.depth_14:
+            return 14
+        elif self == self.depth_16:
+            return 16
+
+
+def depth_to_color_depth(depth):
+    if depth == 8:
+        return ColorDepth.depth_8
+    elif depth == 10:
+        return ColorDepth.depth_10
+    elif depth == 12:
+        return ColorDepth.depth_12
+    elif depth == 14:
+        return ColorDepth.depth_14
+    elif depth == 16:
+        return ColorDepth.depth_16
+
+
+def get_mono_colorspace(color_depth):
+    if color_depth == ColorDepth.depth_8:
+        return "mono"
+    elif color_depth == ColorDepth.depth_10:
+        return "mono10"
+    elif color_depth == ColorDepth.depth_12:
+        return "mono12"
+    elif color_depth == ColorDepth.depth_14:
+        return "mono14"
+    elif color_depth == ColorDepth.depth_16:
+        return "mono16"
+
+
+MONO_COLORSPACES = [get_mono_colorspace(color_depth) for color_depth in ColorDepth]
 
 
 # "colorspace"
@@ -111,6 +155,18 @@ COLORSPACES = {
     "mono10": {
         "chroma_subsample": ChromaSubsample.chroma_400,
         "depth": ColorDepth.depth_10,
+    },
+    "mono12": {
+        "chroma_subsample": ChromaSubsample.chroma_400,
+        "depth": ColorDepth.depth_12,
+    },
+    "mono14": {
+        "chroma_subsample": ChromaSubsample.chroma_400,
+        "depth": ColorDepth.depth_14,
+    },
+    "mono16": {
+        "chroma_subsample": ChromaSubsample.chroma_400,
+        "depth": ColorDepth.depth_16,
     },
     "420": {
         "chroma_subsample": ChromaSubsample.chroma_420,

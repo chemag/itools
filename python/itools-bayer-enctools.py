@@ -295,7 +295,9 @@ def write_single_plane_to_y4m(
     y4mfile = tempfile.NamedTemporaryFile(
         prefix=f"itools-bayer-enctools.{label}.", suffix=".y4m"
     ).name
-    colorspace = "mono" if depth == 8 else "mono10"
+    colorspace = itools_common.get_mono_colorspace(
+        itools_common.depth_to_color_depth(self.depth)
+    )
     itools_y4m.write_y4m_image(
         y4mfile, array, colorspace=colorspace, colorrange=colorrange
     )
