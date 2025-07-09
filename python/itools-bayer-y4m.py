@@ -91,7 +91,12 @@ class BayerY4MReader:
         width = self.y4m_file_reader.width
         height = self.y4m_file_reader.height
         pix_fmt = self.y4m_file_reader.extension_dict["EXTCS"]
+        colordepth = itools_bayer.get_depth(pix_fmt)
         infile = self.infile
+        # adjust height/width parameters
+        if self.y4m_file_reader.colorspace == "mono" and colordepth > 8:
+            # this is a wide-depth signal in an 8-bit container
+            width = int(width / itools_bayer.get_width_adjustment(pix_fmt))
         # create the BayerImage object
         return itools_bayer.BayerImage.FromBuffer(
             buf_raw, width, height, pix_fmt, infile, debug
@@ -136,6 +141,11 @@ class BayerY4MWriter:
         )
         # create the EXTCS header
         extension_dict = {"EXTCS": o_pix_fmt}
+        # adjust height/width parameters
+        colordepth = itools_bayer.get_depth(o_pix_fmt)
+        if y4m_colorspace == "mono" and colordepth > 8:
+            # this is a wide-depth signal in an 8-bit container
+            width = int(width * itools_bayer.get_width_adjustment(o_pix_fmt))
         # create a writer and write the header
         y4m_file_writer = itools_y4m.Y4MFileWriter(
             height, width, y4m_colorspace, colorrange, outfile, extension_dict, debug

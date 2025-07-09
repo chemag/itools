@@ -1157,6 +1157,13 @@ def get_order(pix_fmt):
     return BAYER_FORMATS[pix_fmt]["order"]
 
 
+def get_width_adjustment(pix_fmt):
+    pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
+    blen = BAYER_FORMATS[pix_fmt]["blen"]
+    clen = BAYER_FORMATS[pix_fmt]["clen"]
+    return blen / clen
+
+
 # 1. color conversions (Bayer-RGB)
 # demosaic image
 def bayer_packed_to_rgb_cv2_packed(bayer_packed, order, depth):

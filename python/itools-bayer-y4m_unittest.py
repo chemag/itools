@@ -169,6 +169,87 @@ readVideoY4MTestCases = [
         "o_pix_fmt": "bayer_bggr16le",
         "output": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono16 XCOLORRANGE=FULL XEXTCS=bayer_bggr16le\nFRAME\n\x00\x00\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08\x00\x09\x00\x0a\x00\x0b\x00\x0c\x00\x0d\x00\x0e\x00\x0fFRAME\n\x00\x10\x00\x11\x00\x12\x00\x13\x00\x14\x00\x15\x00\x16\x00\x17\x00\x18\x00\x19\x00\x1a\x00\x1b\x00\x1c\x00\x1d\x00\x1e\x00\x1f",
     },
+    # bayer10->bayer16 (expanded)
+    {
+        "name": "basic-expanded10x16.le",
+        "debug": 0,
+        "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono16 XCOLORRANGE=FULL XEXTCS=RG10\nFRAME\n\x01\x00\x03\x01\x05\x02\x07\x03\x09\x00\x0b\x01\x0d\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
+        "num_frames": 1,
+        "i_frames": (
+            b"\x01\x00\x03\x01\x05\x02\x07\x03\t\x00\x0b\x01\r\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
+        ),
+        "i_bayer_packed": (
+            np.array(
+                [
+                    [0x001, 0x103, 0x205, 0x307],
+                    [0x009, 0x10B, 0x20D, 0x30F],
+                    [0x011, 0x113, 0x215, 0x317],
+                    [0x019, 0x11B, 0x21D, 0x31F],
+                ],
+                dtype=np.uint16,
+            ),
+        ),
+        "o_bayer_packed": (
+            np.array(
+                [
+                    [0x001, 0x103, 0x205, 0x307],
+                    [0x009, 0x10B, 0x20D, 0x30F],
+                    [0x011, 0x113, 0x215, 0x317],
+                    [0x019, 0x11B, 0x21D, 0x31F],
+                ],
+                dtype=np.uint16,
+            )
+            << 6,
+        ),
+        "o_pix_fmt": "bayer_rggb16le",
+        "output": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono16 XCOLORRANGE=FULL XEXTCS=bayer_rggb16le\nFRAME\n\x40\x00\xc0\x40\x40\x81\xc0\xc1\x40\x02\xc0\x42\x40\x83\xc0\xc3\x40\x04\xc0\x44\x40\x85\xc0\xc5\x40\x06\xc0\x46\x40\x87\xc0\xc7",
+    },
+    # bayer16->bayer10 (expanded)
+    {
+        "name": "basic-expanded16x10.le",
+        "debug": 0,
+        "num_frames": 1,
+        "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono16 XCOLORRANGE=FULL XEXTCS=bayer_rggb16le\nFRAME\n\x40\x00\xc0\x40\x40\x81\xc0\xc1\x40\x02\xc0\x42\x40\x83\xc0\xc3\x40\x04\xc0\x44\x40\x85\xc0\xc5\x40\x06\xc0\x46\x40\x87\xc0\xc7",
+        "i_frames": (
+            b"\x40\x00\xc0\x40\x40\x81\xc0\xc1\x40\x02\xc0\x42\x40\x83\xc0\xc3\x40\x04\xc0\x44\x40\x85\xc0\xc5\x40\x06\xc0\x46\x40\x87\xc0\xc7",
+        ),
+        "o_bayer_packed": (
+            np.array(
+                [
+                    [0x001, 0x103, 0x205, 0x307],
+                    [0x009, 0x10B, 0x20D, 0x30F],
+                    [0x011, 0x113, 0x215, 0x317],
+                    [0x019, 0x11B, 0x21D, 0x31F],
+                ],
+                dtype=np.uint16,
+            ),
+        ),
+        "o_pix_fmt": "RG10",
+        "output": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono16 XCOLORRANGE=FULL XEXTCS=RG10\nFRAME\n\x01\x00\x03\x01\x05\x02\x07\x03\x09\x00\x0b\x01\x0d\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
+    },
+    # bayer10->bayer10 (expanded-packed)
+    {
+        "name": "basic-expanded10xpacked10.le",
+        "debug": 0,
+        "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono16 XCOLORRANGE=FULL XEXTCS=RG10\nFRAME\n\x01\x00\x03\x01\x05\x02\x07\x03\x09\x00\x0b\x01\x0d\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
+        "num_frames": 1,
+        "i_frames": (
+            b"\x01\x00\x03\x01\x05\x02\x07\x03\t\x00\x0b\x01\r\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
+        ),
+        "o_bayer_packed": (
+            np.array(
+                [
+                    [0x001, 0x103, 0x205, 0x307],
+                    [0x009, 0x10B, 0x20D, 0x30F],
+                    [0x011, 0x113, 0x215, 0x317],
+                    [0x019, 0x11B, 0x21D, 0x31F],
+                ],
+                dtype=np.uint16,
+            ),
+        ),
+        "o_pix_fmt": "pRAA",
+        "output": b"YUV4MPEG2 W5 H4 F25:1 Ip A0:0 Cmono XCOLORRANGE=FULL XEXTCS=pRAA\nFRAME\n\x00\x40\x81\xc1\xdd\x02\x42\x83\xc3\xdd\x04\x44\x85\xc5\xdd\x06\x46\x87\xc7\xdd",
+    },
 ]
 
 
