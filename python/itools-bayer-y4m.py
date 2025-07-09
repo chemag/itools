@@ -28,6 +28,15 @@ itools_y4m = importlib.import_module("itools-y4m")
 itools_bayer = importlib.import_module("itools-bayer")
 
 
+default_values = {
+    "debug": 0,
+    "dry_run": False,
+    "o_pix_fmt": None,
+    "infile": None,
+    "outfile": None,
+}
+
+
 # assume Y4M files with EXTCS metadata
 class BayerY4MReader:
 
@@ -209,62 +218,17 @@ def get_options(argv):
         const=-1,
         help="Zero verbosity",
     )
-    input_choices_str = " | ".join(I_PIX_FMT_LIST)
-    parser.add_argument(
-        "--i_pix_fmt",
-        action="store",
-        type=str,
-        dest="i_pix_fmt",
-        default=default_values["i_pix_fmt"],
-        choices=I_PIX_FMT_LIST
-        + [
-            None,
-        ],
-        metavar=f"[{input_choices_str}]",
-        help="input pixel format",
-    )
-    output_choices_str = " | ".join(O_PIX_FMT_LIST)
+    output_choices_str = " | ".join(itools_bayer.O_PIX_FMT_LIST)
     parser.add_argument(
         "--o_pix_fmt",
         action="store",
         type=str,
         dest="o_pix_fmt",
         default=default_values["o_pix_fmt"],
-        choices=O_PIX_FMT_LIST,
+        choices=itools_bayer.O_PIX_FMT_LIST,
         metavar=f"[{output_choices_str}]",
         help="output pixel format",
     )
-    # 2-parameter setter using argparse.Action
-    parser.add_argument(
-        "--width",
-        action="store",
-        type=int,
-        dest="width",
-        default=default_values["width"],
-        metavar="WIDTH",
-        help=("use WIDTH width (default: %i)" % default_values["width"]),
-    )
-    parser.add_argument(
-        "--height",
-        action="store",
-        type=int,
-        dest="height",
-        default=default_values["height"],
-        metavar="HEIGHT",
-        help=("HEIGHT height (default: %i)" % default_values["height"]),
-    )
-
-    class VideoSizeAction(argparse.Action):
-        def __call__(self, parser, namespace, values, option_string=None):
-            namespace.width, namespace.height = [int(v) for v in values[0].split("x")]
-
-    parser.add_argument(
-        "--video-size",
-        action=VideoSizeAction,
-        nargs=1,
-        help="use <width>x<height>",
-    )
-
     parser.add_argument(
         "-i",
         "--infile",
@@ -291,23 +255,28 @@ def get_options(argv):
     return options
 
 
-def convert_video_format(infile, outfile, o_pix_fmt, debug):
+def convert_video_file(infile, outfile, o_pix_fmt, debug):
     bayer_video_reader = BayerY4MReader.FromY4MFile(infile, debug)
     bayer_video_writer = None
-    # read the frame
-    bayer_image = bayer_video_reader.GetFrame()
-    while bayer_image is not None:
-        # create the writer
+    num_frames = 0
+    while True:
+        # read the frame
+        bayer_image = bayer_video_reader.GetFrame()
+        if bayer_image is None:
+            break
+        # create the writer if needed
         if bayer_video_writer is None:
             height = bayer_image.height
             width = bayer_image.width
-            colorspace = bayer_video_reader.y4m_file_reader.colorspace
             colorrange = bayer_video_reader.y4m_file_reader.input_colorrange
             bayer_video_writer = BayerY4MWriter.ToY4MFile(
-                outfile, height, width, colorspace, colorrange, o_pix_fmt, debug
+                outfile, height, width, colorrange, o_pix_fmt, debug
             )
         # write the frame
         bayer_video_writer.AddFrame(bayer_image)
+        num_frames += 1
+    if debug > 0:
+        print(f"convert {infile=} {outfile=} {o_pix_fmt=} {num_frames=}")
 
 
 def main(argv):
@@ -325,7 +294,7 @@ def main(argv):
     if options.debug > 0:
         print(f"debug: {options}")
 
-    convert_video_format(
+    convert_video_file(
         options.infile,
         options.outfile,
         options.o_pix_fmt,

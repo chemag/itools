@@ -194,7 +194,7 @@ class Y4MFileReader:
         self.input_colordepth = itools_common.COLORSPACES[self.colorspace]["depth"]
         if self.debug > 0:
             print(
-                f"debug: y4m frame read with input_colorrange: {input_colorrange.name}",
+                f"debug: y4m frame read with input_colorrange: {self.input_colorrange.name}",
             )
         self.status = {
             "y4m:colorrange": self.input_colorrange.name,
