@@ -28,6 +28,7 @@ readVideoY4MTestCases = [
         "name": "basic-8x8.copy",
         "debug": 0,
         "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono XCOLORRANGE=FULL XEXTCS=bayer_bggr8\nFRAME\n\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0fFRAME\n\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f",
+        "i_pix_fmt": "bayer_bggr8",
         "num_frames": 2,
         "i_frames": (
             b"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f",
@@ -75,6 +76,7 @@ readVideoY4MTestCases = [
         "name": "basic-8x16.le.conversion",
         "debug": 0,
         "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono XCOLORRANGE=FULL XEXTCS=bayer_bggr8\nFRAME\n\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0fFRAME\n\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f",
+        "i_pix_fmt": "bayer_bggr8",
         "num_frames": 2,
         "i_frames": (
             b"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f",
@@ -124,6 +126,7 @@ readVideoY4MTestCases = [
         "name": "basic-16x8.le.conversion",
         "debug": 0,
         "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono16 XCOLORRANGE=FULL XEXTCS=bayer_bggr16le\nFRAME\n\x00\x00\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08\x00\x09\x00\x0a\x00\x0b\x00\x0c\x00\x0d\x00\x0e\x00\x0fFRAME\n\x00\x10\x00\x11\x00\x12\x00\x13\x00\x14\x00\x15\x00\x16\x00\x17\x00\x18\x00\x19\x00\x1a\x00\x1b\x00\x1c\x00\x1d\x00\x1e\x00\x1f",
+        "i_pix_fmt": "bayer_bggr16le",
         "num_frames": 2,
         "i_frames": (
             b"\x00\x00\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08\x00\x09\x00\x0a\x00\x0b\x00\x0c\x00\x0d\x00\x0e\x00\x0f",
@@ -169,6 +172,7 @@ readVideoY4MTestCases = [
         "name": "basic-16x16.le.conversion",
         "debug": 0,
         "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono16 XCOLORRANGE=FULL XEXTCS=bayer_bggr16le\nFRAME\n\x00\x00\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08\x00\x09\x00\x0a\x00\x0b\x00\x0c\x00\x0d\x00\x0e\x00\x0fFRAME\n\x00\x10\x00\x11\x00\x12\x00\x13\x00\x14\x00\x15\x00\x16\x00\x17\x00\x18\x00\x19\x00\x1a\x00\x1b\x00\x1c\x00\x1d\x00\x1e\x00\x1f",
+        "i_pix_fmt": "bayer_bggr16le",
         "num_frames": 2,
         "i_frames": (
             b"\x00\x00\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08\x00\x09\x00\x0a\x00\x0b\x00\x0c\x00\x0d\x00\x0e\x00\x0f",
@@ -182,6 +186,7 @@ readVideoY4MTestCases = [
         "name": "basic-expanded10x16.le",
         "debug": 0,
         "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono16 XCOLORRANGE=FULL XEXTCS=RG10\nFRAME\n\x01\x00\x03\x01\x05\x02\x07\x03\x09\x00\x0b\x01\x0d\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
+        "i_pix_fmt": "RG10",
         "num_frames": 1,
         "i_frames": (
             b"\x01\x00\x03\x01\x05\x02\x07\x03\t\x00\x0b\x01\r\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
@@ -216,8 +221,9 @@ readVideoY4MTestCases = [
     {
         "name": "basic-expanded16x10.le",
         "debug": 0,
-        "num_frames": 1,
         "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono16 XCOLORRANGE=FULL XEXTCS=bayer_rggb16le\nFRAME\n\x40\x00\xc0\x40\x40\x81\xc0\xc1\x40\x02\xc0\x42\x40\x83\xc0\xc3\x40\x04\xc0\x44\x40\x85\xc0\xc5\x40\x06\xc0\x46\x40\x87\xc0\xc7",
+        "i_pix_fmt": "bayer_rggb16le",
+        "num_frames": 1,
         "i_frames": (
             b"\x40\x00\xc0\x40\x40\x81\xc0\xc1\x40\x02\xc0\x42\x40\x83\xc0\xc3\x40\x04\xc0\x44\x40\x85\xc0\xc5\x40\x06\xc0\x46\x40\x87\xc0\xc7",
         ),
@@ -240,6 +246,7 @@ readVideoY4MTestCases = [
         "name": "basic-expanded10xpacked10.le",
         "debug": 0,
         "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono16 XCOLORRANGE=FULL XEXTCS=RG10\nFRAME\n\x01\x00\x03\x01\x05\x02\x07\x03\x09\x00\x0b\x01\x0d\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
+        "i_pix_fmt": "RG10",
         "num_frames": 1,
         "i_frames": (
             b"\x01\x00\x03\x01\x05\x02\x07\x03\t\x00\x0b\x01\r\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
@@ -313,6 +320,19 @@ class MainTest(unittest.TestCase):
                 test_case.get("o_frames", None),
                 test_case.get("o_bayer_packed", None),
                 test_case["output"],
+                test_case["debug"],
+            )
+            print("...running backwards %s" % test_case["name"])
+            self.doTestVideoY4M(
+                test_case["name"],
+                test_case["output"],
+                test_case["num_frames"],
+                test_case.get("o_frames", None),
+                test_case.get("o_bayer_packed", None),
+                test_case["i_pix_fmt"],
+                test_case.get("i_frames", None),
+                test_case.get("i_bayer_packed", None),
+                test_case["input"],
                 test_case["debug"],
             )
 
