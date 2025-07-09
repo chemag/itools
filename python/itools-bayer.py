@@ -437,7 +437,7 @@ BAYER_FORMATS = {
         "layout": LayoutType.packed,
         "order": "RGgB",
         "ffmpeg": False,
-        "y4m": "mono16",
+        "y4m": "mono10",
     },
     "BA10": {
         "alias": (
@@ -452,7 +452,7 @@ BAYER_FORMATS = {
         "layout": LayoutType.packed,
         "order": "GRBg",
         "ffmpeg": False,
-        "y4m": "mono16",
+        "y4m": "mono10",
     },
     "GB10": {
         "alias": (
@@ -467,7 +467,7 @@ BAYER_FORMATS = {
         "layout": LayoutType.packed,
         "order": "GBRg",
         "ffmpeg": False,
-        "y4m": "mono16",
+        "y4m": "mono10",
     },
     "BG10": {
         "alias": (
@@ -482,7 +482,7 @@ BAYER_FORMATS = {
         "layout": LayoutType.packed,
         "order": "BGgR",
         "ffmpeg": False,
-        "y4m": "mono16",
+        "y4m": "mono10",
     },
     # 10-bit Bayer formats (packed)
     "pRAA": {
@@ -675,7 +675,7 @@ BAYER_FORMATS = {
         "layout": LayoutType.packed,
         "order": "RGgB",
         "ffmpeg": False,
-        "y4m": "mono16",
+        "y4m": "mono12",
     },
     "BA12": {
         "alias": ("SGRBG12",),
@@ -687,7 +687,7 @@ BAYER_FORMATS = {
         "layout": LayoutType.packed,
         "order": "GRBg",
         "ffmpeg": False,
-        "y4m": "mono16",
+        "y4m": "mono12",
     },
     "GB12": {
         "alias": ("SGBRG12",),
@@ -699,7 +699,7 @@ BAYER_FORMATS = {
         "layout": LayoutType.packed,
         "order": "GBRg",
         "ffmpeg": False,
-        "y4m": "mono16",
+        "y4m": "mono12",
     },
     "BG12": {
         "alias": ("SBGGR12",),
@@ -711,7 +711,7 @@ BAYER_FORMATS = {
         "layout": LayoutType.packed,
         "order": "BGgR",
         "ffmpeg": False,
-        "y4m": "mono16",
+        "y4m": "mono12",
     },
     # 12-bit Bayer formats (packed)
     "pRCC": {
@@ -769,7 +769,7 @@ BAYER_FORMATS = {
         "layout": LayoutType.packed,
         "order": "RGgB",
         "ffmpeg": False,
-        "y4m": "mono16",
+        "y4m": "mono14",
     },
     "GR14": {
         "alias": ("SGRBG14",),
@@ -781,7 +781,7 @@ BAYER_FORMATS = {
         "layout": LayoutType.packed,
         "order": "GRBg",
         "ffmpeg": False,
-        "y4m": "mono16",
+        "y4m": "mono14",
     },
     "GB14": {
         "alias": ("SGBRG14",),
@@ -793,7 +793,7 @@ BAYER_FORMATS = {
         "layout": LayoutType.packed,
         "order": "GBRg",
         "ffmpeg": False,
-        "y4m": "mono16",
+        "y4m": "mono14",
     },
     "BG14": {
         "alias": ("SBGGR14",),
@@ -805,7 +805,7 @@ BAYER_FORMATS = {
         "layout": LayoutType.packed,
         "order": "BGgR",
         "ffmpeg": False,
-        "y4m": "mono16",
+        "y4m": "mono14",
     },
     # 14-bit Bayer formats (packed)
     "pREE": {
