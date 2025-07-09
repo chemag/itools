@@ -294,81 +294,102 @@ class MainTest(unittest.TestCase):
     def testVideoY4M(self):
         """video reading test."""
         for test_case in self.getTestCases(readVideoY4MTestCases):
-            print("...running %s" % test_case["name"])
-            debug = test_case["debug"]
-            absolute_tolerance = 1
-
-            # prepare input/output files
-            infile = tempfile.NamedTemporaryFile(
-                prefix="itools-bayer_unittest.infile.", suffix=".y4m"
-            ).name
-            with open(infile, "wb") as f:
-                f.write(test_case["input"])
-            outfile = tempfile.NamedTemporaryFile(
-                prefix="itools-bayer_unittest.outfile.", suffix=".y4m"
-            ).name
-            # read y4m file
-            bayer_video_reader = itools_bayer_y4m.BayerY4MReader.FromY4MFile(
-                infile, debug
+            print("...running forward %s" % test_case["name"])
+            self.doTestVideoY4M(
+                test_case["name"],
+                test_case["input"],
+                test_case["num_frames"],
+                test_case.get("i_frames", None),
+                test_case.get("i_bayer_packed", None),
+                test_case["o_pix_fmt"],
+                test_case.get("o_bayer_packed", None),
+                test_case["output"],
+                test_case["debug"],
             )
-            bayer_video_writer = None
-            num_frames = test_case["num_frames"]
-            for frame_id in range(num_frames):
-                # read the frame
-                bayer_image = bayer_video_reader.GetFrame()
-                if "i_frames" in test_case:
-                    expected_bayer_buffer = test_case["i_frames"][frame_id]
-                    bayer_buffer = bayer_image.GetBuffer()
-                    self.assertEqual(
-                        bayer_buffer,
-                        expected_bayer_buffer,
-                        f"error on frame {test_case['name']}",
-                    )
-                if "i_bayer_packed" in test_case:
-                    expected_bayer_packed = test_case["i_bayer_packed"][frame_id]
-                    bayer_packed = bayer_image.GetBayerPacked()
-                    np.testing.assert_allclose(
-                        bayer_packed,
-                        expected_bayer_packed,
-                        atol=absolute_tolerance,
-                        err_msg=f"error on bayer_packed case {test_case['name']}",
-                    )
 
-                # create the frame writer
-                if bayer_video_writer is None:
-                    height = bayer_image.height
-                    width = bayer_image.width
-                    colorrange = bayer_video_reader.y4m_file_reader.input_colorrange
-                    o_pix_fmt = test_case["o_pix_fmt"]
-                    bayer_video_writer = itools_bayer_y4m.BayerY4MWriter.ToY4MFile(
-                        outfile, height, width, colorrange, o_pix_fmt, debug
-                    )
-                # write the frame
-                bayer_image_out = bayer_video_writer.AddFrame(bayer_image)
-                if "o_bayer_packed" in test_case:
-                    expected_bayer_packed_out = test_case["o_bayer_packed"][frame_id]
-                    bayer_packed_out = bayer_image_out.GetBayerPacked()
-                    np.testing.assert_allclose(
-                        bayer_packed_out,
-                        expected_bayer_packed_out,
-                        atol=absolute_tolerance,
-                        err_msg=f"error on bayer_packed case {test_case['name']}",
-                    )
+    def doTestVideoY4M(
+        self,
+        test_name,
+        test_input,
+        test_num_frames,
+        test_i_frames,
+        test_i_bayer_packed,
+        test_o_pix_fmt,
+        test_o_bayer_packed,
+        test_output,
+        debug,
+    ):
+        absolute_tolerance = 1
 
-            # ensure no more frames to read
+        # prepare input/output files
+        infile = tempfile.NamedTemporaryFile(
+            prefix="itools-bayer_unittest.infile.", suffix=".y4m"
+        ).name
+        with open(infile, "wb") as f:
+            f.write(test_input)
+        outfile = tempfile.NamedTemporaryFile(
+            prefix="itools-bayer_unittest.outfile.", suffix=".y4m"
+        ).name
+        # read y4m file
+        bayer_video_reader = itools_bayer_y4m.BayerY4MReader.FromY4MFile(infile, debug)
+        bayer_video_writer = None
+        num_frames = test_num_frames
+        for frame_id in range(num_frames):
+            # read the frame
             bayer_image = bayer_video_reader.GetFrame()
-            assert bayer_image is None, f"error: found added frames"
-            del bayer_video_writer
-            # ensure outfile is correct
-            with open(outfile, "rb") as f:
-                output = f.read()
-            # check the values
-            expected_output = test_case["output"]
-            self.assertEqual(
-                output,
-                expected_output,
-                f"error on input write test {test_case['name']}",
-            )
+            if test_i_frames is not None:
+                expected_bayer_buffer = test_i_frames[frame_id]
+                bayer_buffer = bayer_image.GetBuffer()
+                self.assertEqual(
+                    bayer_buffer,
+                    expected_bayer_buffer,
+                    f"error on frame {test_name}",
+                )
+            if test_i_bayer_packed is not None:
+                expected_bayer_packed = test_i_bayer_packed[frame_id]
+                bayer_packed = bayer_image.GetBayerPacked()
+                np.testing.assert_allclose(
+                    bayer_packed,
+                    expected_bayer_packed,
+                    atol=absolute_tolerance,
+                    err_msg=f"error on bayer_packed case {test_name}",
+                )
+
+            # create the frame writer
+            if bayer_video_writer is None:
+                height = bayer_image.height
+                width = bayer_image.width
+                colorrange = bayer_video_reader.y4m_file_reader.input_colorrange
+                o_pix_fmt = test_o_pix_fmt
+                bayer_video_writer = itools_bayer_y4m.BayerY4MWriter.ToY4MFile(
+                    outfile, height, width, colorrange, o_pix_fmt, debug
+                )
+            # write the frame
+            bayer_image_out = bayer_video_writer.AddFrame(bayer_image)
+            if test_o_bayer_packed is not None:
+                expected_bayer_packed_out = test_o_bayer_packed[frame_id]
+                bayer_packed_out = bayer_image_out.GetBayerPacked()
+                np.testing.assert_allclose(
+                    bayer_packed_out,
+                    expected_bayer_packed_out,
+                    atol=absolute_tolerance,
+                    err_msg=f"error on bayer_packed case {test_name}",
+                )
+
+        # ensure no more frames to read
+        bayer_image = bayer_video_reader.GetFrame()
+        assert bayer_image is None, f"error: found added frames"
+        del bayer_video_writer
+        # ensure outfile is correct
+        with open(outfile, "rb") as f:
+            output = f.read()
+        # check the values
+        expected_output = test_output
+        self.assertEqual(
+            output,
+            expected_output,
+            f"error on input write test {test_name}",
+        )
 
 
 if __name__ == "__main__":
