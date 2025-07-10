@@ -286,7 +286,7 @@ def rfun_14_packed_expanded_to_16(data, debug):
     #  +---+---+---+---+---+---+---+---+ +---+---+---+---+---+---+---+---+
     #  |D5 |D4 |D3 |D2 |D1 |D0 |C5 |C4 |
     #  +---+---+---+---+---+---+---+---+
-    low0, low1, low2 = data[4:6]
+    low0, low1, low2 = data[4:]
     return (
         (data[0] << 6) | ((low0 >> 0) & 0x3F),
         (data[1] << 6) | ((low1 << 2) & 0x3C) | ((low0 >> 6) & 0x03),
@@ -295,8 +295,26 @@ def rfun_14_packed_expanded_to_16(data, debug):
     )
 
 
+# 4 components -> 7 bytes
 def wfun_14_packed_expanded_to_16(c0, c1, c2, c3, debug):
-    raise AssertionError("wfun_14_packed_expanded_to_16: unimplemented")
+    # make sure all the values are integers
+    c0 = int(c0)
+    c1 = int(c1)
+    c2 = int(c2)
+    c3 = int(c3)
+    main = ((c0 >> 6) << 24) | ((c1 >> 6) << 16) | ((c2 >> 6) << 8) | ((c3 >> 6) << 0)
+    remaining = (
+        # 5th byte
+        ((c1 & 0x03) << 22)
+        | ((c0 & 0x3F) << 16)
+        # 6th byte
+        | ((c2 & 0x0F) << 12)
+        | (((c1 >> 2) & 0x0F) << 8)
+        # 7th byte
+        | ((c3 & 0x3F) << 2)
+        | ((c2 >> 4 & 0x03) << 0)
+    )
+    return int(main).to_bytes(4, "big") + int(remaining).to_bytes(3, "big")
 
 
 # 4 bytes -> 2 components
