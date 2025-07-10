@@ -109,8 +109,11 @@ class BayerY4MReader:
             width = int(width / itools_bayer.get_width_adjustment(pix_fmt))
         layout = itools_bayer.BAYER_FORMATS[pix_fmt]["layout"]
         if layout == itools_bayer.LayoutType.planar:
-            width = width << 1
-            height = height >> 1
+            width_factor, height_factor = itools_bayer.BayerImage.GetAspectAdjustment(
+                pix_fmt
+            )
+            width = int(width / width_factor)
+            height = int(height / height_factor)
         # create the BayerImage object
         return itools_bayer.BayerImage.FromBuffer(
             buf_raw, width, height, pix_fmt, infile, debug
@@ -162,8 +165,11 @@ class BayerY4MWriter:
             width = int(width * itools_bayer.get_width_adjustment(o_pix_fmt))
         layout = itools_bayer.BAYER_FORMATS[o_pix_fmt]["layout"]
         if layout == itools_bayer.LayoutType.planar:
-            width = width >> 1
-            height = height << 1
+            width_factor, height_factor = itools_bayer.BayerImage.GetAspectAdjustment(
+                o_pix_fmt
+            )
+            width = int(width * width_factor)
+            height = int(height * height_factor)
         # create a writer and write the header
         y4m_file_writer = itools_y4m.Y4MFileWriter(
             height, width, y4m_colorspace, colorrange, outfile, extension_dict, debug

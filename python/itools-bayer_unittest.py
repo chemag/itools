@@ -993,10 +993,10 @@ processColorConversions = [
             ),
             "b": np.array(
                 [
-                    [0x00, 0x00, 0x40, 0x40],
-                    [0x00, 0x00, 0x40, 0x40],
-                    [0x40, 0x40, 0x80, 0x80],
-                    [0x40, 0x40, 0x80, 0x80],
+                    [0x00, 0x00, 0x40, 0x80],
+                    [0x00, 0x00, 0x40, 0x80],
+                    [0x40, 0x40, 0x7F, 0xBF],
+                    [0x80, 0x80, 0xBF, 0xFF],
                 ],
                 dtype=np.uint8,
             ),
@@ -1004,19 +1004,19 @@ processColorConversions = [
         "yuv_planar": {
             "y": np.array(
                 [
-                    [0x4C, 0x4C, 0x54, 0x54],
-                    [0x4C, 0x4C, 0x54, 0x54],
-                    [0x54, 0x54, 0x5B, 0x5B],
-                    [0x54, 0x54, 0x5B, 0x5B],
+                    [0x4C, 0x4C, 0x54, 0x5B],
+                    [0x4C, 0x4C, 0x54, 0x5B],
+                    [0x54, 0x54, 0x5B, 0x62],
+                    [0x5B, 0x5B, 0x62, 0x69],
                 ],
                 dtype=np.uint8,
             ),
             "u": np.array(
                 [
-                    [0x5B, 0x5B, 0x76, 0x76],
-                    [0x5B, 0x5B, 0x76, 0x76],
-                    [0x76, 0x76, 0x92, 0x92],
-                    [0x76, 0x76, 0x92, 0x92],
+                    [0x5B, 0x5B, 0x76, 0x92],
+                    [0x5B, 0x5B, 0x76, 0x92],
+                    [0x76, 0x76, 0x92, 0xAE],
+                    [0x92, 0x92, 0xAE, 0xCA],
                 ],
                 dtype=np.uint8,
             ),
@@ -1066,10 +1066,10 @@ processColorConversions = [
             ),
             "b": np.array(
                 [
-                    [0x000, 0x000, 0x100, 0x100],
-                    [0x000, 0x000, 0x100, 0x100],
-                    [0x100, 0x100, 0x1FF, 0x1FF],
-                    [0x100, 0x100, 0x1FF, 0x1FF],
+                    [0x000, 0x000, 0x100, 0x200],
+                    [0x000, 0x000, 0x100, 0x200],
+                    [0x100, 0x100, 0x1FF, 0x2FF],
+                    [0x200, 0x200, 0x2FF, 0x3FF],
                 ],
                 dtype=np.uint16,
             ),
@@ -1077,19 +1077,19 @@ processColorConversions = [
         "yuv_planar": {
             "y": np.array(
                 [
-                    [0x131, 0x131, 0x14F, 0x14F],
-                    [0x131, 0x131, 0x14F, 0x14F],
-                    [0x14F, 0x14F, 0x16C, 0x16C],
-                    [0x14F, 0x14F, 0x16C, 0x16C],
+                    [0x131, 0x131, 0x14F, 0x16C],
+                    [0x131, 0x131, 0x14F, 0x16C],
+                    [0x14F, 0x14F, 0x16C, 0x189],
+                    [0x16C, 0x16C, 0x189, 0x1A6],
                 ],
                 dtype=np.uint16,
             ),
             "u": np.array(
                 [
-                    [0x169, 0x169, 0x1D9, 0x1D9],
-                    [0x169, 0x169, 0x1D9, 0x1D9],
-                    [0x1D9, 0x1D9, 0x248, 0x248],
-                    [0x1D9, 0x1D9, 0x248, 0x248],
+                    [0x169, 0x169, 0x1D9, 0x248],
+                    [0x169, 0x169, 0x1D9, 0x248],
+                    [0x1D9, 0x1D9, 0x248, 0x2B7],
+                    [0x248, 0x248, 0x2B7, 0x327],
                 ],
                 dtype=np.uint16,
             ),
@@ -1282,6 +1282,51 @@ convertRg1g2bToYdgcocgTestCases = [
             "D": np.array([[0x280, 0x2C0], [0x300, 0x340]], dtype=np.uint16),
             "C": np.array([[0x200, 0x040], [0x080, 0x0C0]], dtype=np.uint16),
             "c": np.array([[0x2C0, 0x1C0], [0x1C0, 0x1C0]], dtype=np.uint16),
+        },
+    },
+]
+
+
+convertRg1g2bToRgbTestCases = [
+    {
+        "name": "bayer_rggb8-rggb8.planar.4x4",
+        "debug": 0,
+        "i_pix_fmt": "bayer_rggb8",
+        "o_pix_fmt": "rgb8.planar",
+        "bayer_planar": {
+            "R": np.array([[0, 16], [32, 48]], dtype=np.uint8),
+            "G": np.array([[64, 48], [32, 16]], dtype=np.uint8),
+            "g": np.array([[128, 144], [160, 176]], dtype=np.uint8),
+            "B": np.array([[255, 240], [224, 208]], dtype=np.uint8),
+        },
+        "rgb_planar": {
+            "r": np.array(
+                [
+                    [0, 8, 16, 16],
+                    [16, 24, 32, 32],
+                    [32, 40, 48, 48],
+                    [32, 40, 48, 48],
+                ],
+                dtype=np.uint8,
+            ),
+            "g": np.array(
+                [
+                    [96, 64, 73, 48],
+                    [128, 92, 144, 54],
+                    [121, 32, 92, 16],
+                    [160, 140, 176, 96],
+                ],
+                dtype=np.uint8,
+            ),
+            "b": np.array(
+                [
+                    [255, 255, 247, 240],
+                    [255, 255, 247, 240],
+                    [239, 239, 231, 224],
+                    [224, 224, 216, 208],
+                ],
+                dtype=np.uint8,
+            ),
         },
     },
 ]
@@ -1530,6 +1575,44 @@ class MainTest(unittest.TestCase):
                 bayer_packed_prime,
                 atol=absolute_tolerance,
                 err_msg=f"error on forward case {test_case['name']}",
+            )
+
+    def testConvertRg1g2bToRgb(self):
+        """convert_rg1g2b_to_rgb test."""
+        for test_case in self.getTestCases(convertRg1g2bToRgbTestCases):
+            print(f"...running \"{test_case['name']}\"")
+            i_pix_fmt = test_case["i_pix_fmt"]
+            depth = itools_bayer.get_depth(i_pix_fmt)
+            # 1. run RG1G2B to RGB function
+            bayer_planar = test_case["bayer_planar"]
+            debug = test_case["debug"]
+            bayer_image = itools_bayer.BayerImage.FromBayerPlanar(
+                bayer_planar, i_pix_fmt
+            )
+            rgb_planar = bayer_image.GetRGBPlanar()
+            expected_rgb_planar = test_case["rgb_planar"]
+            # check the values
+            absolute_tolerance = 1
+            self.comparePlanar(
+                rgb_planar,
+                expected_rgb_planar,
+                absolute_tolerance,
+                test_case["name"],
+            )
+
+            # 2. run RGB to RG1G2B function (reverse)
+            o_pix_fmt = test_case["o_pix_fmt"]
+            bayer_image_prime = itools_bayer.BayerImage.FromRGBPlanar(
+                rgb_planar, o_pix_fmt, debug
+            )
+            bayer_order = itools_bayer.get_order(i_pix_fmt)
+            bayer_planar_prime = bayer_image_prime.GetBayerPlanar()
+            expected_bayer_planar = test_case["bayer_planar"]
+            self.comparePlanar(
+                bayer_planar_prime,
+                expected_bayer_planar,
+                absolute_tolerance,
+                f"error on forward case {test_case['name']}",
             )
 
 
