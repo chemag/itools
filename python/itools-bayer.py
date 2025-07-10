@@ -1014,6 +1014,7 @@ BAYER_FORMATS = {
         "layout": LayoutType.planar,
         "order": "RGgB",
         "ffmpeg": False,
+        "y4m": "mono10",
     },
     "BA10.planar": {
         "alias": (
@@ -1026,6 +1027,7 @@ BAYER_FORMATS = {
         "layout": LayoutType.planar,
         "order": "GRBg",
         "ffmpeg": False,
+        "y4m": "mono10",
     },
     "GB10.planar": {
         "alias": (
@@ -1038,6 +1040,7 @@ BAYER_FORMATS = {
         "layout": LayoutType.planar,
         "order": "GBRg",
         "ffmpeg": False,
+        "y4m": "mono10",
     },
     "BG10.planar": {
         "alias": (
@@ -1050,6 +1053,7 @@ BAYER_FORMATS = {
         "layout": LayoutType.planar,
         "order": "BGgR",
         "ffmpeg": False,
+        "y4m": "mono10",
     },
     # non-RGGB Bayer
     "ydgcocg8.packed": {
@@ -1079,6 +1083,7 @@ BAYER_FORMATS = {
         "rfun": rfun_10_expanded_to_16,
         "wfun": wfun_10_expanded_to_16,
         "ffmpeg": False,
+        "y4m": "mono10",
     },
     "ydgcocg10.planar": {
         "layout": LayoutType.planar,
@@ -1087,6 +1092,7 @@ BAYER_FORMATS = {
         "rfun": rfun_planar,
         "wfun": wfun_planar,
         "ffmpeg": False,
+        "y4m": "mono10",
     },
 }
 

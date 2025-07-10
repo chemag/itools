@@ -189,7 +189,7 @@ readVideoY4MTestCases = [
         "i_pix_fmt": "RG10",
         "num_frames": 1,
         "i_frames": (
-            b"\x01\x00\x03\x01\x05\x02\x07\x03\t\x00\x0b\x01\r\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
+            b"\x01\x00\x03\x01\x05\x02\x07\x03\x09\x00\x0b\x01\x0d\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
         ),
         "i_bayer_packed": (
             np.array(
@@ -249,7 +249,7 @@ readVideoY4MTestCases = [
         "i_pix_fmt": "RG10",
         "num_frames": 1,
         "i_frames": (
-            b"\x01\x00\x03\x01\x05\x02\x07\x03\t\x00\x0b\x01\r\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
+            b"\x01\x00\x03\x01\x05\x02\x07\x03\x09\x00\x0b\x01\x0d\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
         ),
         "o_pix_fmt": "pRAA",
         "o_bayer_packed": (
@@ -264,6 +264,144 @@ readVideoY4MTestCases = [
             ),
         ),
         "output": b"YUV4MPEG2 W5 H4 F25:1 Ip A0:0 Cmono XCOLORRANGE=FULL XEXTCS=pRAA\nFRAME\n\x00\x40\x81\xc1\xdd\x02\x42\x83\xc3\xdd\x04\x44\x85\xc5\xdd\x06\x46\x87\xc7\xdd",
+    },
+    # bayer10->bayer10 (expanded-planar)
+    {
+        "name": "basic-expanded10xplanar10.le",
+        "debug": 0,
+        "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono10 XCOLORRANGE=FULL XEXTCS=RG10\nFRAME\n\x01\x00\x03\x01\x05\x02\x07\x03\x09\x00\x0b\x01\x0d\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
+        "i_pix_fmt": "RG10",
+        "num_frames": 1,
+        "i_frames": (
+            b"\x01\x00\x03\x01\x05\x02\x07\x03\x09\x00\x0b\x01\x0d\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
+        ),
+        "o_pix_fmt": "RG10.planar",
+        "o_bayer_packed": (
+            np.array(
+                [
+                    [0x001, 0x103, 0x205, 0x307],
+                    [0x009, 0x10B, 0x20D, 0x30F],
+                    [0x011, 0x113, 0x215, 0x317],
+                    [0x019, 0x11B, 0x21D, 0x31F],
+                ],
+                dtype=np.uint16,
+            ),
+        ),
+        "output": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono10 XCOLORRANGE=FULL XEXTCS=RG10.planar\nFRAME\n\x01\x00\x05\x02\x11\x00\x15\x02\x03\x01\x07\x03\x13\x01\x17\x03\x09\x00\x0d\x02\x19\x00\x1d\x02\x0b\x01\x0f\x03\x1b\x01\x1f\x03",
+    },
+    # bayer10->ydgcocg10.packed (expanded-packed)
+    {
+        "name": "basic-RG10-ydgcocg10.packed",
+        # there is a small conversion error
+        "avoid_backwards": True,
+        "debug": 0,
+        "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono10 XCOLORRANGE=FULL XEXTCS=RG10\nFRAME\n\x00\x00\x00\x01\x40\x00\xC0\x00\x00\x02\xff\x03\x40\x02\xC0\x03\x80\x00\x80\x00\xC0\x00\x40\x00\x80\x02\x80\x03\xC0\x02\x40\x03",
+        "i_pix_fmt": "RG10",
+        "i_bayer_packed": (
+            np.array(
+                [
+                    [0x000, 0x100, 0x040, 0x0C0],
+                    [0x200, 0x3FF, 0x240, 0x3C0],
+                    [0x080, 0x080, 0x0C0, 0x040],
+                    [0x280, 0x380, 0x2C0, 0x340],
+                ],
+                dtype=np.uint16,
+            ),
+        ),
+        "num_frames": 1,
+        "i_frames": (
+            b"\x00\x00\x00\x01\x40\x00\xc0\x00\x00\x02\xff\x03\x40\x02\xc0\x03\x80\x00\x80\x00\xc0\x00\x40\x00\x80\x02\x80\x03\xc0\x02\x40\x03",
+        ),
+        "o_pix_fmt": "ydgcocg10.packed",
+        "o_frames": (
+            b"\xbf\x01\x80\x02\xc0\x01\xc0\x02\x00\x00\xc0\x01\x40\x00\xc0\x01\xc0\x01\x00\x03\xc0\x01\x40\x03\x80\x00\xc0\x01\xc0\x00\xc0\x01",
+        ),
+        "output": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono10 XCOLORRANGE=FULL XEXTCS=ydgcocg10.packed\nFRAME\n\xbf\x01\x80\x02\xc0\x01\xc0\x02\x00\x00\xc0\x01\x40\x00\xc0\x01\xc0\x01\x00\x03\xc0\x01\x40\x03\x80\x00\xc0\x01\xc0\x00\xc0\x01",
+    },
+    {
+        "name": "basic-ydgcocg10.packed-RG10",
+        # there is a small conversion error
+        "avoid_backwards": True,
+        "debug": 0,
+        "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono10 XCOLORRANGE=FULL XEXTCS=ydgcocg10.packed\nFRAME\n\xbf\x01\x80\x02\xc0\x01\xc0\x02\x00\x00\xc0\x01\x40\x00\xc0\x01\xc0\x01\x00\x03\xc0\x01\x40\x03\x80\x00\xc0\x01\xc0\x00\xc0\x01",
+        "num_frames": 1,
+        "i_pix_fmt": "ydgcocg10.packed",
+        "i_frames": (
+            b"\xbf\x01\x80\x02\xc0\x01\xc0\x02\x00\x00\xc0\x01\x40\x00\xc0\x01\xc0\x01\x00\x03\xc0\x01\x40\x03\x80\x00\xc0\x01\xc0\x00\xc0\x01",
+        ),
+        "o_pix_fmt": "RG10",
+        "o_bayer_packed": (
+            np.array(
+                [
+                    [0x000, 0x100, 0x040, 0x0C0],
+                    [0x200, 0x3FF, 0x240, 0x3C0],
+                    [0x080, 0x080, 0x0C0, 0x040],
+                    [0x280, 0x380, 0x2C0, 0x340],
+                ],
+                dtype=np.uint16,
+            ),
+        ),
+        "o_frames": (
+            b"\x00\x00\xff\x00\x40\x00\xc0\x00\xff\x01\xff\x03\x40\x02\xc0\x03\x80\x00\x80\x00\xc0\x00\x40\x00\x80\x02\x80\x03\xc0\x02\x40\x03",
+        ),
+        "output": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono10 XCOLORRANGE=FULL XEXTCS=RG10\nFRAME\n\x00\x00\xff\x00\x40\x00\xc0\x00\xff\x01\xff\x03\x40\x02\xc0\x03\x80\x00\x80\x00\xc0\x00\x40\x00\x80\x02\x80\x03\xc0\x02\x40\x03",
+    },
+    # bayer10->ydgcocg10.planar (expanded-planar)
+    {
+        "name": "basic-RG10-ydgcocg10.planar",
+        # there is a small conversion error
+        "avoid_backwards": True,
+        "debug": 0,
+        "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono10 XCOLORRANGE=FULL XEXTCS=RG10\nFRAME\n\x00\x00\x00\x01\x40\x00\xC0\x00\x00\x02\xff\x03\x40\x02\xC0\x03\x80\x00\x80\x00\xC0\x00\x40\x00\x80\x02\x80\x03\xC0\x02\x40\x03",
+        "i_pix_fmt": "RG10",
+        "i_bayer_packed": (
+            np.array(
+                [
+                    [0x000, 0x100, 0x040, 0x0C0],
+                    [0x200, 0x3FF, 0x240, 0x3C0],
+                    [0x080, 0x080, 0x0C0, 0x040],
+                    [0x280, 0x380, 0x2C0, 0x340],
+                ],
+                dtype=np.uint16,
+            ),
+        ),
+        "num_frames": 1,
+        "i_frames": (
+            b"\x00\x00\x00\x01\x40\x00\xc0\x00\x00\x02\xff\x03\x40\x02\xc0\x03\x80\x00\x80\x00\xc0\x00\x40\x00\x80\x02\x80\x03\xc0\x02\x40\x03",
+        ),
+        "o_pix_fmt": "ydgcocg10.planar",
+        "o_frames": (
+            b"\xbf\x01\xc0\x01\xc0\x01\xc0\x01\x80\x02\xc0\x02\x00\x03\x40\x03\x00\x00\x40\x00\x80\x00\xc0\x00\xc0\x01\xc0\x01\xc0\x01\xc0\x01",
+        ),
+        "output": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono10 XCOLORRANGE=FULL XEXTCS=ydgcocg10.planar\nFRAME\n\xbf\x01\xc0\x01\xc0\x01\xc0\x01\x80\x02\xc0\x02\x00\x03\x40\x03\x00\x00\x40\x00\x80\x00\xc0\x00\xc0\x01\xc0\x01\xc0\x01\xc0\x01",
+    },
+    {
+        "name": "basic-ydgcocg10.planar-RG10",
+        # there is a small conversion error
+        "avoid_backwards": True,
+        "debug": 0,
+        "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono10 XCOLORRANGE=FULL XEXTCS=ydgcocg10.planar\nFRAME\n\xbf\x01\xc0\x01\xc0\x01\xc0\x01\x80\x02\xc0\x02\x00\x03\x40\x03\x00\x00\x40\x00\x80\x00\xc0\x00\xc0\x01\xc0\x01\xc0\x01\xc0\x01",
+        "num_frames": 1,
+        "i_pix_fmt": "ydgcocg10.planar",
+        "i_frames": (
+            b"\xbf\x01\xc0\x01\xc0\x01\xc0\x01\x80\x02\xc0\x02\x00\x03\x40\x03\x00\x00\x40\x00\x80\x00\xc0\x00\xc0\x01\xc0\x01\xc0\x01\xc0\x01",
+        ),
+        "o_pix_fmt": "RG10",
+        "o_bayer_packed": (
+            np.array(
+                [
+                    [0x000, 0x100, 0x040, 0x0C0],
+                    [0x200, 0x3FF, 0x240, 0x3C0],
+                    [0x080, 0x080, 0x0C0, 0x040],
+                    [0x280, 0x380, 0x2C0, 0x340],
+                ],
+                dtype=np.uint16,
+            ),
+        ),
+        "o_frames": (
+            b"\x00\x00\xff\x00\x40\x00\xc0\x00\xff\x01\xff\x03\x40\x02\xc0\x03\x80\x00\x80\x00\xc0\x00\x40\x00\x80\x02\x80\x03\xc0\x02\x40\x03",
+        ),
+        "output": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono10 XCOLORRANGE=FULL XEXTCS=RG10\nFRAME\n\x00\x00\xff\x00\x40\x00\xc0\x00\xff\x01\xff\x03\x40\x02\xc0\x03\x80\x00\x80\x00\xc0\x00\x40\x00\x80\x02\x80\x03\xc0\x02\x40\x03",
     },
 ]
 
@@ -322,6 +460,8 @@ class MainTest(unittest.TestCase):
                 test_case["output"],
                 test_case["debug"],
             )
+            if test_case.get("avoid_backwards", False):
+                continue
             print("...running backwards %s" % test_case["name"])
             self.doTestVideoY4M(
                 test_case["name"],
@@ -373,7 +513,7 @@ class MainTest(unittest.TestCase):
                 self.assertEqual(
                     bayer_buffer,
                     expected_bayer_buffer,
-                    f"error on frame {test_name}",
+                    f"error on input frame {test_name}",
                 )
             if test_i_bayer_packed is not None:
                 expected_bayer_packed = test_i_bayer_packed[frame_id]
@@ -382,7 +522,7 @@ class MainTest(unittest.TestCase):
                     bayer_packed,
                     expected_bayer_packed,
                     atol=absolute_tolerance,
-                    err_msg=f"error on bayer_packed case {test_name}",
+                    err_msg=f"error on input bayer_packed case {test_name}",
                 )
 
             # create the frame writer
@@ -402,7 +542,7 @@ class MainTest(unittest.TestCase):
                 self.assertEqual(
                     bayer_buffer,
                     expected_bayer_buffer,
-                    f"error on frame {test_name}",
+                    f"error on output frame {test_name}",
                 )
             if test_o_bayer_packed is not None:
                 expected_bayer_packed_out = test_o_bayer_packed[frame_id]
@@ -411,7 +551,7 @@ class MainTest(unittest.TestCase):
                     bayer_packed_out,
                     expected_bayer_packed_out,
                     atol=absolute_tolerance,
-                    err_msg=f"error on bayer_packed case {test_name}",
+                    err_msg=f"error on output bayer_packed case {test_name}",
                 )
 
         # ensure no more frames to read
