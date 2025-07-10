@@ -154,6 +154,7 @@ def rfun_10_packed_expanded_to_16(data, debug):
     )
 
 
+# 4 components -> 5 bytes
 def wfun_10_packed_expanded_to_16(c0, c1, c2, c3, debug):
     # make sure all the values are integers
     c0 = int(c0)
@@ -235,8 +236,19 @@ def rfun_12_packed_expanded_to_16(data, debug):
     )
 
 
+# 2 components -> 3 bytes
 def wfun_12_packed_expanded_to_16(c0, c1, debug):
-    raise AssertionError("wfun_12_packed_expanded_to_16: unimplemented")
+    # make sure all the values are integers
+    c0 = int(c0)
+    c1 = int(c1)
+    byte1 = c0 >> 4
+    byte2 = c1 >> 4
+    byte3 = ((c1 & 0x0F) << 4) | ((c0 & 0x0F) << 0)
+    return (
+        int(byte1).to_bytes(1, "big")
+        + int(byte2).to_bytes(1, "big")
+        + int(byte3).to_bytes(1, "big")
+    )
 
 
 # 4 bytes -> 2 components
