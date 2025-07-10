@@ -100,12 +100,17 @@ class BayerY4MReader:
         width = self.y4m_file_reader.width
         height = self.y4m_file_reader.height
         pix_fmt = self.y4m_file_reader.extension_dict["EXTCS"]
+        pix_fmt = itools_bayer.get_canonical_output_pix_fmt(pix_fmt)
         colordepth = itools_bayer.get_depth(pix_fmt)
         infile = self.infile
         # adjust height/width parameters
         if self.y4m_file_reader.colorspace == "mono" and colordepth > 8:
             # this is a wide-depth signal in an 8-bit container
             width = int(width / itools_bayer.get_width_adjustment(pix_fmt))
+        layout = itools_bayer.BAYER_FORMATS[pix_fmt]["layout"]
+        if layout == itools_bayer.LayoutType.planar:
+            width = width << 1
+            height = height >> 1
         # create the BayerImage object
         return itools_bayer.BayerImage.FromBuffer(
             buf_raw, width, height, pix_fmt, infile, debug
@@ -155,6 +160,10 @@ class BayerY4MWriter:
         if y4m_colorspace == "mono" and colordepth > 8:
             # this is a wide-depth signal in an 8-bit container
             width = int(width * itools_bayer.get_width_adjustment(o_pix_fmt))
+        layout = itools_bayer.BAYER_FORMATS[o_pix_fmt]["layout"]
+        if layout == itools_bayer.LayoutType.planar:
+            width = width >> 1
+            height = height << 1
         # create a writer and write the header
         y4m_file_writer = itools_y4m.Y4MFileWriter(
             height, width, y4m_colorspace, colorrange, outfile, extension_dict, debug

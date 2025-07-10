@@ -25,7 +25,7 @@ itools_bayer_y4m = importlib.import_module("itools-bayer-y4m")
 readVideoY4MTestCases = [
     # simple copy
     {
-        "name": "basic-8x8.copy",
+        "name": "bayer_bggr8-bayer_bggr8",
         "debug": 0,
         "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono XCOLORRANGE=FULL XEXTCS=bayer_bggr8\nFRAME\n\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0fFRAME\n\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f",
         "i_pix_fmt": "bayer_bggr8",
@@ -73,7 +73,7 @@ readVideoY4MTestCases = [
     },
     # bayer8->bayer16
     {
-        "name": "basic-8x16.le.conversion",
+        "name": "bayer_bggr8-bayer_bggr16le",
         "debug": 0,
         "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono XCOLORRANGE=FULL XEXTCS=bayer_bggr8\nFRAME\n\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0fFRAME\n\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f",
         "i_pix_fmt": "bayer_bggr8",
@@ -123,7 +123,7 @@ readVideoY4MTestCases = [
     },
     # bayer16->bayer8
     {
-        "name": "basic-16x8.le.conversion",
+        "name": "bayer_bggr16le-bayer_bggr8",
         "debug": 0,
         "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono16 XCOLORRANGE=FULL XEXTCS=bayer_bggr16le\nFRAME\n\x00\x00\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08\x00\x09\x00\x0a\x00\x0b\x00\x0c\x00\x0d\x00\x0e\x00\x0fFRAME\n\x00\x10\x00\x11\x00\x12\x00\x13\x00\x14\x00\x15\x00\x16\x00\x17\x00\x18\x00\x19\x00\x1a\x00\x1b\x00\x1c\x00\x1d\x00\x1e\x00\x1f",
         "i_pix_fmt": "bayer_bggr16le",
@@ -169,7 +169,7 @@ readVideoY4MTestCases = [
     },
     # bayer16->bayer16
     {
-        "name": "basic-16x16.le.conversion",
+        "name": "bayer_bggr16le-bayer_bggr16le",
         "debug": 0,
         "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono16 XCOLORRANGE=FULL XEXTCS=bayer_bggr16le\nFRAME\n\x00\x00\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08\x00\x09\x00\x0a\x00\x0b\x00\x0c\x00\x0d\x00\x0e\x00\x0fFRAME\n\x00\x10\x00\x11\x00\x12\x00\x13\x00\x14\x00\x15\x00\x16\x00\x17\x00\x18\x00\x19\x00\x1a\x00\x1b\x00\x1c\x00\x1d\x00\x1e\x00\x1f",
         "i_pix_fmt": "bayer_bggr16le",
@@ -183,7 +183,7 @@ readVideoY4MTestCases = [
     },
     # bayer10->bayer16 (expanded)
     {
-        "name": "basic-expanded10x16.le",
+        "name": "RG10-bayer_rggb16le",
         "debug": 0,
         "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono10 XCOLORRANGE=FULL XEXTCS=RG10\nFRAME\n\x01\x00\x03\x01\x05\x02\x07\x03\x09\x00\x0b\x01\x0d\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
         "i_pix_fmt": "RG10",
@@ -219,7 +219,7 @@ readVideoY4MTestCases = [
     },
     # bayer16->bayer10 (expanded)
     {
-        "name": "basic-expanded16x10.le",
+        "name": "bayer_rggb16le-RG10",
         "debug": 0,
         "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono16 XCOLORRANGE=FULL XEXTCS=bayer_rggb16le\nFRAME\n\x40\x00\xc0\x40\x40\x81\xc0\xc1\x40\x02\xc0\x42\x40\x83\xc0\xc3\x40\x04\xc0\x44\x40\x85\xc0\xc5\x40\x06\xc0\x46\x40\x87\xc0\xc7",
         "i_pix_fmt": "bayer_rggb16le",
@@ -243,7 +243,7 @@ readVideoY4MTestCases = [
     },
     # bayer10->bayer10 (expanded-packed)
     {
-        "name": "basic-expanded10xpacked10.le",
+        "name": "RG10-pRAA",
         "debug": 0,
         "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono10 XCOLORRANGE=FULL XEXTCS=RG10\nFRAME\n\x01\x00\x03\x01\x05\x02\x07\x03\x09\x00\x0b\x01\x0d\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
         "i_pix_fmt": "RG10",
@@ -267,7 +267,7 @@ readVideoY4MTestCases = [
     },
     # bayer10->bayer10 (expanded-planar)
     {
-        "name": "basic-expanded10xplanar10.le",
+        "name": "RG10-RG10.planar",
         "debug": 0,
         "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono10 XCOLORRANGE=FULL XEXTCS=RG10\nFRAME\n\x01\x00\x03\x01\x05\x02\x07\x03\x09\x00\x0b\x01\x0d\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
         "i_pix_fmt": "RG10",
@@ -287,11 +287,11 @@ readVideoY4MTestCases = [
                 dtype=np.uint16,
             ),
         ),
-        "output": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono10 XCOLORRANGE=FULL XEXTCS=RG10.planar\nFRAME\n\x01\x00\x05\x02\x11\x00\x15\x02\x03\x01\x07\x03\x13\x01\x17\x03\x09\x00\x0d\x02\x19\x00\x1d\x02\x0b\x01\x0f\x03\x1b\x01\x1f\x03",
+        "output": b"YUV4MPEG2 W2 H8 F25:1 Ip A0:0 Cmono10 XCOLORRANGE=FULL XEXTCS=RG10.planar\nFRAME\n\x01\x00\x05\x02\x11\x00\x15\x02\x03\x01\x07\x03\x13\x01\x17\x03\x09\x00\x0d\x02\x19\x00\x1d\x02\x0b\x01\x0f\x03\x1b\x01\x1f\x03",
     },
     # bayer10->ydgcocg10.packed (expanded-packed)
     {
-        "name": "basic-RG10-ydgcocg10.packed",
+        "name": "RG10-ydgcocg10.packed",
         # there is a small conversion error
         "avoid_backwards": True,
         "debug": 0,
@@ -319,7 +319,7 @@ readVideoY4MTestCases = [
         "output": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono10 XCOLORRANGE=FULL XEXTCS=ydgcocg10.packed\nFRAME\n\xbf\x01\x80\x02\xc0\x01\xc0\x02\x00\x00\xc0\x01\x40\x00\xc0\x01\xc0\x01\x00\x03\xc0\x01\x40\x03\x80\x00\xc0\x01\xc0\x00\xc0\x01",
     },
     {
-        "name": "basic-ydgcocg10.packed-RG10",
+        "name": "ydgcocg10.packed-RG10",
         # there is a small conversion error
         "avoid_backwards": True,
         "debug": 0,
@@ -348,7 +348,7 @@ readVideoY4MTestCases = [
     },
     # bayer10->ydgcocg10.planar (expanded-planar)
     {
-        "name": "basic-RG10-ydgcocg10.planar",
+        "name": "RG10-ydgcocg10.planar",
         # there is a small conversion error
         "avoid_backwards": True,
         "debug": 0,
@@ -373,14 +373,14 @@ readVideoY4MTestCases = [
         "o_frames": (
             b"\xbf\x01\xc0\x01\xc0\x01\xc0\x01\x80\x02\xc0\x02\x00\x03\x40\x03\x00\x00\x40\x00\x80\x00\xc0\x00\xc0\x01\xc0\x01\xc0\x01\xc0\x01",
         ),
-        "output": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono10 XCOLORRANGE=FULL XEXTCS=ydgcocg10.planar\nFRAME\n\xbf\x01\xc0\x01\xc0\x01\xc0\x01\x80\x02\xc0\x02\x00\x03\x40\x03\x00\x00\x40\x00\x80\x00\xc0\x00\xc0\x01\xc0\x01\xc0\x01\xc0\x01",
+        "output": b"YUV4MPEG2 W2 H8 F25:1 Ip A0:0 Cmono10 XCOLORRANGE=FULL XEXTCS=ydgcocg10.planar\nFRAME\n\xbf\x01\xc0\x01\xc0\x01\xc0\x01\x80\x02\xc0\x02\x00\x03\x40\x03\x00\x00\x40\x00\x80\x00\xc0\x00\xc0\x01\xc0\x01\xc0\x01\xc0\x01",
     },
     {
-        "name": "basic-ydgcocg10.planar-RG10",
+        "name": "ydgcocg10.planar-RG10",
         # there is a small conversion error
         "avoid_backwards": True,
         "debug": 0,
-        "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono10 XCOLORRANGE=FULL XEXTCS=ydgcocg10.planar\nFRAME\n\xbf\x01\xc0\x01\xc0\x01\xc0\x01\x80\x02\xc0\x02\x00\x03\x40\x03\x00\x00\x40\x00\x80\x00\xc0\x00\xc0\x01\xc0\x01\xc0\x01\xc0\x01",
+        "input": b"YUV4MPEG2 W2 H8 F25:1 Ip A0:0 Cmono10 XCOLORRANGE=FULL XEXTCS=ydgcocg10.planar\nFRAME\n\xbf\x01\xc0\x01\xc0\x01\xc0\x01\x80\x02\xc0\x02\x00\x03\x40\x03\x00\x00\x40\x00\x80\x00\xc0\x00\xc0\x01\xc0\x01\xc0\x01\xc0\x01",
         "num_frames": 1,
         "i_pix_fmt": "ydgcocg10.planar",
         "i_frames": (
