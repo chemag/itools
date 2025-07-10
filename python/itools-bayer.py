@@ -254,8 +254,12 @@ def rfun_14_expanded_to_16(data, debug):
     )
 
 
+# 2 bytes -> 2 components
 def wfun_14_expanded_to_16(c0, c1, debug):
-    raise AssertionError("wfun_14_expanded_to_16: unimplemented")
+    # make sure all the values are integers
+    c0 = int(c0)
+    c1 = int(c1)
+    return int(c0).to_bytes(2, "little") + int(c1).to_bytes(2, "little")
 
 
 # 7 bytes -> 4 components
