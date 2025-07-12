@@ -23,7 +23,7 @@ itools_unittest = importlib.import_module("itools-unittest")
 convertImageFormatTestCases = [
     # (a) component order
     {
-        "name": "basic-8x8.noop",
+        "name": "bayer_rggb8-bayer_rggb8",
         "width": 4,
         "height": 4,
         "i_pix_fmt": "bayer_rggb8",
@@ -48,7 +48,7 @@ convertImageFormatTestCases = [
         "output": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
     },
     {
-        "name": "basic-8x8.01",
+        "name": "bayer_rgbg8-bayer_bggr8",
         "width": 4,
         "height": 4,
         "i_pix_fmt": "bayer_rgbg8",
@@ -74,7 +74,7 @@ convertImageFormatTestCases = [
     },
     # (b) depth/pix_fmt changes
     {
-        "name": "basic-bayer_bggr8-bayer_bggr8",
+        "name": "bayer_bggr8-bayer_bggr8.02",
         "width": 4,
         "height": 4,
         "i_pix_fmt": "bayer_bggr8",
@@ -99,7 +99,7 @@ convertImageFormatTestCases = [
         "output": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
     },
     {
-        "name": "basic-bayer_bggr8-bayer_gbrg8",
+        "name": "bayer_bggr8-bayer_gbrg8",
         "width": 4,
         "height": 4,
         "i_pix_fmt": "bayer_bggr8",
@@ -124,7 +124,7 @@ convertImageFormatTestCases = [
         "output": b"\x02\x01\x04\x03\x06\x05\x08\x07\x0a\x09\x0c\x0b\x0e\x0d\x10\x0f",
     },
     {
-        "name": "basic-bayer_bggr8-bayer_gbrg8",
+        "name": "bayer_bggr8-bayer_gbrg8",
         "width": 4,
         "height": 4,
         "i_pix_fmt": "bayer_bggr8",
@@ -149,7 +149,7 @@ convertImageFormatTestCases = [
         "output": b"\x02\x01\x04\x03\x06\x05\x08\x07\x0a\x09\x0c\x0b\x0e\x0d\x10\x0f",
     },
     {
-        "name": "basic-bayer_bggr8-bayer_grbg8",
+        "name": "bayer_bggr8-bayer_grbg8",
         "width": 4,
         "height": 4,
         "i_pix_fmt": "bayer_bggr8",
@@ -174,7 +174,7 @@ convertImageFormatTestCases = [
         "output": b"\x02\x06\x04\x08\x01\x05\x03\x07\x0a\x0e\x0c\x10\x09\x0d\x0b\x0f",
     },
     {
-        "name": "basic-bayer_bggr8-bayer_ggbr8",
+        "name": "bayer_bggr8-bayer_ggbr8",
         "width": 4,
         "height": 4,
         "i_pix_fmt": "bayer_bggr8",
@@ -199,7 +199,7 @@ convertImageFormatTestCases = [
         "output": b"\x02\x05\x04\x07\x01\x06\x03\x08\x0a\x0d\x0c\x0f\x09\x0e\x0b\x10",
     },
     {
-        "name": "basic-bayer_bggr8-bayer_ggrb8",
+        "name": "bayer_bggr8-bayer_ggrb8",
         "width": 4,
         "height": 4,
         "i_pix_fmt": "bayer_bggr8",
@@ -224,7 +224,7 @@ convertImageFormatTestCases = [
         "output": b"\x02\x05\x04\x07\x06\x01\x08\x03\x0a\x0d\x0c\x0f\x0e\x09\x10\x0b",
     },
     {
-        "name": "basic-bayer_bggr8-bayer_rgbg8",
+        "name": "bayer_bggr8-bayer_rgbg8",
         "width": 4,
         "height": 4,
         "i_pix_fmt": "bayer_bggr8",
@@ -249,7 +249,7 @@ convertImageFormatTestCases = [
         "output": b"\x06\x02\x08\x04\x01\x05\x03\x07\x0e\x0a\x10\x0c\x09\x0d\x0b\x0f",
     },
     {
-        "name": "basic-bayer_bggr8-bayer_bgrg8",
+        "name": "bayer_bggr8-bayer_bgrg8",
         "width": 4,
         "height": 4,
         "i_pix_fmt": "bayer_bggr8",
@@ -275,7 +275,7 @@ convertImageFormatTestCases = [
     },
     # bayer8->bayer16
     {
-        "name": "basic-8x16.be.readable",
+        "name": "bayer_bggr8-bayer_bggr16be",
         "width": 4,
         "height": 4,
         "i_pix_fmt": "bayer_bggr8",
@@ -300,7 +300,7 @@ convertImageFormatTestCases = [
         "output": b"\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08\x00\x09\x00\x0a\x00\x0b\x00\x0c\x00\x0d\x00\x0e\x00\x0f\x00\x10\x00",
     },
     {
-        "name": "basic-8x16.be",
+        "name": "bayer_bggr8-bayer_bggr16be",
         "width": 4,
         "height": 4,
         "i_pix_fmt": "bayer_bggr8",
@@ -325,7 +325,7 @@ convertImageFormatTestCases = [
         "output": b"\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08\x00\x09\x00\x0a\x00\x0b\x00\x0c\x00\x0d\x00\x0e\x00\x0f\x00\x10\x00",
     },
     {
-        "name": "basic-8x16.le",
+        "name": "bayer_bggr8-bayer_bggr16le",
         "width": 4,
         "height": 4,
         "i_pix_fmt": "bayer_bggr8",
@@ -351,7 +351,7 @@ convertImageFormatTestCases = [
     },
     # bayer10->bayer16 (extended)
     {
-        "name": "basic-extended10x16.le",
+        "name": "RG10-bayer_rggb16le",
         "width": 4,
         "height": 4,
         "i_pix_fmt": "RG10",  # SRGGB10
@@ -377,7 +377,7 @@ convertImageFormatTestCases = [
     },
     # bayer10 packed read/write
     {
-        "name": "bayer10-packed.rw",
+        "name": "pRAA-pRAA",
         "width": 4,
         "height": 4,
         "i_pix_fmt": "pRAA",  # SRGGB10P
@@ -403,7 +403,7 @@ convertImageFormatTestCases = [
     },
     # bayer10->bayer16 (packed)
     {
-        "name": "basic-packed10x16.le",
+        "name": "pRAA-bayer_bggr16le",
         "width": 4,
         "height": 4,
         "i_pix_fmt": "pRAA",  # SRGGB10P
@@ -429,7 +429,7 @@ convertImageFormatTestCases = [
     },
     # (c) planar bayer
     {
-        "name": "basic-8x8.planar.1",
+        "name": "bayer_rggb8.planar-bayer_rggb8.planar",
         "width": 4,
         "height": 4,
         "i_pix_fmt": "bayer_rggb8.planar",
@@ -454,7 +454,7 @@ convertImageFormatTestCases = [
         "output": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
     },
     {
-        "name": "basic-8x8.planar.2",
+        "name": "bayer_rggb8.planar-bayer_rggb8",
         "width": 4,
         "height": 4,
         "i_pix_fmt": "bayer_rggb8.planar",
@@ -479,7 +479,7 @@ convertImageFormatTestCases = [
         "output": b"\x01\x05\x02\x06\x09\x0d\x0a\x0e\x03\x07\x04\x08\x0b\x0f\x0c\x10",
     },
     {
-        "name": "basic-8x8.planar.3",
+        "name": "bayer_rggb8-bayer_rggb8.planar",
         "width": 4,
         "height": 4,
         "i_pix_fmt": "bayer_rggb8",
@@ -505,7 +505,7 @@ convertImageFormatTestCases = [
     },
     # bayer10 (extended)
     {
-        "name": "basic-10bit.planar.1",
+        "name": "RG10-RG10",
         "width": 4,
         "height": 4,
         "i_pix_fmt": "RG10",
@@ -530,7 +530,7 @@ convertImageFormatTestCases = [
         "output": b"\x01\x00\x03\x01\x05\x02\x07\x03\x09\x00\x0b\x01\x0d\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
     },
     {
-        "name": "basic-10bit.planar.2",
+        "name": "RG10-RG10.planar",
         "width": 4,
         "height": 4,
         "i_pix_fmt": "RG10",
@@ -555,7 +555,7 @@ convertImageFormatTestCases = [
         "output": b"\x01\x00\x05\x02\x11\x00\x15\x02\x03\x01\x07\x03\x13\x01\x17\x03\x09\x00\x0d\x02\x19\x00\x1d\x02\x0b\x01\x0f\x03\x1b\x01\x1f\x03",
     },
     {
-        "name": "basic-10bit.planar.3",
+        "name": "RG10.planar-RG10",
         "width": 4,
         "height": 4,
         "i_pix_fmt": "RG10.planar",
@@ -580,7 +580,7 @@ convertImageFormatTestCases = [
         "output": b"\x01\x00\x09\x00\x03\x01\x0b\x01\x11\x00\x19\x00\x13\x01\x1b\x01\x05\x02\x0d\x02\x07\x03\x0f\x03\x15\x02\x1d\x02\x17\x03\x1f\x03",
     },
     {
-        "name": "basic-10bit.planar.4",
+        "name": "RG10.planar-RG10.planar",
         "width": 4,
         "height": 4,
         "i_pix_fmt": "RG10.planar",
@@ -607,7 +607,7 @@ convertImageFormatTestCases = [
     # (d) YDgCoCg conversions
     # (d.1) 8-bit
     {
-        "name": "ydgcocg-8bit.planar.1",
+        "name": "ydgcocg8.planar-ydgcocg8.planar-1",
         "width": 4,
         "height": 4,
         "i_pix_fmt": "ydgcocg8.planar",
@@ -647,7 +647,7 @@ convertImageFormatTestCases = [
         "output": b"\x6f\x70\x70\x70\xA0\xB0\xC0\xD0\x00\x10\x20\x30\x70\x70\x70\x70",
     },
     {
-        "name": "rggb8-forward-4x4",
+        "name": "bayer_rggb8-ydgcocg8.planar",
         "width": 4,
         "height": 4,
         "i_pix_fmt": "bayer_rggb8",
@@ -678,7 +678,7 @@ convertImageFormatTestCases = [
         "output": b"\x6f\x70\x70\x70\xA0\xB0\xC0\xD0\x00\x10\x20\x30\x70\x70\x70\x70",
     },
     {
-        "name": "rggb8-reverse-4x4",
+        "name": "bayer_rggb8-ydgcocg8.planar",
         "width": 4,
         "height": 4,
         "i_pix_fmt": "bayer_rggb8",
@@ -712,7 +712,7 @@ convertImageFormatTestCases = [
         "output": b"\x30\x70\x70\x70\xA0\xB0\xC0\xD0\x80\x10\x20\x30\xB0\x70\x70\x70",
     },
     {
-        "name": "rggb8-maxmin-forward.16x4",
+        "name": "bayer_rggb8.planar-ydgcocg8.planar-maxmin",
         "width": 16,
         "height": 4,
         "i_pix_fmt": "bayer_rggb8.planar",
@@ -782,7 +782,7 @@ convertImageFormatTestCases = [
         "output": b"\x00\x3f\x3f\x7e\x3f\x7e\x7e\xbd\x3f\x7e\x7e\xbd\x7e\xbd\xbd\xfc\x80\x80\xff\xff\x00\x00\x80\x80\x80\x80\xff\xff\x00\x00\x80\x80\x80\x00\x80\x00\x80\x00\x80\x00\xff\x80\xff\x80\xff\x80\xff\x80\x80\x40\xbf\x80\xbf\x80\xff\xbf\x40\x01\x80\x40\x80\x40\xbf\x80",
     },
     {
-        "name": "ydgcocg8-maxmin-forward.16x4",
+        "name": "ydgcocg8.planar-bayer_rggb8.planar-maxmin",
         "width": 16,
         "height": 4,
         "i_pix_fmt": "ydgcocg8.planar",
@@ -853,7 +853,7 @@ convertImageFormatTestCases = [
     },
     # (d.2) 10-bit
     {
-        "name": "ydgcocg-10bit.planar.1",
+        "name": "ydgcocg10.planar-ydgcocg10.planar",
         "width": 4,
         "height": 4,
         "i_pix_fmt": "ydgcocg10.planar",
@@ -875,7 +875,7 @@ convertImageFormatTestCases = [
         "output": b"\x01\x00\x03\x01\x05\x02\x07\x03\x09\x00\x0b\x01\x0d\x02\x0f\x03\x11\x00\x13\x01\x15\x02\x17\x03\x19\x00\x1b\x01\x1d\x02\x1f\x03",
     },
     {
-        "name": "ydgcocg8/10-maxmin-16x4",
+        "name": "ydgcocg8.planar-ydgcocg10.planar",
         "width": 16,
         "height": 4,
         "i_pix_fmt": "ydgcocg8.planar",
@@ -915,7 +915,7 @@ convertImageFormatTestCases = [
         "output": b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xfc\x03\xfc\x03\xfc\x03\xfc\x03\xfc\x03\xfc\x03\xfc\x03\xfc\x03\x00\x00\x00\x00\x00\x00\x00\x00\xfc\x03\xfc\x03\xfc\x03\xfc\x03\x00\x00\x00\x00\x00\x00\x00\x00\xfc\x03\xfc\x03\xfc\x03\xfc\x03\x00\x00\x00\x00\xfc\x03\xfc\x03\x00\x00\x00\x00\xfc\x03\xfc\x03\x00\x00\x00\x00\xfc\x03\xfc\x03\x00\x00\x00\x00\xfc\x03\xfc\x03\x00\x00\xfc\x03\x00\x00\xfc\x03\x00\x00\xfc\x03\x00\x00\xfc\x03\x00\x00\xfc\x03\x00\x00\xfc\x03\x00\x00\xfc\x03\x00\x00\xfc\x03",
     },
     {
-        "name": "ydgcocg10/8-maxmin-16x4",
+        "name": "ydgcocg10.planar-ydgcocg8.planar-maxmin",
         "width": 16,
         "height": 4,
         "i_pix_fmt": "ydgcocg10.planar",

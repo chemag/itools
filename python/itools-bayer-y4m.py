@@ -37,6 +37,89 @@ default_values = {
 }
 
 
+class BayerY4M:
+
+    # assuming image size is width: 4 height: 4
+    # bayer (mono): y4m_width, y4m_height = 2, 8
+    @classmethod
+    def convertResolutionInternalToY4M(cls, width, height, y4m_colorspace, pix_fmt):
+        component_type = itools_bayer.get_component_type(pix_fmt)
+        colordepth = itools_bayer.get_depth(pix_fmt)
+        layout = itools_bayer.BAYER_FORMATS[pix_fmt]["layout"]
+        if layout == itools_bayer.LayoutType.packed:
+            colordepth = itools_bayer.get_depth(pix_fmt)
+            y4m_height = height
+            if y4m_colorspace == "mono" and colordepth > 8:
+                # this is a wide-depth signal in an 8-bit container
+                y4m_width = int(width * itools_bayer.get_width_adjustment(pix_fmt))
+            else:
+                y4m_width = width
+        elif layout == itools_bayer.LayoutType.planar:
+            if component_type == itools_bayer.ComponentType.bayer:
+                # bayer planes: 4x, half-width, half-height, vertical layout
+                y4m_width = width >> 1
+                y4m_height = height << 1
+            elif component_type == itools_bayer.ComponentType.ydgcocg:
+                # YDgCoCg planes: 4x, half-width, half-height, vertical layout
+                y4m_width = width >> 1
+                y4m_height = height << 1
+            elif component_type == itools_bayer.ComponentType.rgb:
+                # RGB planes: 3x, full-width, full-height, vertical layout
+                y4m_width = width
+                y4m_height = height * 3
+            elif component_type == itools_bayer.ComponentType.yuv:
+                if itools_common.is_mono_colorspace(y4m_colorspace):
+                    # YUV planes: 3x, full-width, full-height, vertical layout
+                    y4m_width = width
+                    y4m_height = height * 3
+                else:
+                    y4m_width = width
+                    y4m_height = height
+            else:
+                raise AssertionError("error: invalid component type: {component_type}")
+        return y4m_width, y4m_height
+
+    @classmethod
+    def convertResolutionY4MToInternal(
+        cls, y4m_width, y4m_height, y4m_colorspace, pix_fmt
+    ):
+        component_type = itools_bayer.get_component_type(pix_fmt)
+        colordepth = itools_bayer.get_depth(pix_fmt)
+        layout = itools_bayer.BAYER_FORMATS[pix_fmt]["layout"]
+        if layout == itools_bayer.LayoutType.packed:
+            colordepth = itools_bayer.get_depth(pix_fmt)
+            height = y4m_height
+            if y4m_colorspace == "mono" and colordepth > 8:
+                # this is a wide-depth signal in an 8-bit container
+                width = int(y4m_width / itools_bayer.get_width_adjustment(pix_fmt))
+            else:
+                width = y4m_width
+        elif layout == itools_bayer.LayoutType.planar:
+            if component_type == itools_bayer.ComponentType.bayer:
+                # bayer planes: 4x, half-width, half-height, vertical layout
+                width = y4m_width << 1
+                height = y4m_height >> 1
+            elif component_type == itools_bayer.ComponentType.ydgcocg:
+                # YDgCoCg planes: 4x, half-width, half-height, vertical layout
+                width = y4m_width << 1
+                height = y4m_height >> 1
+            elif component_type == itools_bayer.ComponentType.rgb:
+                # RGB planes: 3x, full-width, full-height, vertical layout
+                width = y4m_width
+                height = int(y4m_height / 3)
+            elif component_type == itools_bayer.ComponentType.yuv:
+                if itools_common.is_mono_colorspace(y4m_colorspace):
+                    # YUV planes: 3x, full-width, full-height, vertical layout
+                    width = y4m_width
+                    height = int(y4m_height / 3)
+                else:
+                    width = y4m_width
+                    height = y4m_height
+            else:
+                raise AssertionError("error: invalid component type: {component_type}")
+        return width, height
+
+
 # assume Y4M files with EXTCS metadata
 class BayerY4MReader:
 
@@ -96,27 +179,18 @@ class BayerY4MReader:
         buf_raw = self.y4m_file_reader.read_frame_raw()
         if buf_raw is None:
             return None
-        # plug the buffer into a bayer image
-        width = self.y4m_file_reader.width
-        height = self.y4m_file_reader.height
+        # convert y4m data to internal representation
+        y4m_width = self.y4m_file_reader.width
+        y4m_height = self.y4m_file_reader.height
+        y4m_colorspace = self.y4m_file_reader.colorspace
         pix_fmt = self.y4m_file_reader.extension_dict["EXTCS"]
         pix_fmt = itools_bayer.get_canonical_output_pix_fmt(pix_fmt)
-        colordepth = itools_bayer.get_depth(pix_fmt)
-        infile = self.infile
-        # adjust height/width parameters
-        if self.y4m_file_reader.colorspace == "mono" and colordepth > 8:
-            # this is a wide-depth signal in an 8-bit container
-            width = int(width / itools_bayer.get_width_adjustment(pix_fmt))
-        layout = itools_bayer.BAYER_FORMATS[pix_fmt]["layout"]
-        if layout == itools_bayer.LayoutType.planar:
-            width_factor, height_factor = itools_bayer.BayerImage.GetAspectAdjustment(
-                pix_fmt
-            )
-            width = int(width / width_factor)
-            height = int(height / height_factor)
+        width, height = BayerY4M.convertResolutionY4MToInternal(
+            y4m_width, y4m_height, y4m_colorspace, pix_fmt
+        )
         # create the BayerImage object
         return itools_bayer.BayerImage.FromBuffer(
-            buf_raw, width, height, pix_fmt, infile, debug
+            buf_raw, width, height, pix_fmt, self.infile, debug
         )
 
 
@@ -131,7 +205,7 @@ class BayerY4MWriter:
         width,
         colorspace,
         colorrange,
-        o_pix_fmt,
+        pix_fmt,
         debug=0,
     ):
         # input elements
@@ -141,7 +215,7 @@ class BayerY4MWriter:
         self.width = width
         self.colorspace = colorspace
         self.colorrange = colorrange
-        self.o_pix_fmt = o_pix_fmt
+        self.pix_fmt = pix_fmt
         self.debug = debug
 
     def __del__(self):
@@ -149,46 +223,44 @@ class BayerY4MWriter:
         del self.y4m_file_writer
 
     @classmethod
-    def ToY4MFile(cls, outfile, height, width, colorrange, o_pix_fmt, debug=0):
+    def ToY4MFile(cls, outfile, height, width, colorrange, pix_fmt, debug=0):
         # canonicalize the pixel format
-        o_pix_fmt = itools_bayer.get_canonical_input_pix_fmt(o_pix_fmt)
+        pix_fmt = itools_bayer.get_canonical_input_pix_fmt(pix_fmt)
         # set the colorspace from the pixel format
-        y4m_colorspace = itools_bayer.BAYER_FORMATS[o_pix_fmt].get(
+        y4m_colorspace = itools_bayer.BAYER_FORMATS[pix_fmt].get(
             "y4m", itools_bayer.DEFAULT_Y4M_COLORSPACE
         )
         # create the EXTCS header
-        extension_dict = {"EXTCS": o_pix_fmt}
+        extension_dict = {"EXTCS": pix_fmt}
         # adjust height/width parameters
-        colordepth = itools_bayer.get_depth(o_pix_fmt)
-        if y4m_colorspace == "mono" and colordepth > 8:
-            # this is a wide-depth signal in an 8-bit container
-            width = int(width * itools_bayer.get_width_adjustment(o_pix_fmt))
-        layout = itools_bayer.BAYER_FORMATS[o_pix_fmt]["layout"]
-        if layout == itools_bayer.LayoutType.planar:
-            width_factor, height_factor = itools_bayer.BayerImage.GetAspectAdjustment(
-                o_pix_fmt
-            )
-            width = int(width * width_factor)
-            height = int(height * height_factor)
+        y4m_width, y4m_height = BayerY4M.convertResolutionInternalToY4M(
+            width, height, y4m_colorspace, pix_fmt
+        )
         # create a writer and write the header
         y4m_file_writer = itools_y4m.Y4MFileWriter(
-            height, width, y4m_colorspace, colorrange, outfile, extension_dict, debug
+            y4m_height,
+            y4m_width,
+            y4m_colorspace,
+            colorrange,
+            outfile,
+            extension_dict,
+            debug,
         )
         # create the video object
         return cls(
             outfile,
             y4m_file_writer,
-            height,
-            width,
+            y4m_height,
+            y4m_width,
             y4m_colorspace,
             colorrange,
-            o_pix_fmt,
+            pix_fmt,
             debug,
         )
 
     def AddFrame(self, bayer_image):
         # convert input frame to the write pixel format
-        bayer_image_copy = bayer_image.Copy(self.o_pix_fmt, self.debug)
+        bayer_image_copy = bayer_image.Copy(self.pix_fmt, self.debug)
         # write up to file
         buffer = bayer_image_copy.GetBuffer()
         self.y4m_file_writer.write_frame_raw(buffer)
@@ -270,7 +342,7 @@ def get_options(argv):
     return options
 
 
-def convert_video_file(infile, outfile, o_pix_fmt, debug):
+def convert_video_file(infile, outfile, pix_fmt, debug):
     bayer_video_reader = BayerY4MReader.FromY4MFile(infile, debug)
     bayer_video_writer = None
     num_frames = 0
@@ -285,13 +357,13 @@ def convert_video_file(infile, outfile, o_pix_fmt, debug):
             width = bayer_image.width
             colorrange = bayer_video_reader.y4m_file_reader.input_colorrange
             bayer_video_writer = BayerY4MWriter.ToY4MFile(
-                outfile, height, width, colorrange, o_pix_fmt, debug
+                outfile, height, width, colorrange, pix_fmt, debug
             )
         # write the frame
         bayer_video_writer.AddFrame(bayer_image)
         num_frames += 1
     if debug > 0:
-        print(f"convert {infile=} {outfile=} {o_pix_fmt=} {num_frames=}")
+        print(f"convert {infile=} {outfile=} {pix_fmt=} {num_frames=}")
 
 
 def main(argv):

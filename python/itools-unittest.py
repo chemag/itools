@@ -64,7 +64,7 @@ class TestCase(unittest.TestCase):
                 matched_test_case_list.append(test_case)
         return list(matched_test_case_list)
 
-    # function to compare 2 planar representation
+    # function to compare 2 planar representations
     @classmethod
     def comparePlanar(cls, planar, expected_planar, absolute_tolerance, label):
         assert set(expected_planar.keys()) == set(planar.keys()), "Broken planar output"
@@ -75,6 +75,19 @@ class TestCase(unittest.TestCase):
                 atol=absolute_tolerance,
                 err_msg=f"error on {label} case {key=}",
             )
+
+    # function to compare 2 buffer representations
+    @classmethod
+    def compareBuffer(cls, buffer, expected_buffer, absolute_tolerance, label):
+        assert len(buffer) == len(expected_buffer), f"error on {label} case: wrong size"
+        plane = np.frombuffer(buffer, dtype=np.uint8)
+        expected_plane = np.frombuffer(expected_buffer, dtype=np.uint8)
+        np.testing.assert_allclose(
+            plane,
+            expected_plane,
+            atol=absolute_tolerance,
+            err_msg=f"error on {label} case",
+        )
 
 
 def main(argv):
