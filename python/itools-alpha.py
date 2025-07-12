@@ -85,7 +85,7 @@ def encode_warhol(yarray, colorspace, block_size, debug):
     # a BitStream
     height, width = yarray.shape
     stream = bitstring.BitStream()
-    max_value = itools_common.COLORSPACES[colorspace]["depth"].get_max()
+    max_value = itools_common.Y4M_COLORSPACES[colorspace]["depth"].get_max()
     for i in range(0, height, block_size):
         for j in range(0, width, block_size):
             block = yarray[i : i + block_size, j : j + block_size]
@@ -111,7 +111,7 @@ def decode_warhol(height, width, colorspace, block_size, stream, debug):
     i = 0
     j = 0
     elements = block_size * block_size
-    max_value = itools_common.COLORSPACES[colorspace]["depth"].get_max()
+    max_value = itools_common.Y4M_COLORSPACES[colorspace]["depth"].get_max()
     stats = {k: 0 for k in ["00", "01", "10", "11"]}
     while True:
         # decode the block
@@ -180,7 +180,7 @@ def encode_bitmap(yarray, colorspace, block_size, debug):
     # loop though each block_size block, and add the bits into
     # a BitStream
     height, width = yarray.shape
-    max_value = itools_common.COLORSPACES[colorspace]["depth"].get_max()
+    max_value = itools_common.Y4M_COLORSPACES[colorspace]["depth"].get_max()
     stream = bitstring.BitStream()
     for i in range(0, height, block_size):
         for j in range(0, width, block_size):
@@ -213,7 +213,7 @@ def decode_bitmap(height, width, colorspace, block_size, stream, debug):
     i = 0
     j = 0
     elements = block_size * block_size
-    max_value = itools_common.COLORSPACES[colorspace]["depth"].get_max()
+    max_value = itools_common.Y4M_COLORSPACES[colorspace]["depth"].get_max()
     stats = {k: 0 for k in ["00", "01", "10", "11"]}
     while True:
         # decode the block
@@ -270,7 +270,7 @@ def encode_resolution(codec, yarray, colorspace, block_size, debug):
     # a BitStream
     height, width = yarray.shape
     stream = bitstring.BitStream()
-    depth = itools_common.COLORSPACES[colorspace]["depth"].get_depth()
+    depth = itools_common.Y4M_COLORSPACES[colorspace]["depth"].get_depth()
     max_encoded_value = (1 << codec_depth) - 1
     for i in range(0, height, block_size):
         for j in range(0, width, block_size):
@@ -302,8 +302,8 @@ def decode_resolution(codec, height, width, colorspace, block_size, stream, debu
     i = 0
     j = 0
     elements = block_size * block_size
-    max_value = itools_common.COLORSPACES[colorspace]["depth"].get_max()
-    depth = itools_common.COLORSPACES[colorspace]["depth"].get_depth()
+    max_value = itools_common.Y4M_COLORSPACES[colorspace]["depth"].get_max()
+    depth = itools_common.Y4M_COLORSPACES[colorspace]["depth"].get_depth()
     max_encoded_value = (1 << codec_depth) - 1
     stats = {k: 0 for k in ["00", "01", "10", "11"]}
     while True:

@@ -86,7 +86,7 @@ def do_range_conversion(inarr, srcmin, srcmax, dstmin, dstmax, dt):
 
 
 def luma_range_conversion(ya, colorspace, src, dst):
-    color_depth = itools_common.COLORSPACES[colorspace]["depth"]
+    color_depth = itools_common.Y4M_COLORSPACES[colorspace]["depth"]
     if color_depth == itools_common.ColorDepth.depth_10:
         srcmin, srcmax = (0, 1023) if src.name == "full" else (64, 940)
         dstmin, dstmax = (0, 1023) if dst.name == "full" else (64, 940)
@@ -98,7 +98,7 @@ def luma_range_conversion(ya, colorspace, src, dst):
 
 
 def chroma_range_conversion(va, colorspace, src, dst):
-    color_depth = itools_common.COLORSPACES[colorspace]["depth"]
+    color_depth = itools_common.Y4M_COLORSPACES[colorspace]["depth"]
     if color_depth == itools_common.ColorDepth.depth_10:
         srcmin, srcmax = (0, 1023) if src.name == "full" else (64, 960)
         dstmin, dstmax = (0, 1023) if dst.name == "full" else (64, 960)
@@ -165,7 +165,7 @@ class Y4MFileReader:
             elif key == "C":
                 colorspace = val
                 assert (
-                    colorspace in itools_common.COLORSPACES.keys()
+                    colorspace in itools_common.Y4M_COLORSPACES.keys()
                 ), f"error: invalid colorspace: {colorspace}"
             elif key == "X":
                 key2, val2 = val.split("=")
@@ -188,10 +188,10 @@ class Y4MFileReader:
         self.input_colorrange = itools_common.ColorRange.parse(
             self.extension_dict.get("COLORRANGE")
         )
-        self.chroma_subsample = itools_common.COLORSPACES[self.colorspace][
+        self.chroma_subsample = itools_common.Y4M_COLORSPACES[self.colorspace][
             "chroma_subsample"
         ]
-        self.input_colordepth = itools_common.COLORSPACES[self.colorspace]["depth"]
+        self.input_colordepth = itools_common.Y4M_COLORSPACES[self.colorspace]["depth"]
         if self.debug > 0:
             print(
                 f"debug: y4m frame read with input_colorrange: {self.input_colorrange.name}",
@@ -214,6 +214,36 @@ class Y4MFileReader:
             return self.width * self.height * 3
         raise f"only support 420, 422, 444 colorspaces (not {self.colorspace})"
 
+    @classmethod
+    def get_raw_buffer_size(cls, width, height, chroma_subsample, colordepth):
+        # 2.1. get the number of pixels
+        luma_size_pixels = width * height
+        # process chroma subsampling
+        if chroma_subsample == itools_common.ChromaSubsample.chroma_420:
+            chroma_w_pixels = width >> 1
+            chroma_h_pixels = height >> 1
+        elif chroma_subsample == itools_common.ChromaSubsample.chroma_422:
+            chroma_w_pixels = width >> 1
+            chroma_h_pixels = height
+        elif chroma_subsample == itools_common.ChromaSubsample.chroma_444:
+            chroma_w_pixels = width
+            chroma_h_pixels = height
+        elif chroma_subsample == itools_common.ChromaSubsample.chroma_400:
+            chroma_w_pixels = 0
+            chroma_h_pixels = 0
+        chroma_size_pixels = chroma_w_pixels * chroma_h_pixels
+        # 2.2. get the pixel depth
+        if colordepth == itools_common.ColorDepth.depth_8:
+            dt = np.dtype(np.uint8)
+            luma_size = luma_size_pixels
+            chroma_size = chroma_size_pixels
+        else:
+            dt = np.dtype(np.uint16)
+            luma_size = 2 * luma_size_pixels
+            chroma_size = 2 * chroma_size_pixels
+        total_size = luma_size + 2 * chroma_size
+        return total_size
+
     # returns the next frame, as a raw buffer
     def read_frame_raw(self):
         # 1. read the "FRAME\n" tidbit
@@ -225,33 +255,10 @@ class Y4MFileReader:
             frame_line == FRAME_INDICATOR
         ), f"error: invalid frame indicator: '{frame_line}'"
         # 2. get the exact frame size
-        # 2.1. get the number of pixels
-        luma_size_pixels = self.width * self.height
-        # process chroma subsampling
-        if self.chroma_subsample == itools_common.ChromaSubsample.chroma_420:
-            chroma_w_pixels = self.width >> 1
-            chroma_h_pixels = self.height >> 1
-        elif self.chroma_subsample == itools_common.ChromaSubsample.chroma_422:
-            chroma_w_pixels = self.width >> 1
-            chroma_h_pixels = self.height
-        elif self.chroma_subsample == itools_common.ChromaSubsample.chroma_444:
-            chroma_w_pixels = self.width
-            chroma_h_pixels = self.height
-        elif self.chroma_subsample == itools_common.ChromaSubsample.chroma_400:
-            chroma_w_pixels = 0
-            chroma_h_pixels = 0
-        chroma_size_pixels = chroma_w_pixels * chroma_h_pixels
-        # 2.2. get the pixel depth
-        if self.input_colordepth == itools_common.ColorDepth.depth_8:
-            dt = np.dtype(np.uint8)
-            luma_size = luma_size_pixels
-            chroma_size = chroma_size_pixels
-        else:
-            dt = np.dtype(np.uint16)
-            luma_size = 2 * luma_size_pixels
-            chroma_size = 2 * chroma_size_pixels
+        total_size = self.get_raw_buffer_size(
+            self.width, self.height, self.chroma_subsample, self.input_colordepth
+        )
         # 3. read the exact frame size
-        total_size = luma_size + 2 * chroma_size
         buf = self.fin.read(total_size)
         return buf
 

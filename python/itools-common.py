@@ -147,7 +147,7 @@ MONO_COLORSPACES = [get_mono_colorspace(color_depth) for color_depth in ColorDep
 
 
 # "colorspace"
-COLORSPACES = {
+Y4M_COLORSPACES = {
     "mono": {
         "chroma_subsample": ChromaSubsample.chroma_400,
         "depth": ColorDepth.depth_8,
@@ -277,7 +277,7 @@ def run(command, **kwargs):
 # Algo is very simple (just dup values)
 def chroma_subsample_reverse(in_luma_matrix, in_chroma_matrix, colorspace):
     in_h, in_w = in_chroma_matrix.shape
-    chroma_subsample = COLORSPACES[colorspace]["chroma_subsample"]
+    chroma_subsample = Y4M_COLORSPACES[colorspace]["chroma_subsample"]
     if chroma_subsample == ChromaSubsample.chroma_420:
         out_h = in_h << 1
         out_w = in_w << 1
@@ -311,7 +311,7 @@ def chroma_subsample_reverse(in_luma_matrix, in_chroma_matrix, colorspace):
 # Algo is very simple (just average values)
 def chroma_subsample_direct(in_chroma_matrix, colorspace):
     in_h, in_w = in_chroma_matrix.shape
-    chroma_subsample = COLORSPACES[colorspace]["chroma_subsample"]
+    chroma_subsample = Y4M_COLORSPACES[colorspace]["chroma_subsample"]
     if chroma_subsample == ChromaSubsample.chroma_420:
         out_h = (in_h + 1) >> 1
         out_w = (in_w + 1) >> 1
