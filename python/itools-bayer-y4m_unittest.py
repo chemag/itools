@@ -15,11 +15,11 @@ import shlex
 import string
 import sys
 import tempfile
-import unittest
 
 itools_common = importlib.import_module("itools-common")
 itools_bayer = importlib.import_module("itools-bayer")
 itools_bayer_y4m = importlib.import_module("itools-bayer-y4m")
+itools_unittest = importlib.import_module("itools-unittest")
 
 
 readVideoY4MTestCases = [
@@ -566,48 +566,14 @@ readVideoY4MTestCases = [
 ]
 
 
-class MainTest(unittest.TestCase):
-    def getTestCases(self, test_case_list):
-        global EXPERIMENT_NAME
-        global EXPERIMENT_LIST
-
-        test_case_name_list = [test_case["name"] for test_case in test_case_list]
-        if EXPERIMENT_LIST:
-            print(f"experiment list: {test_case_name_list}")
-            self.skipTest(f"experiment list: {test_case_name_list}")
-
-        elif EXPERIMENT_NAME is not None:
-            try:
-                test_case = next(
-                    test_case
-                    for test_case in test_case_list
-                    if test_case["name"] == EXPERIMENT_NAME
-                )
-            except StopIteration:
-                raise AssertionError(
-                    f'unknown experiment: "{EXPERIMENT_NAME}" list: {test_case_name_list}'
-                )
-            return [
-                test_case,
-            ]
-        else:
-            return test_case_list
-
-    @classmethod
-    def comparePlanar(cls, planar, expected_planar, absolute_tolerance, label):
-        assert set(expected_planar.keys()) == set(planar.keys()), "Broken planar output"
-        for key in expected_planar:
-            np.testing.assert_allclose(
-                planar[key],
-                expected_planar[key],
-                atol=absolute_tolerance,
-                err_msg=f"error on {label} case {key=}",
-            )
+class MainTest(itools_unittest.TestCase):
 
     def testVideoY4M(self):
         """video reading test."""
-        for test_case in self.getTestCases(readVideoY4MTestCases):
-            print("...running forward %s" % test_case["name"])
+        function_name = "testVideoY4M"
+
+        for test_case in self.getTestCases(function_name, readVideoY4MTestCases):
+            print(f"...running forward \"{function_name}.{test_case['name']}\"")
             self.doTestVideoY4M(
                 test_case["name"],
                 test_case["input"],
@@ -622,7 +588,7 @@ class MainTest(unittest.TestCase):
             )
             if test_case.get("avoid_backwards", False):
                 continue
-            print("...running backwards %s" % test_case["name"])
+            print(f"...running backwards \"{function_name}.{test_case['name']}\"")
             self.doTestVideoY4M(
                 test_case["name"],
                 test_case["output"],
@@ -731,21 +697,4 @@ class MainTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    global EXPERIMENT_NAME
-    global EXPERIMENT_LIST
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("test_name", nargs="?", help="Test to run")
-    parser.add_argument("--experiment", type=str)
-    parser.add_argument(
-        "--experiment-list", action="store_true", help="Enable experiment listing"
-    )
-    args, unknown = parser.parse_known_args()
-    EXPERIMENT_NAME = args.experiment
-    EXPERIMENT_LIST = args.experiment_list
-    # clean sys.argv before passing to unittest
-    if args.test_name:
-        sys.argv = [sys.argv[0], args.test_name] + unknown
-    else:
-        sys.argv = [sys.argv[0]] + unknown
-    unittest.main()
+    itools_unittest.main(sys.argv)

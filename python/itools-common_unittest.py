@@ -11,11 +11,12 @@ import math
 import os
 import shlex
 import string
+import sys
 import tempfile
 import numpy as np
-import unittest
 
 itools_common = importlib.import_module("itools-common")
+itools_unittest = importlib.import_module("itools-unittest")
 
 
 chromaSubsampleTestCases = [
@@ -216,7 +217,8 @@ chromaSubsampleTestCases = [
 ]
 
 
-class MainTest(unittest.TestCase):
+class MainTest(itools_unittest.TestCase):
+
     def testChromaSubsample(self):
         """clip_integer_and_scale test."""
         for test_case in chromaSubsampleTestCases:
@@ -266,4 +268,4 @@ class MainTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    itools_unittest.main(sys.argv)

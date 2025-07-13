@@ -15,9 +15,9 @@ import shlex
 import string
 import sys
 import tempfile
-import unittest
 
 itools_bayer = importlib.import_module("itools-bayer")
+itools_unittest = importlib.import_module("itools-unittest")
 
 
 convertImageFormatTestCases = [
@@ -1332,48 +1332,13 @@ convertRg1g2bToRgbTestCases = [
 ]
 
 
-class MainTest(unittest.TestCase):
-    def getTestCases(self, test_case_list):
-        global EXPERIMENT_NAME
-        global EXPERIMENT_LIST
-
-        test_case_name_list = [test_case["name"] for test_case in test_case_list]
-        if EXPERIMENT_LIST:
-            print(f"experiment list: {test_case_name_list}")
-            self.skipTest(f"experiment list: {test_case_name_list}")
-
-        elif EXPERIMENT_NAME is not None:
-            try:
-                test_case = next(
-                    test_case
-                    for test_case in test_case_list
-                    if test_case["name"] == EXPERIMENT_NAME
-                )
-            except StopIteration:
-                raise AssertionError(
-                    f'unknown experiment: "{EXPERIMENT_NAME}" list: {test_case_name_list}'
-                )
-            return [
-                test_case,
-            ]
-        else:
-            return test_case_list
-
-    @classmethod
-    def comparePlanar(cls, planar, expected_planar, absolute_tolerance, label):
-        assert set(expected_planar.keys()) == set(planar.keys()), "Broken planar output"
-        for key in expected_planar:
-            np.testing.assert_allclose(
-                planar[key],
-                expected_planar[key],
-                atol=absolute_tolerance,
-                err_msg=f"error on {label} case {key=}",
-            )
+class MainTest(itools_unittest.TestCase):
 
     def testConvertImageFormat(self):
         """Simplest get_data test."""
-        for test_case in self.getTestCases(convertImageFormatTestCases):
-            print("...running %s" % test_case["name"])
+        function_name = "testConvertImageFormat"
+        for test_case in self.getTestCases(function_name, convertImageFormatTestCases):
+            print(f"...running \"{function_name}.{test_case['name']}\"")
             # prepare input file
             infile = tempfile.NamedTemporaryFile(
                 prefix="itools-bayer_unittest.infile.", suffix=".bin"
@@ -1470,8 +1435,9 @@ class MainTest(unittest.TestCase):
 
     def testProcessColorConversions(self):
         """Test color conversions."""
-        for test_case in self.getTestCases(processColorConversions):
-            print("...running %s" % test_case["name"])
+        function_name = "testProcessColorConversions"
+        for test_case in self.getTestCases(function_name, processColorConversions):
+            print(f"...running \"{function_name}.{test_case['name']}\"")
             # prepare input file
             infile = tempfile.NamedTemporaryFile(
                 prefix="itools-bayer_unittest.", suffix=".bin"
@@ -1518,8 +1484,9 @@ class MainTest(unittest.TestCase):
 
     def testClipIntegerAndScale(self):
         """clip_integer_and_scale test."""
-        for test_case in self.getTestCases(clipIntegerAndScaleTestCases):
-            print("...running %s" % test_case["name"])
+        function_name = "testClipIntegerAndScale"
+        for test_case in self.getTestCases(function_name, clipIntegerAndScaleTestCases):
+            print(f"...running \"{function_name}.{test_case['name']}\"")
             arr = test_case["arr"]
             depth = test_case["depth"]
             expected_clipped_arr = test_case["clipped_arr"]
@@ -1542,8 +1509,11 @@ class MainTest(unittest.TestCase):
 
     def testConvertRg1g2bToYdgcocg(self):
         """convert_rg1g2b_to_ydgcocg test."""
-        for test_case in self.getTestCases(convertRg1g2bToYdgcocgTestCases):
-            print("...running %s" % test_case["name"])
+        function_name = "testConvertRg1g2bToYdgcocg"
+        for test_case in self.getTestCases(
+            function_name, convertRg1g2bToYdgcocgTestCases
+        ):
+            print(f"...running \"{function_name}.{test_case['name']}\"")
             i_pix_fmt = test_case["i_pix_fmt"]
             depth = itools_bayer.get_depth(i_pix_fmt)
             # 1. run RG1G2B to YDgCoCg function
@@ -1579,8 +1549,9 @@ class MainTest(unittest.TestCase):
 
     def testConvertRg1g2bToRgb(self):
         """convert_rg1g2b_to_rgb test."""
-        for test_case in self.getTestCases(convertRg1g2bToRgbTestCases):
-            print(f"...running \"{test_case['name']}\"")
+        function_name = "testConvertRg1g2bToRgb"
+        for test_case in self.getTestCases(function_name, convertRg1g2bToRgbTestCases):
+            print(f"...running \"{function_name}.{test_case['name']}\"")
             i_pix_fmt = test_case["i_pix_fmt"]
             depth = itools_bayer.get_depth(i_pix_fmt)
             # 1. run RG1G2B to RGB function
@@ -1617,21 +1588,4 @@ class MainTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    global EXPERIMENT_NAME
-    global EXPERIMENT_LIST
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("test_name", nargs="?", help="Test to run")
-    parser.add_argument("--experiment", type=str)
-    parser.add_argument(
-        "--experiment-list", action="store_true", help="Enable experiment listing"
-    )
-    args, unknown = parser.parse_known_args()
-    EXPERIMENT_NAME = args.experiment
-    EXPERIMENT_LIST = args.experiment_list
-    # clean sys.argv before passing to unittest
-    if args.test_name:
-        sys.argv = [sys.argv[0], args.test_name] + unknown
-    else:
-        sys.argv = [sys.argv[0]] + unknown
-    unittest.main()
+    itools_unittest.main(sys.argv)
