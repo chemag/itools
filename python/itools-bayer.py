@@ -2252,15 +2252,8 @@ class BayerImage:
             }
         return o_planar
 
-    # factory methods
     @classmethod
-    def FromFile(cls, infile, pix_fmt, width, height, debug=0):
-        # check image resolution
-        assert width % 2 == 0, f"error: only accept images with even width {width=}"
-        assert height % 2 == 0, f"error: only accept images with even height {height=}"
-        # check image pix_fmt
-        pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
-        # get format info
+    def GetBufferSize(cls, pix_fmt, width, height):
         layout = BAYER_FORMATS[pix_fmt]["layout"]
         if layout == LayoutType.packed:
             clen = BAYER_FORMATS[pix_fmt]["clen"]
@@ -2275,7 +2268,18 @@ class BayerImage:
             depth = get_depth(pix_fmt)
             element_size_bytes = 1 if depth == 8 else 2
             expected_size = height * width * element_size_bytes
+        return expected_size
 
+    # factory methods
+    @classmethod
+    def FromFile(cls, infile, pix_fmt, width, height, debug=0):
+        # check image resolution
+        assert width % 2 == 0, f"error: only accept images with even width {width=}"
+        assert height % 2 == 0, f"error: only accept images with even height {height=}"
+        # check image pix_fmt
+        pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
+        # get format info
+        expected_size = cls.GetBufferSize(pix_fmt, height, width)
         # make sure the dimensions are OK
         file_size = os.stat(infile).st_size
         assert (
