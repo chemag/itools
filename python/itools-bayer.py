@@ -1331,18 +1331,20 @@ def get_width_adjustment(pix_fmt):
 
 # 1. color conversions (Bayer-RGB)
 # demosaic image
-def bayer_planar_to_rgb_planar(bayer_planar, depth):
-    order = "RGgB"
+def bayer_planar_to_rgb_planar(bayer_planar, depth, order="RGgB"):
+    if BayerImage.GetComponentType(order) != ComponentType.bayer:
+        order = "RGgB"
     bayer_packed = bayer_planar_to_bayer_packed(bayer_planar, order)
     rgb_cv2_packed = bayer_packed_to_rgb_cv2_packed(bayer_packed, order, depth)
     rgb_planar = rgb_cv2_packed_to_rgb_planar(rgb_cv2_packed)
     return rgb_planar
 
 
-def rgb_planar_to_bayer_planar(rgb_planar, depth):
+def rgb_planar_to_bayer_planar(rgb_planar, depth, order="RGgB"):
     rgb_cv2_packed = rgb_planar_to_rgb_cv2_packed(rgb_planar)
-    bayer_packed = rgb_cv2_packed_to_bayer_packed(rgb_cv2_packed, depth)
-    order = "RGgB"
+    if BayerImage.GetComponentType(order) != ComponentType.bayer:
+        order = "RGgB"
+    bayer_packed = rgb_cv2_packed_to_bayer_packed(rgb_cv2_packed, depth, order)
     bayer_planar = bayer_packed_to_bayer_planar(bayer_packed, order)
     return bayer_planar
 
@@ -1366,28 +1368,44 @@ def bayer_packed_to_rgb_cv2_packed(bayer_packed, order, depth):
     st_dtype = get_dtype(depth)
     bayer_planar = bayer_packed_to_bayer_planar(bayer_packed, order)
     height, width = bayer_planar["R"].shape
-    # demosaic the R plane
-    rplane = np.zeros((height * 2, width * 2), dtype=st_dtype)
-    rmask = np.zeros_like(rplane, dtype=np.uint8)
-    rplane[0::2, 0::2] = bayer_planar["R"]
-    rmask[0::2, 0::2] = 1
-    bayer_plane_r = bayer_plane_demosaic(rplane, rmask)
-    # demosaic the G plane
-    gplane = np.zeros((height * 2, width * 2), dtype=st_dtype)
-    gmask = np.zeros_like(gplane, dtype=np.uint8)
-    gplane[0::2, 1::2] = bayer_planar["G"]
-    gmask[0::2, 1::2] = 1
-    gplane[1::2, 0::2] = bayer_planar["g"]
-    gmask[1::2, 0::2] = 1
-    bayer_plane_g = bayer_plane_demosaic(gplane, gmask)
-    # demosaic the B plane
-    bplane = np.zeros((height * 2, width * 2), dtype=st_dtype)
-    bmask = np.zeros_like(bplane, dtype=np.uint8)
-    bplane[1::2, 1::2] = bayer_planar["B"]
-    bmask[1::2, 1::2] = 1
-    bayer_plane_b = bayer_plane_demosaic(bplane, bmask)
+    row_slices = [
+        slice(0, None, 2),
+        slice(0, None, 2),
+        slice(1, None, 2),
+        slice(1, None, 2),
+    ]
+    col_slices = [
+        slice(0, None, 2),
+        slice(1, None, 2),
+        slice(0, None, 2),
+        slice(1, None, 2),
+    ]
+    # demosaic the r, g, and b plane
+    plane = {}
+    mask = {}
+    bayer_plane = {}
+    for plane_id in list("RGB"):
+        plane[plane_id] = np.zeros((height * 2, width * 2), dtype=st_dtype)
+        mask[plane_id] = np.zeros_like(plane[plane_id], dtype=np.uint8)
+        plane[plane_id][
+            row_slices[order.index(plane_id)], col_slices[order.index(plane_id)]
+        ] = bayer_planar[plane_id]
+        mask[plane_id][
+            row_slices[order.index(plane_id)], col_slices[order.index(plane_id)]
+        ] = 1
+        if plane_id == "G":
+            # use the g component too
+            plane[plane_id][
+                row_slices[order.index("g")], col_slices[order.index("g")]
+            ] = bayer_planar["g"]
+            mask[plane_id][
+                row_slices[order.index("g")], col_slices[order.index("g")]
+            ] = 1
+        bayer_plane[plane_id] = bayer_plane_demosaic(plane[plane_id], mask[plane_id])
     # stack the planes
-    rgb_packed = np.stack([bayer_plane_r, bayer_plane_g, bayer_plane_b], axis=-1)
+    rgb_packed = np.stack(
+        [bayer_plane["R"], bayer_plane["G"], bayer_plane["B"]], axis=-1
+    )
     return rgb_packed
 
 
@@ -1413,21 +1431,42 @@ def bayer_packed_to_rgb_cv2_packed_cv2(bayer_packed, order, depth):
 
 # remosaic image
 # Note: OpenCV does not provide functions to remosaic an image
-def rgb_cv2_packed_to_bayer_packed(rgb_cv2_packed, depth):
+def rgb_cv2_packed_to_bayer_packed(rgb_cv2_packed, depth, order="RGgB"):
     st_dtype = get_dtype(depth)
     height, width, _ = rgb_cv2_packed.shape
     bayer_packed = np.zeros((height, width), dtype=st_dtype)
     # RGGB pattern
-    bayer_packed[0::2, 0::2] = rgb_cv2_packed[0::2, 0::2, 0]  # R
-    bayer_packed[0::2, 1::2] = rgb_cv2_packed[0::2, 1::2, 1]  # G on red row
-    bayer_packed[1::2, 0::2] = rgb_cv2_packed[1::2, 0::2, 1]  # G on blue row
-    bayer_packed[1::2, 1::2] = rgb_cv2_packed[1::2, 1::2, 2]  # B
+    row_slices = [
+        slice(0, None, 2),
+        slice(0, None, 2),
+        slice(1, None, 2),
+        slice(1, None, 2),
+    ]
+    col_slices = [
+        slice(0, None, 2),
+        slice(1, None, 2),
+        slice(0, None, 2),
+        slice(1, None, 2),
+    ]
+    bayer_packed[row_slices[order.index("R")], col_slices[order.index("R")]] = (
+        rgb_cv2_packed[row_slices[order.index("R")], col_slices[order.index("R")], 0]
+    )  # R
+    bayer_packed[row_slices[order.index("G")], col_slices[order.index("G")]] = (
+        rgb_cv2_packed[row_slices[order.index("G")], col_slices[order.index("G")], 1]
+    )  # G on first row
+    bayer_packed[row_slices[order.index("g")], col_slices[order.index("g")]] = (
+        rgb_cv2_packed[row_slices[order.index("g")], col_slices[order.index("g")], 1]
+    )  # G on second row
+    bayer_packed[row_slices[order.index("B")], col_slices[order.index("B")]] = (
+        rgb_cv2_packed[row_slices[order.index("B")], col_slices[order.index("B")], 2]
+    )  # B
     return bayer_packed
 
 
 def rgb_cv2_packed_to_bayer_image(rgb_cv2_packed, pix_fmt):
     depth = get_depth(pix_fmt)
-    bayer_packed = rgb_cv2_packed_to_bayer_packed(rgb_cv2_packed, depth)
+    order = get_order(pix_fmt)
+    bayer_packed = rgb_cv2_packed_to_bayer_packed(rgb_cv2_packed, depth, order)
     return BayerImage.FromBayerPacked(bayer_packed, pix_fmt)
 
 
@@ -1953,7 +1992,9 @@ class BayerImage:
             self.bayer_planar = ydgcocg_planar_to_bayer_planar(
                 self.ydgcocg_planar, self.depth
             )
-            self.rgb_planar = bayer_planar_to_rgb_planar(self.bayer_planar, self.depth)
+            self.rgb_planar = bayer_planar_to_rgb_planar(
+                self.bayer_planar, self.depth, self.order
+            )
         elif self.component_type == ComponentType.yuv:
             self.yuv_planar = self.GetYUVPlanar()
             self.rgb_planar = self.GetRGBPlanar()
@@ -2302,11 +2343,15 @@ class BayerImage:
 
     # converters: Bayer-RGB
     def GetBayerPlanarFromRGBPlanar(self):
-        self.bayer_planar = rgb_planar_to_bayer_planar(self.rgb_planar, self.depth)
+        self.bayer_planar = rgb_planar_to_bayer_planar(
+            self.rgb_planar, self.depth, self.order
+        )
         return self.bayer_planar
 
     def GetRGBPlanarFromBayerPlanar(self):
-        self.rgb_planar = bayer_planar_to_rgb_planar(self.bayer_planar, self.depth)
+        self.rgb_planar = bayer_planar_to_rgb_planar(
+            self.bayer_planar, self.depth, self.order
+        )
         return self.rgb_planar
 
     # converters: Bayer-YDgCoCg
@@ -2353,6 +2398,7 @@ class BayerImage:
         elif i_component_type == ComponentType.yuv:
             i_planar = self.GetYUVPlanar()
         # 2. convert planar to destination depth
+        i_order = get_order(self.pix_fmt)
         i_depth = get_depth(self.pix_fmt)
         o_depth = get_depth(o_pix_fmt)
         o_planar = self.CopyPlanar(i_planar, i_depth, o_depth)
@@ -2367,7 +2413,7 @@ class BayerImage:
             if o_component_type == ComponentType.ydgcocg:
                 o_planar = bayer_planar_to_ydgcocg_planar(o_planar, o_depth)
             else:
-                o_planar = bayer_planar_to_rgb_planar(o_planar, o_depth)
+                o_planar = bayer_planar_to_rgb_planar(o_planar, o_depth, i_order)
                 if o_component_type == ComponentType.rgb:
                     pass
                 elif o_component_type == ComponentType.yuv:
@@ -2377,7 +2423,7 @@ class BayerImage:
             if o_component_type == ComponentType.yuv:
                 o_planar = rgb_planar_to_yuv_planar(o_planar, o_depth)
             else:
-                o_planar = rgb_planar_to_bayer_planar(o_planar, o_depth)
+                o_planar = rgb_planar_to_bayer_planar(o_planar, o_depth, o_order)
                 if o_component_type == ComponentType.bayer:
                     pass
                 elif o_component_type == ComponentType.ydgcocg:
@@ -2388,7 +2434,7 @@ class BayerImage:
             if o_component_type == ComponentType.rgb:
                 pass
             else:
-                o_planar = rgb_planar_to_bayer_planar(o_planar, o_depth)
+                o_planar = rgb_planar_to_bayer_planar(o_planar, o_depth, o_order)
                 if o_component_type == ComponentType.bayer:
                     pass
                 elif o_component_type == ComponentType.ydgcocg:

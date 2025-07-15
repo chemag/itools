@@ -1331,6 +1331,52 @@ convertRg1g2bToRgbTestCases = [
     },
 ]
 
+demosaicTestCases = [
+    {
+        "name": "bayer_rggb8-bayer_rggb8",
+        "i_pix_fmt": "bayer_bggr8",
+        "bayer_packed": np.array(
+            [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]],
+            dtype=np.uint8,
+        ),
+        "bayer_planar": {
+            "B": np.array([[0, 2], [8, 10]], dtype=np.uint8),
+            "G": np.array([[1, 3], [9, 11]], dtype=np.uint8),
+            "g": np.array([[4, 6], [12, 14]], dtype=np.uint8),
+            "R": np.array([[5, 7], [13, 15]], dtype=np.uint8),
+        },
+        "rgb_planar": {
+            "r": np.array(
+                [
+                    [5, 5, 6, 7],
+                    [5, 5, 6, 7],
+                    [9, 9, 10, 11],
+                    [13, 13, 14, 15],
+                ],
+                dtype=np.uint8,
+            ),
+            "g": np.array(
+                [
+                    [2, 1, 2, 3],
+                    [4, 5, 6, 6],
+                    [8, 9, 10, 11],
+                    [12, 12, 14, 12],
+                ],
+                dtype=np.uint8,
+            ),
+            "b": np.array(
+                [
+                    [0, 1, 2, 2],
+                    [4, 5, 6, 6],
+                    [8, 9, 10, 10],
+                    [8, 9, 10, 10],
+                ],
+                dtype=np.uint8,
+            ),
+        },
+    },
+]
+
 
 class MainTest(itools_unittest.TestCase):
 
@@ -1584,6 +1630,60 @@ class MainTest(itools_unittest.TestCase):
                 expected_bayer_planar,
                 absolute_tolerance,
                 f"error on forward case {test_case['name']}",
+            )
+
+    def testDemosaicTestCases(self):
+        """bayer_packed_to_rgb_cv2_packed test."""
+        function_name = "testDemosaicTestCases"
+        for test_case in self.getTestCases(function_name, demosaicTestCases):
+            absolute_tolerance = 1
+            print(f"...running forward \"{function_name}.{test_case['name']}\"")
+            i_pix_fmt = test_case["i_pix_fmt"]
+            depth = itools_bayer.get_depth(i_pix_fmt)
+            # 1.1. read bayer packed
+            bayer_packed = test_case["bayer_packed"]
+            # 1.2. convert to bayer planar
+            order = itools_bayer.get_order(i_pix_fmt)
+            bayer_planar = itools_bayer.bayer_packed_to_bayer_planar(
+                bayer_packed, order
+            )
+            expected_bayer_planar = test_case["bayer_planar"]
+            self.comparePlanar(
+                bayer_planar, expected_bayer_planar, absolute_tolerance, "bayer_planar"
+            )
+            # 1.3. convert to rgb planar
+            rgb_cv2_packed = itools_bayer.bayer_packed_to_rgb_cv2_packed(
+                bayer_packed, order, depth
+            )
+            rgb_planar = itools_bayer.rgb_cv2_packed_to_rgb_planar(rgb_cv2_packed)
+            expected_rgb_planar = test_case["rgb_planar"]
+            self.comparePlanar(
+                rgb_planar, expected_rgb_planar, absolute_tolerance, "rgb_planar"
+            )
+            print(f"...running backward \"{function_name}.{test_case['name']}\"")
+            # 2.1. read rgb planar
+            bayer_packed = test_case["bayer_packed"]
+            rgb_planar = test_case["rgb_planar"]
+            # 2.2. convert to bayer planar
+            bayer_planar = itools_bayer.rgb_planar_to_bayer_planar(
+                rgb_planar, depth, order
+            )
+            expected_bayer_planar = test_case["bayer_planar"]
+            self.comparePlanar(
+                bayer_planar, expected_bayer_planar, absolute_tolerance, "bayer_planar"
+            )
+            # 2.3. convert to bayer packed
+            bayer_packed = itools_bayer.bayer_planar_to_bayer_packed(
+                bayer_planar, order
+            )
+            expected_bayer_packed = test_case["bayer_packed"]
+            dtype = itools_bayer.get_dtype(depth)
+            self.compareBuffer(
+                bayer_packed,
+                expected_bayer_packed,
+                dtype,
+                absolute_tolerance,
+                "bayer_packed",
             )
 
 
