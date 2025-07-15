@@ -1941,8 +1941,19 @@ class BayerImage:
         if self.component_type == ComponentType.rgb and self.buffer is not None:
             self.rgb_planar = self.GetRGBPlanarFromBuffer()
             return self.rgb_planar
-        rgb_cv2_packed = self.GetRGBCV2Packed()
-        self.rgb_planar = rgb_cv2_packed_to_rgb_planar(rgb_cv2_packed)
+        if self.component_type == ComponentType.bayer:
+            rgb_cv2_packed = self.GetRGBCV2Packed()
+            self.rgb_planar = rgb_cv2_packed_to_rgb_planar(rgb_cv2_packed)
+        elif self.component_type == ComponentType.ydgcocg:
+            self.ydgcocg_planar = self.GetYDgCoCgPlanar()
+            self.bayer_planar = ydgcocg_planar_to_bayer_planar(
+                self.ydgcocg_planar, self.depth
+            )
+            self.rgb_planar = bayer_planar_to_rgb_planar(self.bayer_planar, self.depth)
+        elif self.component_type == ComponentType.yuv:
+            self.yuv_planar = self.GetYUVPlanar()
+            self.rgb_planar = self.GetRGBPlanar()
+            self.bayer_planar = self.GetBayerPlanar()
         return self.rgb_planar
 
     def GetRGBCV2Packed(self):
