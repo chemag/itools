@@ -887,6 +887,123 @@ readVideoY4MTestCases = [
         ),
         "output": b"YUV4MPEG2 W4 H12 F25:1 Ip A0:0 Cmono10 XCOLORRANGE=FULL XEXTCS=yuv444p10.mono\nFRAME\n\x55\x01\x13\x01\x30\x01\xf1\x00\xb3\x01\x68\x01\xe9\x01\x13\x01\xb0\x01\xe8\x00\x7b\x01\xc5\x00\x04\x02\xe0\x01\x39\x02\x79\x01\x4f\x03\x6f\x03\x51\x03\x61\x03\x20\x03\x45\x03\xf6\x02\x50\x03\x02\x03\x65\x03\x0d\x03\x57\x03\xba\x02\xcc\x02\x91\x02\xdf\x02\xd4\x00\x2a\x01\x2c\x01\x64\x01\xba\x00\x17\x01\xc3\x00\x7f\x01\xf4\x00\xc0\x01\x5b\x01\xfb\x01\xab\x00\xe6\x00\xb5\x00\x5d\x01",
     },
+    {
+        "name": "rgb8.planar-yuv444p8",
+        "debug": 0,
+        "input": b"YUV4MPEG2 W4 H12 F25:1 Ip A0:0 Cmono XCOLORRANGE=FULL XEXTCS=rgb8.planar\nFRAME\n\x05\x06\x07\x07\x09\x0a\x0b\x0b\x0d\x0e\x0f\x0f\x0d\x0e\x0f\x0f\x02\x01\x02\x03\x04\x05\x06\x06\x08\x09\x0a\x0b\x0c\x0c\x0e\x0c\x00\x00\x01\x02\x00\x00\x01\x02\x04\x04\x05\x06\x08\x08\x09\x0aFRAME\n\x15\x16\x17\x17\x19\x1a\x1b\x1b\x1d\x1e\x1f\x1f\x1d\x1e\x1f\x1f\x12\x11\x12\x13\x14\x15\x16\x16\x18\x19\x1a\x1b\x1c\x1c\x1e\x1c\x10\x10\x11\x12\x10\x10\x11\x12\x14\x14\x15\x16\x18\x18\x19\x1a",
+        "num_frames": 2,
+        "i_pix_fmt": "rgb8.planar",
+        "i_frames": (
+            b"\x05\x06\x07\x07\x09\x0a\x0b\x0b\x0d\x0e\x0f\x0f\x0d\x0e\x0f\x0f\x02\x01\x02\x03\x04\x05\x06\x06\x08\x09\x0a\x0b\x0c\x0c\x0e\x0c\x00\x00\x01\x02\x00\x00\x01\x02\x04\x04\x05\x06\x08\x08\x09\x0a",
+            b"\x15\x16\x17\x17\x19\x1a\x1b\x1b\x1d\x1e\x1f\x1f\x1d\x1e\x1f\x1f\x12\x11\x12\x13\x14\x15\x16\x16\x18\x19\x1a\x1b\x1c\x1c\x1e\x1c\x10\x10\x11\x12\x10\x10\x11\x12\x14\x14\x15\x16\x18\x18\x19\x1a",
+        ),
+        "i_bayer_packed": (
+            np.array(
+                [
+                    [5, 1, 7, 3],
+                    [4, 0, 6, 2],
+                    [13, 9, 15, 11],
+                    [12, 8, 14, 10],
+                ],
+                dtype=np.uint8,
+            ),
+            np.array(
+                [
+                    [21, 17, 23, 19],
+                    [20, 16, 22, 18],
+                    [29, 25, 31, 27],
+                    [28, 24, 30, 26],
+                ],
+                dtype=np.uint8,
+            ),
+        ),
+        "i_rgb_planar": (
+            {
+                "r": np.array(
+                    [
+                        [0x05, 0x06, 0x07, 0x07],
+                        [0x09, 0x0A, 0x0B, 0x0B],
+                        [0x0D, 0x0E, 0x0F, 0x0F],
+                        [0x0D, 0x0E, 0x0F, 0x0F],
+                    ],
+                    dtype=np.uint8,
+                ),
+                "g": np.array(
+                    [
+                        [0x02, 0x01, 0x02, 0x03],
+                        [0x04, 0x05, 0x06, 0x06],
+                        [0x08, 0x09, 0x0A, 0x0B],
+                        [0x0C, 0x0C, 0x0E, 0x0C],
+                    ],
+                    dtype=np.uint8,
+                ),
+                "b": np.array(
+                    [
+                        [0x00, 0x00, 0x01, 0x02],
+                        [0x00, 0x00, 0x01, 0x02],
+                        [0x04, 0x04, 0x05, 0x06],
+                        [0x08, 0x08, 0x09, 0x0A],
+                    ],
+                    dtype=np.uint8,
+                ),
+            },
+            {
+                "r": np.array(
+                    [
+                        [0x15, 0x16, 0x17, 0x17],
+                        [0x19, 0x1A, 0x1B, 0x1B],
+                        [0x1D, 0x1E, 0x1F, 0x1F],
+                        [0x1D, 0x1E, 0x1F, 0x1F],
+                    ],
+                    dtype=np.uint8,
+                ),
+                "g": np.array(
+                    [
+                        [0x12, 0x11, 0x12, 0x13],
+                        [0x14, 0x15, 0x16, 0x16],
+                        [0x18, 0x19, 0x1A, 0x1B],
+                        [0x1C, 0x1C, 0x1E, 0x1C],
+                    ],
+                    dtype=np.uint8,
+                ),
+                "b": np.array(
+                    [
+                        [0x10, 0x10, 0x11, 0x12],
+                        [0x10, 0x10, 0x11, 0x12],
+                        [0x14, 0x14, 0x15, 0x16],
+                        [0x18, 0x18, 0x19, 0x1A],
+                    ],
+                    dtype=np.uint8,
+                ),
+            },
+        ),
+        "o_bayer_packed": (
+            np.array(
+                [
+                    [5, 1, 7, 3],
+                    [4, 0, 6, 2],
+                    [13, 9, 15, 11],
+                    [12, 8, 14, 10],
+                ],
+                dtype=np.uint8,
+            ),
+            np.array(
+                [
+                    [21, 17, 23, 19],
+                    [20, 16, 22, 18],
+                    [29, 25, 31, 27],
+                    [28, 24, 30, 26],
+                ],
+                dtype=np.uint8,
+            ),
+        ),
+        "o_pix_fmt": "yuv444p8",
+        "o_frames": (
+            b"\x03\x02\x03\x04\x05\x06\x07\x07\x09\x0a\x0b\x0c\x0c\x0c\x0e\x0d\x7f\x7f\x7f\x7f\x7e\x7d\x7d\x7e\x7e\x7d\x7d\x7d\x7e\x7e\x7e\x7f\x82\x84\x84\x83\x84\x84\x84\x84\x84\x84\x84\x83\x81\x82\x81\x82",
+            b"\x13\x12\x13\x14\x15\x16\x17\x17\x19\x1a\x1b\x1c\x1c\x1c\x1e\x1d\x7f\x7f\x7f\x7f\x7e\x7d\x7d\x7e\x7e\x7d\x7d\x7d\x7e\x7e\x7e\x7f\x82\x84\x84\x83\x84\x84\x84\x84\x84\x84\x84\x83\x81\x82\x81\x82",
+        ),
+        "output": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 C444 XCOLORRANGE=FULL XEXTCS=yuv444p8\nFRAME\n\x03\x02\x03\x04\x05\x06\x07\x07\x09\x0a\x0b\x0c\x0c\x0c\x0e\x0d\x7f\x7f\x7f\x7f\x7e\x7d\x7d\x7e\x7e\x7d\x7d\x7d\x7e\x7e\x7e\x7f\x82\x84\x84\x83\x84\x84\x84\x84\x84\x84\x84\x83\x81\x82\x81\x82FRAME\n\x13\x12\x13\x14\x15\x16\x17\x17\x19\x1a\x1b\x1c\x1c\x1c\x1e\x1d\x7f\x7f\x7f\x7f\x7e\x7d\x7d\x7e\x7e\x7d\x7d\x7d\x7e\x7e\x7e\x7f\x82\x84\x84\x83\x84\x84\x84\x84\x84\x84\x84\x83\x81\x82\x81\x82",
+    },
 ]
 
 

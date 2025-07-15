@@ -153,15 +153,11 @@ class BayerY4MReader:
             "mono12",
             "mono14",
             "mono16",
-            "yuv420",
-            "yuv420p10",
-            "yuv444",
-            "yuv444p10",
+            "420",
+            "420p10",
+            "444",
+            "444p10",
         ), f"error: invalid y4m colorspace: {self.y4m_file_reader.colorspace}"
-        # TODO(chema): support only mono for now
-        assert (
-            self.y4m_file_reader.colorspace in itools_common.MONO_COLORSPACES
-        ), f"error: unsupported y4m colorspace: {self.y4m_file_reader.colorspace}"
 
     def __del__(self):
         # clean up
