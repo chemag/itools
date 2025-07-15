@@ -394,8 +394,6 @@ readVideoY4MTestCases = [
     # bayer10->ydgcocg10.packed (expanded-packed)
     {
         "name": "RG10-ydgcocg10.packed",
-        # there is a small conversion error
-        "avoid_backwards": True,
         "debug": 0,
         "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono10 XCOLORRANGE=FULL XEXTCS=RG10\nFRAME\n\x00\x00\x00\x01\x40\x00\xC0\x00\x00\x02\xff\x03\x40\x02\xC0\x03\x80\x00\x80\x00\xC0\x00\x40\x00\x80\x02\x80\x03\xC0\x02\x40\x03",
         "i_pix_fmt": "RG10",
@@ -450,25 +448,40 @@ readVideoY4MTestCases = [
     # bayer10->ydgcocg10.planar (expanded-planar)
     {
         "name": "RG10-ydgcocg10.planar",
-        # there is a small conversion error
-        "avoid_backwards": True,
+        "absolute_tolerance": 2,
         "debug": 0,
         "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono10 XCOLORRANGE=FULL XEXTCS=RG10\nFRAME\n\x00\x00\x00\x01\x40\x00\xC0\x00\x00\x02\xff\x03\x40\x02\xC0\x03\x80\x00\x80\x00\xC0\x00\x40\x00\x80\x02\x80\x03\xC0\x02\x40\x03",
         "i_pix_fmt": "RG10",
+        "num_frames": 1,
+        "i_frames": (
+            b"\x00\x00\x00\x01\x40\x00\xc0\x00\x00\x02\xff\x03\x40\x02\xc0\x03\x80\x00\x80\x00\xc0\x00\x40\x00\x80\x02\x80\x03\xc0\x02\x40\x03",
+        ),
+        "i_bayer_planar": (
+            {
+                "R": np.array([[0, 64], [128, 192]], dtype=np.uint16),
+                "G": np.array([[256, 192], [128, 64]], dtype=np.uint16),
+                "g": np.array([[512, 576], [640, 704]], dtype=np.uint16),
+                "B": np.array([[1023, 960], [896, 832]], dtype=np.uint16),
+            },
+        ),
         "i_bayer_packed": (
             np.array(
                 [
-                    [0x000, 0x100, 0x040, 0x0C0],
-                    [0x200, 0x3FF, 0x240, 0x3C0],
-                    [0x080, 0x080, 0x0C0, 0x040],
-                    [0x280, 0x380, 0x2C0, 0x340],
+                    [0, 256, 64, 192],
+                    [512, 1023, 576, 960],
+                    [128, 128, 192, 64],
+                    [640, 896, 704, 832],
                 ],
                 dtype=np.uint16,
             ),
         ),
-        "num_frames": 1,
-        "i_frames": (
-            b"\x00\x00\x00\x01\x40\x00\xc0\x00\x00\x02\xff\x03\x40\x02\xc0\x03\x80\x00\x80\x00\xc0\x00\x40\x00\x80\x02\x80\x03\xc0\x02\x40\x03",
+        "i_ydgcocg_planar": (
+            {
+                "Y": np.array([[447, 448], [448, 448]], dtype=np.uint16),
+                "D": np.array([[640, 704], [768, 832]], dtype=np.uint16),
+                "C": np.array([[0, 64], [128, 192]], dtype=np.uint16),
+                "c": np.array([[448, 448], [448, 448]], dtype=np.uint16),
+            },
         ),
         "o_pix_fmt": "ydgcocg10.planar",
         "o_frames": (
@@ -478,8 +491,7 @@ readVideoY4MTestCases = [
     },
     {
         "name": "ydgcocg10.planar-RG10",
-        # there is a small conversion error
-        "avoid_backwards": True,
+        "absolute_tolerance": 2,
         "debug": 0,
         "input": b"YUV4MPEG2 W2 H8 F25:1 Ip A0:0 Cmono10 XCOLORRANGE=FULL XEXTCS=ydgcocg10.planar\nFRAME\n\xbf\x01\xc0\x01\xc0\x01\xc0\x01\x80\x02\xc0\x02\x00\x03\x40\x03\x00\x00\x40\x00\x80\x00\xc0\x00\xc0\x01\xc0\x01\xc0\x01\xc0\x01",
         "num_frames": 1,
@@ -880,6 +892,8 @@ class MainTest(itools_unittest.TestCase):
                 test_case.get("i_frames", None),
                 test_case.get("i_bayer_packed", None),
                 test_case.get("i_bayer_planar", None),
+                test_case.get("i_ydgcocg_packed", None),
+                test_case.get("i_ydgcocg_planar", None),
                 test_case.get("i_rgb_packed", None),
                 test_case.get("i_rgb_planar", None),
                 test_case.get("i_yuv_planar", None),
@@ -887,6 +901,8 @@ class MainTest(itools_unittest.TestCase):
                 test_case.get("o_frames", None),
                 test_case.get("o_bayer_packed", None),
                 test_case.get("o_bayer_planar", None),
+                test_case.get("o_ydgcocg_packed", None),
+                test_case.get("o_ydgcocg_planar", None),
                 test_case.get("o_rgb_packed", None),
                 test_case.get("o_rgb_planar", None),
                 test_case.get("o_yuv_planar", None),
@@ -904,6 +920,8 @@ class MainTest(itools_unittest.TestCase):
                 test_case.get("o_frames", None),
                 test_case.get("o_bayer_packed", None),
                 test_case.get("o_bayer_planar", None),
+                test_case.get("o_ydgcocg_packed", None),
+                test_case.get("o_ydgcocg_planar", None),
                 test_case.get("o_rgb_packed", None),
                 test_case.get("o_rgb_planar", None),
                 test_case.get("o_yuv_planar", None),
@@ -911,6 +929,8 @@ class MainTest(itools_unittest.TestCase):
                 test_case.get("i_frames", None),
                 test_case.get("i_bayer_packed", None),
                 test_case.get("i_bayer_planar", None),
+                test_case.get("i_ydgcocg_packed", None),
+                test_case.get("i_ydgcocg_planar", None),
                 test_case.get("i_rgb_packed", None),
                 test_case.get("i_rgb_planar", None),
                 test_case.get("i_yuv_planar", None),
@@ -922,9 +942,11 @@ class MainTest(itools_unittest.TestCase):
         self, expected_buffer, bayer_image, absolute_tolerance, test_name, label
     ):
         buffer = bayer_image.GetBuffer()
+        dtype = itools_bayer.get_dtype(bayer_image.depth)
         self.compareBuffer(
             buffer,
             expected_buffer,
+            dtype,
             absolute_tolerance,
             label,
         )
@@ -947,6 +969,28 @@ class MainTest(itools_unittest.TestCase):
         self.comparePlanar(
             bayer_planar,
             expected_bayer_planar,
+            absolute_tolerance,
+            label,
+        )
+
+    def doTestYDgCoCgPacked(
+        self, expected_ydgcocg_packed, bayer_image, absolute_tolerance, test_name, label
+    ):
+        ydgcocg_packed = bayer_image.GetYDgCoCgPacked()
+        np.testing.assert_allclose(
+            ydgcocg_packed,
+            expected_ydgcocg_packed,
+            atol=absolute_tolerance,
+            err_msg=f"error on {label} ydgcocg_packed case {test_name}",
+        )
+
+    def doTestYDgCoCgPlanar(
+        self, expected_ydgcocg_planar, bayer_image, absolute_tolerance, test_name, label
+    ):
+        ydgcocg_planar = bayer_image.GetYDgCoCgPlanar()
+        self.comparePlanar(
+            ydgcocg_planar,
+            expected_ydgcocg_planar,
             absolute_tolerance,
             label,
         )
@@ -990,6 +1034,8 @@ class MainTest(itools_unittest.TestCase):
         test_frames,
         test_bayer_packed,
         test_bayer_planar,
+        test_ydgcocg_packed,
+        test_ydgcocg_planar,
         test_rgb_packed,
         test_rgb_planar,
         test_yuv_planar,
@@ -1022,6 +1068,22 @@ class MainTest(itools_unittest.TestCase):
                 test_name,
                 label,
             )
+        if test_ydgcocg_packed is not None:
+            self.doTestYDgCoCgPacked(
+                test_ydgcocg_packed[frame_id],
+                bayer_image,
+                absolute_tolerance,
+                test_name,
+                label,
+            )
+        if test_ydgcocg_planar is not None:
+            self.doTestYDgCoCgPlanar(
+                test_ydgcocg_planar[frame_id],
+                bayer_image,
+                absolute_tolerance,
+                test_name,
+                label,
+            )
         if test_rgb_packed is not None:
             self.doTestRGBPacked(
                 test_rgb_packed[frame_id],
@@ -1048,7 +1110,7 @@ class MainTest(itools_unittest.TestCase):
             )
 
     def doTestY4MOutputFile(
-        self, expected_output, output, absolute_tolerance, test_name
+        self, expected_output, output, dtype, absolute_tolerance, test_name
     ):
         if absolute_tolerance == 0:
             self.assertEqual(
@@ -1071,6 +1133,7 @@ class MainTest(itools_unittest.TestCase):
             self.compareBuffer(
                 frames[i],
                 expected_frames[i],
+                dtype,
                 absolute_tolerance,
                 f"output file test {test_name}",
             )
@@ -1084,6 +1147,8 @@ class MainTest(itools_unittest.TestCase):
         test_i_frames,
         test_i_bayer_packed,
         test_i_bayer_planar,
+        test_i_ydgcocg_packed,
+        test_i_ydgcocg_planar,
         test_i_rgb_packed,
         test_i_rgb_planar,
         test_i_yuv_planar,
@@ -1091,6 +1156,8 @@ class MainTest(itools_unittest.TestCase):
         test_o_frames,
         test_o_bayer_packed,
         test_o_bayer_planar,
+        test_o_ydgcocg_packed,
+        test_o_ydgcocg_planar,
         test_o_rgb_packed,
         test_o_rgb_planar,
         test_o_yuv_planar,
@@ -1119,6 +1186,8 @@ class MainTest(itools_unittest.TestCase):
                 test_i_frames,
                 test_i_bayer_packed,
                 test_i_bayer_planar,
+                test_i_ydgcocg_packed,
+                test_i_ydgcocg_planar,
                 test_i_rgb_packed,
                 test_i_rgb_planar,
                 test_i_yuv_planar,
@@ -1145,6 +1214,8 @@ class MainTest(itools_unittest.TestCase):
                 test_o_frames,
                 test_o_bayer_packed,
                 test_o_bayer_planar,
+                test_o_ydgcocg_packed,
+                test_o_ydgcocg_planar,
                 test_o_rgb_packed,
                 test_o_rgb_planar,
                 test_o_yuv_planar,
@@ -1155,6 +1226,7 @@ class MainTest(itools_unittest.TestCase):
             )
 
         # ensure no more frames to read
+        dtype = itools_bayer.get_dtype(bayer_image.depth)
         bayer_image = bayer_video_reader.GetFrame()
         assert bayer_image is None, f"error: found added frames"
         del bayer_video_writer
@@ -1163,7 +1235,9 @@ class MainTest(itools_unittest.TestCase):
             output = f.read()
         # check the values
         expected_output = test_output
-        self.doTestY4MOutputFile(expected_output, output, absolute_tolerance, test_name)
+        self.doTestY4MOutputFile(
+            expected_output, output, dtype, absolute_tolerance, test_name
+        )
 
 
 if __name__ == "__main__":

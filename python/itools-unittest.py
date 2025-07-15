@@ -78,10 +78,10 @@ class TestCase(unittest.TestCase):
 
     # function to compare 2 buffer representations
     @classmethod
-    def compareBuffer(cls, buffer, expected_buffer, absolute_tolerance, label):
+    def compareBuffer(cls, buffer, expected_buffer, dtype, absolute_tolerance, label):
         assert len(buffer) == len(expected_buffer), f"error on {label} case: wrong size"
-        plane = np.frombuffer(buffer, dtype=np.uint8)
-        expected_plane = np.frombuffer(expected_buffer, dtype=np.uint8)
+        plane = np.frombuffer(buffer, dtype=dtype)
+        expected_plane = np.frombuffer(expected_buffer, dtype=dtype)
         np.testing.assert_allclose(
             plane,
             expected_plane,
