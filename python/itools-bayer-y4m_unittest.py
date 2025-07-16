@@ -1004,6 +1004,100 @@ readVideoY4MTestCases = [
         ),
         "output": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 C444 XCOLORRANGE=FULL XEXTCS=yuv444p8\nFRAME\n\x03\x02\x03\x04\x05\x06\x07\x07\x09\x0a\x0b\x0c\x0c\x0c\x0e\x0d\x7f\x7f\x7f\x7f\x7e\x7d\x7d\x7e\x7e\x7d\x7d\x7d\x7e\x7e\x7e\x7f\x82\x84\x84\x83\x84\x84\x84\x84\x84\x84\x84\x83\x81\x82\x81\x82FRAME\n\x13\x12\x13\x14\x15\x16\x17\x17\x19\x1a\x1b\x1c\x1c\x1c\x1e\x1d\x7f\x7f\x7f\x7f\x7e\x7d\x7d\x7e\x7e\x7d\x7d\x7d\x7e\x7e\x7e\x7f\x82\x84\x84\x83\x84\x84\x84\x84\x84\x84\x84\x83\x81\x82\x81\x82",
     },
+    {
+        "name": "yuv444p8-yuv420p8",
+        "debug": 0,
+        "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 C444 XCOLORRANGE=FULL XEXTCS=yuv444p8\nFRAME\n\x03\x02\x03\x04\x05\x06\x07\x07\x09\x0a\x0b\x0c\x0c\x0c\x0e\x0d\x7f\x7f\x7f\x7f\x7e\x7d\x7d\x7e\x7e\x7d\x7d\x7d\x7e\x7e\x7e\x7f\x82\x84\x84\x83\x84\x84\x84\x84\x84\x84\x84\x83\x81\x82\x81\x82",
+        "num_frames": 1,
+        "absolute_tolerance": 4,
+        "i_pix_fmt": "yuv444p8",
+        "i_frames": (
+            b"\x03\x02\x03\x04\x05\x06\x07\x07\x09\x0a\x0b\x0c\x0c\x0c\x0e\x0d\x7f\x7f\x7f\x7f\x7e\x7d\x7d\x7e\x7e\x7d\x7d\x7d\x7e\x7e\x7e\x7f\x82\x84\x84\x83\x84\x84\x84\x84\x84\x84\x84\x83\x81\x82\x81\x82",
+        ),
+        "i_bayer_packed": (
+            np.array(
+                [
+                    [5, 1, 7, 3],
+                    [4, 0, 6, 2],
+                    [13, 9, 15, 11],
+                    [12, 8, 14, 10],
+                ],
+                dtype=np.uint8,
+            ),
+            np.array(
+                [
+                    [21, 17, 23, 19],
+                    [20, 16, 22, 18],
+                    [29, 25, 31, 27],
+                    [28, 24, 30, 26],
+                ],
+                dtype=np.uint8,
+            ),
+        ),
+        "i_yuv_planar": (
+            {
+                "y": np.array(
+                    [
+                        [3, 2, 3, 4],
+                        [5, 6, 7, 7],
+                        [9, 10, 11, 12],
+                        [12, 12, 14, 13],
+                    ],
+                    dtype=np.uint8,
+                ),
+                "u": np.array(
+                    [
+                        [127, 127, 127, 127],
+                        [126, 125, 125, 126],
+                        [126, 125, 125, 125],
+                        [126, 126, 126, 127],
+                    ],
+                    dtype=np.uint8,
+                ),
+                "v": np.array(
+                    [
+                        [130, 132, 132, 131],
+                        [132, 132, 132, 132],
+                        [132, 132, 132, 131],
+                        [129, 130, 129, 130],
+                    ],
+                    dtype=np.uint8,
+                ),
+            },
+        ),
+        "o_pix_fmt": "yuv420p8",
+        "o_frames": (
+            b"\x03\x02\x03\x04\x05\x06\x07\x07\x09\x0a\x0b\x0c\x0c\x0c\x0e\x0d\x7e\x7e\x7d\x7d\x83\x83\x82\x82",
+        ),
+        "o_yuv_planar": (
+            {
+                "y": np.array(
+                    [
+                        [3, 2, 3, 4],
+                        [5, 6, 7, 7],
+                        [9, 10, 11, 12],
+                        [12, 12, 14, 13],
+                    ],
+                    dtype=np.uint8,
+                ),
+                "u": np.array(
+                    [
+                        [127, 127],
+                        [126, 125],
+                    ],
+                    dtype=np.uint8,
+                ),
+                "v": np.array(
+                    [
+                        [130, 132],
+                        [132, 132],
+                    ],
+                    dtype=np.uint8,
+                ),
+            },
+        ),
+        "output": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 C420 XCOLORRANGE=FULL XEXTCS=yuv420p8\nFRAME\n\x03\x02\x03\x04\x05\x06\x07\x07\x09\x0a\x0b\x0c\x0c\x0c\x0e\x0d\x7e\x7e\x7d\x7d\x83\x83\x82\x82",
+    },
 ]
 
 
@@ -1042,6 +1136,28 @@ convertRawImageFileTestCases = [
         "output": b"YUV4MPEG2 W4 H12 F25:1 Ip A0:0 Cmono XCOLORRANGE=FULL XEXTCS=yuv444p8.mono\nFRAME\n\x03\x02\x03\x04\x05\x06\x07\x07\x09\x0a\x0b\x0c\x0c\x0c\x0e\x0d\x81\x82\x82\x82\x80\x80\x80\x80\x80\x80\x80\x80\x81\x81\x80\x81\x7e\x80\x80\x7f\x80\x80\x80\x80\x80\x80\x80\x7f\x7d\x7e\x7d\x7e",
     },
     {
+        "name": "bayer_rggb8-yuv420p8",
+        "debug": 0,
+        "width": 4,
+        "height": 4,
+        "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
+        "i_pix_fmt": "bayer_rggb8",
+        "colorrange": itools_common.ColorRange.full,
+        "o_pix_fmt": "yuv420p8",
+        "output": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 C420 XCOLORRANGE=FULL XEXTCS=yuv420p8\nFRAME\n\x03\x02\x03\x04\x05\x06\x07\x07\x09\x0a\x0b\x0c\x0c\x0c\x0e\x0d\x80\x81\x80\x80\x7f\x7f\x7e\x7e",
+    },
+    {
+        "name": "bayer_rggb8-yuv420p8.mono",
+        "debug": 0,
+        "width": 4,
+        "height": 4,
+        "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
+        "i_pix_fmt": "bayer_rggb8",
+        "colorrange": itools_common.ColorRange.full,
+        "o_pix_fmt": "yuv420p8.mono",
+        "output": b"YUV4MPEG2 W4 H6 F25:1 Ip A0:0 Cmono XCOLORRANGE=FULL XEXTCS=yuv420p8.mono\nFRAME\n\x03\x02\x03\x04\x05\x06\x07\x07\x09\x0a\x0b\x0c\x0c\x0c\x0e\x0d\x80\x81\x80\x80\x7f\x7f\x7e\x7e",
+    },
+    {
         "name": "bayer_rggb8-rgb8.planar",
         "debug": 0,
         "width": 4,
@@ -1073,7 +1189,7 @@ class MainTest(itools_unittest.TestCase):
         function_name = "testVideoY4M"
 
         for test_case in self.getTestCases(function_name, readVideoY4MTestCases):
-            print(f"...running forward \"{function_name}.{test_case['name']}\"")
+            print(f". running forward \"{function_name}.{test_case['name']}\"")
             self.doTestVideoY4M(
                 test_case["name"],
                 test_case.get("absolute_tolerance", DEFAULT_ABSOLUTE_TOLERANCE),
@@ -1101,7 +1217,7 @@ class MainTest(itools_unittest.TestCase):
             )
             if test_case.get("avoid_backwards", False):
                 continue
-            print(f"...running backwards \"{function_name}.{test_case['name']}\"")
+            print(f". running backwards \"{function_name}.{test_case['name']}\"")
             self.doTestVideoY4M(
                 test_case["name"],
                 test_case.get("absolute_tolerance", DEFAULT_ABSOLUTE_TOLERANCE),
@@ -1138,7 +1254,7 @@ class MainTest(itools_unittest.TestCase):
             expected_buffer,
             dtype,
             absolute_tolerance,
-            label,
+            f"{label} buffer",
         )
 
     def doTestBayerPacked(

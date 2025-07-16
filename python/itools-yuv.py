@@ -69,7 +69,7 @@ def read_yuv(infile, iinfo, cleanup, logfd, debug):
     ou = outu_full[0:height, 0:width]
     ov = outv_full[0:height, 0:width]
     # stack components
-    outyvu = np.stack((oy, ov, ou), axis=2)
+    outyvu = itools_common.yuv_planar_to_yuv_cv2(oy, ou, ov)
     status = {
         "colorrange": iinfo.colorrange,
     }

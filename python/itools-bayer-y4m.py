@@ -43,6 +43,23 @@ default_values = {
 
 class BayerY4M:
 
+    @classmethod
+    def GetY4MMonoResolution(cls, width, height, pix_fmt):
+        subsample = itools_bayer.get_subsample(pix_fmt)
+        if subsample == itools_common.ChromaSubsample.chroma_444:
+            y4m_width = width
+            y4m_height = height * 3
+        elif subsample == itools_common.ChromaSubsample.chroma_422:
+            y4m_width = width
+            y4m_height = height * 2
+        elif subsample == itools_common.ChromaSubsample.chroma_420:
+            y4m_width = width
+            y4m_height = int(height * 1.5)
+        elif subsample == itools_common.ChromaSubsample.chroma_400:
+            y4m_width = width
+            y4m_height = height
+        return y4m_width, y4m_height
+
     # assuming image size is width: 4 height: 4
     # bayer (mono): y4m_width, y4m_height = 2, 8
     @classmethod
@@ -73,9 +90,10 @@ class BayerY4M:
                 y4m_height = height * 3
             elif component_type == itools_bayer.ComponentType.yuv:
                 if itools_common.is_mono_colorspace(y4m_colorspace):
-                    # YUV planes: 3x, full-width, full-height, vertical layout
-                    y4m_width = width
-                    y4m_height = height * 3
+                    # YUV planes: 3x, vertical layout
+                    y4m_width, y4m_height = cls.GetY4MMonoResolution(
+                        width, height, pix_fmt
+                    )
                 else:
                     y4m_width = width
                     y4m_height = height
@@ -170,15 +188,19 @@ class BayerY4MReader:
     @classmethod
     def FromY4MFile(cls, infile, debug=0):
         # read the video header
-        y4m_file_reader = itools_y4m.Y4MFileReader(
-            infile, output_colorrange=None, debug=debug
-        )
+        y4m_file_reader = itools_y4m.Y4MFileReader(infile, colorrange=None, debug=debug)
         return cls(infile, y4m_file_reader, debug)
 
     def GetFrame(self, debug=0):
-        buf_raw = self.y4m_file_reader.read_frame_raw()
-        if buf_raw is None:
+        ya, va, ua = self.y4m_file_reader.read_frame_planes()
+        if ya is None:
             return None
+        # convert y4m data to internal representation
+        buffer = (
+            ya.tobytes()
+            + (b"" if ua is None else ua.tobytes())
+            + (b"" if va is None else va.tobytes())
+        )
         # convert y4m data to internal representation
         y4m_width = self.y4m_file_reader.width
         y4m_height = self.y4m_file_reader.height
@@ -190,7 +212,7 @@ class BayerY4MReader:
         )
         # create the BayerImage object
         return itools_bayer.BayerImage.FromBuffer(
-            buf_raw, width, height, pix_fmt, self.infile, debug
+            buffer, width, height, pix_fmt, self.infile, debug
         )
 
 
@@ -261,9 +283,10 @@ class BayerY4MWriter:
     def AddFrame(self, bayer_image):
         # convert input frame to the write pixel format
         bayer_image_copy = bayer_image.Copy(self.pix_fmt, self.debug)
-        # write up to file
+        # get the image buffer
         buffer = bayer_image_copy.GetBuffer()
-        self.y4m_file_writer.write_frame_raw(buffer)
+        # write the image buffer to the file
+        self.y4m_file_writer._write_frame_raw(buffer)
         return bayer_image_copy
 
 
@@ -438,19 +461,15 @@ def convert_raw_image_file(
     bayer_image = itools_bayer.BayerImage.FromFile(
         infile, i_pix_fmt, width, height, debug, strict_size_check=False
     )
-
     # 2. convert image to new pixel format
     bayer_image_copy = bayer_image.Copy(o_pix_fmt, debug)
-
     # 3. create the writer
     height = bayer_image_copy.height
-    width = bayer_image.width
+    width = bayer_image_copy.width
     bayer_video_writer = BayerY4MWriter.ToY4MFile(
         outfile, height, width, colorrange, o_pix_fmt, debug
     )
-
     # 4. write converted image into output file
-    bayer_image_copy.ToFile(outfile, debug)
     bayer_video_writer.AddFrame(bayer_image_copy)
 
 

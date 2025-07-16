@@ -137,7 +137,7 @@ def get_components(infile, roi, roi_dump, config_dict, cleanup, logfd, debug):
     row += status.values()
     df.loc[df.size] = row
     if roi_dump is not None:
-        outyvu = np.stack((yd, vd, ud), axis=2)
+        outyvu = itools_common.yuv_planar_to_yuv_cv2(yd, ud, vd)
         itools_y4m.write_y4m_image(roi_dump, outyvu, colorspace="444")
 
     return df

@@ -209,7 +209,7 @@ class MainTest(itools_unittest.TestCase):
             ).name
             # open input file
             y4m_file_reader = itools_y4m.Y4MFileReader(
-                infile, output_colorrange=None, debug=debug
+                infile, colorrange=None, debug=debug
             )
             # open output file
             y4m_height = y4m_file_reader.height
@@ -222,7 +222,6 @@ class MainTest(itools_unittest.TestCase):
                 y4m_colorspace,
                 y4m_colorrange,
                 outfile,
-                extension_dict=None,
                 debug=debug,
             )
 

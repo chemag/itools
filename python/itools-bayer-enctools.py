@@ -272,7 +272,9 @@ def read_bayer_image(infile, pix_fmt, width, height, debug):
 
 # debug functions
 def yuv_planar_to_opencv_yvu(yuv_planar):
-    plane_yvu = np.stack((yuv_planar["y"], yuv_planar["v"], yuv_planar["u"]), axis=-1)
+    plane_yvu = itools_common.yuv_planar_to_yuv_cv2(
+        yuv_planar["y"], yuv_planar["u"], yuv_planar["v"]
+    )
     return plane_yvu
 
 
@@ -832,8 +834,10 @@ def process_file_yuv420_array(
             yuv_planar, f"experiment_{experiment}.yuv_planar", depth
         )
 
-    # 3. subsample the chromas
-    yuv_subsampled_planar = itools_bayer.yuv_subsample_planar(yuv_planar)
+    # 3. subsample the chromas to 4:2:0
+    yuv_subsampled_planar = itools_bayer.yuv_subsample_planar(
+        yuv_planar, itools_common.ChromaSubsample.chroma_420
+    )
 
     for quality in quality_list:
         if debug > 1:
@@ -844,7 +848,9 @@ def process_file_yuv420_array(
         )
 
         # 5. upsample the chromas
-        yuv_planar_prime = itools_bayer.yuv_upsample_planar(yuv_subsampled_planar_prime)
+        yuv_planar_prime = itools_bayer.yuv_upsample_planar(
+            yuv_subsampled_planar_prime, itools_common.ChromaSubsample.chroma_420
+        )
         if debug > 1:
             write_yuv_planar_to_y4m(
                 yuv_planar,

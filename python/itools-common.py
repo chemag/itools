@@ -381,6 +381,34 @@ def chroma_subsample_direct(ca_full, chroma_subsample):
     return ca
 
 
+def planar_upsample(ya, ua, va, chroma_subsample):
+    height, width = ya.shape
+    dtype = ya.dtype
+    ua_full = chroma_subsample_reverse(ua, height, width, dtype, chroma_subsample)
+    va_full = chroma_subsample_reverse(va, height, width, dtype, chroma_subsample)
+    return ya, ua_full, va_full
+
+
+def planar_subsample(ya, ua_full, va_full, chroma_subsample):
+    ua = chroma_subsample_direct(ua_full, chroma_subsample)
+    va = chroma_subsample_direct(va_full, chroma_subsample)
+    return ya, ua, va
+
+
+# planar/cv2 conversion
+def yuv_cv2_to_yuv_planar(outyvu):
+    ya = outyvu[:, :, 0]
+    ua = outyvu[:, :, 2]
+    va = outyvu[:, :, 1]
+    return ya, ua, va
+
+
+def yuv_planar_to_yuv_cv2(ya, ua, va):
+    outyvu = np.stack((ya, va, ua), axis=2)
+    # note that OpenCV conversions use YCrCb (YVU) instead of YCbCr (YUV)
+    return outyvu
+
+
 # PSNR calculation
 def calculate_psnr(obj1, obj2, depth, use_infinity):
     if type(obj1) == dict and type(obj2) == dict:

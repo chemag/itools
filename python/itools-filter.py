@@ -553,7 +553,7 @@ def diff_images(
         vd = apply_vval(diff_yvu_sign).astype(np.uint8)[:, :, 0]
 
     # combine the diff color components
-    outyvu = np.stack((yd, vd, ud), axis=2)
+    outyvu = itools_common.yuv_planar_to_yuv_cv2(yd, ud, vd)
     outbgr = cv2.cvtColor(outyvu, cv2.COLOR_YCrCb2BGR)
     # write the output image
     colorrange = itools_common.ColorRange.full

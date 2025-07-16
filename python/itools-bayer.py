@@ -1635,25 +1635,46 @@ def yuv_planar_to_yuv_cv2_packed(yuv_planar):
 
 
 # 5. upsample/downsample conversions
-def upsample_matrix(arr, shape):
-    upsampled_array = np.repeat(np.repeat(arr, 2, axis=0), 2, axis=1)
-    height, width = shape
-    return upsampled_array[:height, :width]
-
-
-def yuv_subsample_planar(yuv_planar):
-    yuv_subsampled_planar = yuv_planar.copy()
-    yuv_subsampled_planar["u"] = yuv_subsampled_planar["u"][::2, ::2]
-    yuv_subsampled_planar["v"] = yuv_subsampled_planar["v"][::2, ::2]
+def yuv_subsample_planar(yuv_planar, chroma_subsample):
+    ya = yuv_planar["y"]
+    ua_full = yuv_planar["u"]
+    va_full = yuv_planar["v"]
+    ya, ua, va = itools_common.planar_subsample(ya, ua_full, va_full, chroma_subsample)
+    yuv_subsampled_planar = {
+        "y": ya,
+        "u": ua,
+        "v": va,
+    }
     return yuv_subsampled_planar
 
 
-def yuv_upsample_planar(yuv_subsampled_planar):
-    yuv_planar = yuv_subsampled_planar.copy()
-    original_shape = yuv_planar["y"].shape
-    yuv_planar["u"] = upsample_matrix(yuv_planar["u"], original_shape)
-    yuv_planar["v"] = upsample_matrix(yuv_planar["v"], original_shape)
+def yuv_upsample_planar(yuv_subsampled_planar, chroma_subsample):
+    ya = yuv_subsampled_planar["y"]
+    ua = yuv_subsampled_planar["u"]
+    va = yuv_subsampled_planar["v"]
+    ya, ua_full, va_full = itools_common.planar_upsample(ya, ua, va, chroma_subsample)
+    yuv_planar = {
+        "y": ya,
+        "u": ua_full,
+        "v": va_full,
+    }
     return yuv_planar
+
+
+def planar_upsample(planar, i_pix_fmt):
+    i_subsample = get_subsample(i_pix_fmt)
+    i_component_type = get_component_type(i_pix_fmt)
+    if i_component_type == ComponentType.yuv:
+        return yuv_upsample_planar(planar, i_subsample)
+    raise AssertionError(f"error: invalid planar_upsample: {i_pix_fmt=}")
+
+
+def planar_subsample(planar, i_pix_fmt):
+    i_subsample = get_subsample(i_pix_fmt)
+    i_component_type = get_component_type(i_pix_fmt)
+    if i_component_type == ComponentType.yuv:
+        return yuv_subsample_planar(planar, i_subsample)
+    raise AssertionError(f"error: invalid planar_subsample: {i_pix_fmt=}")
 
 
 # 6. matrix clip/unclip functions
@@ -1868,24 +1889,9 @@ class BayerImage:
                 self.bayer_packed = self.GetBayerPackedFromBayerPlanar()
             else:
                 raise AssertionError("error: invalid RGGB BayerImage")
-        elif self.IsYDgCoCg(self.order):
-            # BGGR<->YDgCoCg conversion always through planar
-            self.ydgcocg_planar = self.GetYDgCoCgPlanar()
-            self.bayer_planar = self.GetBayerPlanarFromYDgCoCgPlanar()
-            self.bayer_packed = self.GetBayerPackedFromBayerPlanar()
-        elif self.IsRGB(self.order):
-            # BGGR<->RGB conversion always through planar
-            self.rgb_planar = self.GetRGBPlanar()
-            self.bayer_planar = self.GetBayerPlanarFromRGBPlanar()
-            self.bayer_packed = self.GetBayerPackedFromBayerPlanar()
-        elif self.IsYUV(self.order):
-            # BGGR<->YUV conversion always through RGB planar
-            self.yuv_planar = self.GetYUVPlanar()
-            self.rgb_planar = yuv_planar_to_rgb_planar(self.yuv_planar, self.depth)
-            self.bayer_planar = self.GetBayerPlanarFromRGBPlanar()
-            self.bayer_packed = self.GetBayerPackedFromBayerPlanar()
         else:
-            raise AssertionError(f"error: invalid BayerImage order ({self.order})")
+            self.bayer_planar = self.GetBayerPlanar()
+            self.bayer_packed = self.GetBayerPackedFromBayerPlanar()
         return self.bayer_packed
 
     def GetBayerPlanar(self):
@@ -1902,17 +1908,10 @@ class BayerImage:
             # BGGR<->YDgCoCg conversion always through planar
             self.ydgcocg_planar = self.GetYDgCoCgPlanar()
             self.bayer_planar = self.GetBayerPlanarFromYDgCoCgPlanar()
-        elif self.IsRGB(self.order):
-            # BGGR<->RGB conversion always through planar
-            self.rgb_planar = self.GetRGBPlanar()
-            self.bayer_planar = self.GetBayerPlanarFromRGBPlanar()
-        elif self.IsYUV(self.order):
-            # BGGR<->YUV conversion always through planar and RGB
-            self.yuv_planar = self.GetYUVPlanar()
-            self.rgb_planar = self.GetRGBPlanar()
-            self.bayer_planar = self.GetBayerPlanarFromRGBPlanar()
         else:
-            raise AssertionError(f"error: invalid BayerImage order ({self.order})")
+            # BGGR<->RGB and BGGR<->YUV conversions always through RGB planar
+            self.rgb_planar = self.GetRGBPlanar()
+            self.bayer_planar = self.GetBayerPlanarFromRGBPlanar()
         return self.bayer_planar
 
     def GetYDgCoCgPlanar(self):
@@ -1925,22 +1924,11 @@ class BayerImage:
                 self.ydgcocg_planar = self.GetYDgCoCgPlanarFromYDgCoCgPacked()
             else:
                 raise AssertionError("error: invalid YDgCoCg BayerImage")
-        elif self.IsBayer(self.order):
+        else:
+            # all conversions go through Bayer
             # BGGR<->YDgCoCg conversion always through planar
             self.bayer_planar = self.GetBayerPlanar()
             self.ydgcocg_planar = self.GetYDgCoCgPlanarFromBayerPlanar()
-        elif self.IsRGB(self.order):
-            # RGB<->YDgCoCg conversion always through planar
-            self.bayer_planar = self.GetBayerPlanar()
-            self.ydgcocg_planar = self.GetYDgCoCgPlanarFromBayerPlanar()
-        elif self.IsYUV(self.order):
-            # YUV<->YDgCoCg conversion always through planar and RGB
-            self.yuv_planar = self.GetYUVPlanar()
-            self.rgb_planar = self.GetRGBPlanar()
-            self.bayer_planar = self.GetBayerPlanarFromRGBPlanar()
-            self.ydgcocg_planar = self.GetYDgCoCgPlanarFromBayerPlanar()
-        else:
-            raise AssertionError(f"error: invalid BayerImage order ({self.order})")
         return self.ydgcocg_planar
 
     def GetYDgCoCgPacked(self):
@@ -1953,25 +1941,11 @@ class BayerImage:
                 self.ydgcocg_packed = self.GetYDgCoCgPackedFromYDgCoCgPlanar()
             else:
                 raise AssertionError("error: invalid YDgCoCg BayerImage")
-        elif self.IsBayer(self.order):
-            # BGGR<->YDgCoCg conversion always through planar
-            self.bayer_planar = self.GetBayerPlanar()
-            self.ydgcocg_planar = self.GetYDgCoCgPlanarFromBayerPlanar()
-            self.ydgcocg_packed = self.GetYDgCoCgPackedFromYDgCoCgPlanar()
-        elif self.IsRGB(self.order):
-            # RGB<->YDgCoCg conversion always through planar
-            self.bayer_planar = self.GetBayerPlanar()
-            self.ydgcocg_planar = self.GetYDgCoCgPlanarFromBayerPlanar()
-            self.ydgcocg_packed = self.GetYDgCoCgPackedFromYDgCoCgPlanar()
-        elif self.IsYUV(self.order):
-            # YUV<->YDgCoCg conversion always through planar and RGB
-            self.yuv_planar = self.GetYUVPlanar()
-            self.rgb_planar = self.GetRGBPlanar()
-            self.bayer_planar = self.GetBayerPlanar()
-            self.ydgcocg_planar = self.GetYDgCoCgPlanarFromBayerPlanar()
-            self.ydgcocg_packed = self.GetYDgCoCgPackedFromYDgCoCgPlanar()
         else:
-            raise AssertionError(f"error: invalid BayerImage order ({self.order})")
+            # all conversions go through Bayer
+            # BGGR<->YDgCoCg conversion always through planar
+            self.ydgcocg_planar = self.GetYDgCoCgPlanar()
+            self.ydgcocg_packed = self.GetYDgCoCgPackedFromYDgCoCgPlanar()
         return self.ydgcocg_packed
 
     def GetRGBPlanar(self):
@@ -1992,8 +1966,11 @@ class BayerImage:
                 self.bayer_planar, self.depth, self.order
             )
         elif self.component_type == ComponentType.yuv:
-            self.yuv_planar = self.GetYUVPlanar()
-            self.rgb_planar = self.GetRGBPlanar()
+            yuv_planar_full = self.GetYUVPlanar()
+            i_subsample = get_subsample(self.pix_fmt)
+            if i_subsample != itools_common.ChromaSubsample.chroma_444:
+                yuv_planar_full = planar_upsample(yuv_planar_full, self.pix_fmt)
+            self.rgb_planar = yuv_planar_to_rgb_planar(yuv_planar_full, self.depth)
             self.bayer_planar = self.GetBayerPlanar()
         return self.rgb_planar
 
@@ -2017,6 +1994,7 @@ class BayerImage:
         return self.yuv_planar
 
     def GetYUVCV2Packed(self):
+        # TODO(chema): desubsample?
         if self.yuv_cv2_packed is not None:
             return self.yuv_cv2_packed
         # cv2 supports (among others) CV_8U and CV_16U types for color
@@ -2102,14 +2080,14 @@ class BayerImage:
             if col == self.width:
                 col = 0
                 row += 1
-        self.buffer = bytes(buffer)
+        buffer = bytes(buffer)
         return buffer
 
     def GetBufferFromPlanar(self, planar):
         assert self.layout == LayoutType.planar, f"error: invalid call"
         order = get_order(self.pix_fmt)
-        self.buffer = wfun_planar(planar, order, self.debug)
-        return self.buffer
+        buffer = wfun_planar(planar, order, self.debug)
+        return buffer
 
     # converters: Bayer-Buffer
     def GetBayerPackedFromBuffer(self):
@@ -2157,24 +2135,24 @@ class BayerImage:
             # make sure we have the packed
             self.bayer_packed = self.GetBayerPackedFromBayerPlanar()
             # then get the Buffer
-            self.buffer = self.GetBufferFromBayerPacked()
-            return self.buffer
+            buffer = self.GetBufferFromBayerPacked()
+            return buffer
         # self.layout == LayoutType.planar:
         # do the conversion directly
-        self.buffer = self.GetBufferFromPlanar(self.bayer_planar)
-        return self.buffer
+        buffer = self.GetBufferFromPlanar(self.bayer_planar)
+        return buffer
 
     def GetBufferFromBayerPacked(self):
         if self.layout == LayoutType.planar:
             # make sure we have the planar
             self.bayer_planar = self.GetBayerPlanarFromBayerPacked()
             # then get the Buffer
-            self.buffer = self.GetBufferFromBayerPlanar()
-            return self.buffer
+            buffer = self.GetBufferFromBayerPlanar()
+            return buffer
         # self.layout == LayoutType.packed:
         # do the conversion directly
-        self.buffer = self.GetBufferFromPacked(self.bayer_packed)
-        return self.buffer
+        buffer = self.GetBufferFromPacked(self.bayer_packed)
+        return buffer
 
     # converters: RGB-Buffer
     def GetRGBPackedFromBuffer(self):
@@ -2227,31 +2205,31 @@ class BayerImage:
             # make sure we have the packed
             self.rgb_packed = self.GetRGBPackedFromRGBPlanar()
             # then get the Buffer
-            self.buffer = self.GetBufferFromRGBPacked()
-            return self.buffer
+            buffer = self.GetBufferFromRGBPacked()
+            return buffer
         # self.layout == LayoutType.planar:
         # do the conversion directly
-        self.buffer = self.GetBufferFromPlanar(self.rgb_planar)
-        return self.buffer
+        buffer = self.GetBufferFromPlanar(self.rgb_planar)
+        return buffer
 
     def GetBufferFromRGBPacked(self):
         if self.layout == LayoutType.planar:
             # make sure we have the planar
             self.rgb_planar = self.GetRGBPlanarFromRGBPacked()
             # then get the Buffer
-            self.buffer = self.GetBufferFromRGBPlanar()
-            return self.buffer
+            buffer = self.GetBufferFromRGBPlanar()
+            return buffer
         # self.layout == LayoutType.packed:
         # do the conversion directly
-        self.buffer = self.GetBufferFromPacked(self.rgb_packed)
-        return self.buffer
+        buffer = self.GetBufferFromPacked(self.rgb_packed)
+        return buffer
 
     def GetBufferFromYUVPlanar(self):
         assert self.layout == LayoutType.planar, f"error: YUV image is packed"
         # self.layout == LayoutType.planar:
         # do the conversion directly
-        self.buffer = self.GetBufferFromPlanar(self.yuv_planar)
-        return self.buffer
+        buffer = self.GetBufferFromPlanar(self.yuv_planar)
+        return buffer
 
     def GetYUVPlanarFromBuffer(self):
         if self.layout == LayoutType.packed:
@@ -2318,24 +2296,24 @@ class BayerImage:
             # make sure we have the packed
             self.ydgcocg_packed = self.GetYDgCoCgPackedFromYDgCoCgPlanar()
             # then get the Buffer
-            self.buffer = self.GetBufferFromYDgCoCgPacked()
-            return self.buffer
+            buffer = self.GetBufferFromYDgCoCgPacked()
+            return buffer
         # self.layout == LayoutType.planar:
         # do the conversion directly
-        self.buffer = self.GetBufferFromPlanar(self.ydgcocg_planar)
-        return self.buffer
+        buffer = self.GetBufferFromPlanar(self.ydgcocg_planar)
+        return buffer
 
     def GetBufferFromYDgCoCgPacked(self):
         if self.layout == LayoutType.planar:
             # make sure we have the planar
             self.ydgcocg_planar = self.GetYDgCoCgPlanarFromYDgCoCgPacked()
             # then get the Buffer
-            self.buffer = self.GetBufferFromYDgCoCgPlanar()
-            return self.buffer
+            buffer = self.GetBufferFromYDgCoCgPlanar()
+            return buffer
         # self.layout == LayoutType.packed:
         # do the conversion directly
-        self.buffer = self.GetBufferFromPacked(self.ydgcocg_packed)
-        return self.buffer
+        buffer = self.GetBufferFromPacked(self.ydgcocg_packed)
+        return buffer
 
     # converters: Bayer-RGB
     def GetBayerPlanarFromRGBPlanar(self):
@@ -2393,12 +2371,16 @@ class BayerImage:
             i_planar = self.GetRGBPlanar()
         elif i_component_type == ComponentType.yuv:
             i_planar = self.GetYUVPlanar()
-        # 2. convert planar to destination depth
+        # 2. convert depth from source to destination
         i_order = get_order(self.pix_fmt)
         i_depth = get_depth(self.pix_fmt)
         o_depth = get_depth(o_pix_fmt)
         o_planar = self.CopyPlanar(i_planar, i_depth, o_depth)
-        # 3. convert planar to color space
+        # 3. upsample (de-subsample) planes if needed
+        i_subsample = get_subsample(self.pix_fmt)
+        if i_subsample != itools_common.ChromaSubsample.chroma_444:
+            o_planar = planar_upsample(o_planar, self.pix_fmt)
+        # 4. convert color space
         o_order = get_order(o_pix_fmt)
         o_component_type = self.GetComponentType(o_order)
         if i_component_type == o_component_type:
@@ -2450,7 +2432,11 @@ class BayerImage:
             raise AssertionError(
                 f"unimplemented conversion: {i_component_type=} {o_component_type=}"
             )
-        # 4. use the new plane to create the new image
+        # 5. subsample planes if needed
+        o_subsample = get_subsample(o_pix_fmt)
+        if o_subsample != itools_common.ChromaSubsample.chroma_444:
+            o_planar = planar_subsample(o_planar, o_pix_fmt)
+        # 6. use the new plane to create the new image
         if o_component_type == ComponentType.bayer:
             image_copy = BayerImage.FromBayerPlanar(o_planar, o_pix_fmt, debug)
         elif o_component_type == ComponentType.ydgcocg:
