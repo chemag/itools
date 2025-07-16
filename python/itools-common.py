@@ -343,6 +343,7 @@ def chroma_subsample_reverse(in_luma_matrix, in_chroma_matrix, colorspace):
 
 # converts a non-chroma-subsampled matrix into a chroma subsampled one
 # Algo is very simple (just average values)
+# @ref in_chroma_matrix: WxH numpy array
 def chroma_subsample_direct(in_chroma_matrix, colorspace):
     in_h, in_w = in_chroma_matrix.shape
     chroma_subsample = Y4M_COLORSPACES[colorspace]["chroma_subsample"]

@@ -124,6 +124,12 @@ class Y4MFileReader:
         # read the header line
         header_line = self.fin.readline()
         self.parse_header_line(header_line)
+        # get derived info
+        self.get_size_info()
+        self.depth = itools_common.ColorDepth.get_depth(
+            itools_common.get_y4m_depth(self.colorspace)
+        )
+        self.dtype = itools_common.get_dtype(self.depth)
 
     def __del__(self):
         self.fin.close()
@@ -154,23 +160,23 @@ class Y4MFileReader:
             elif key == "H":
                 height = int(val)
             elif key == "F":
-                framerate = val
+                framerate = val.strip()
             elif key == "I":
-                interlaced = val
+                interlaced = val.strip()
                 assert (
                     interlaced in self.VALID_INTERLACED
                 ), f"error: invalid interlace: {interlace}"
             elif key == "A":
-                aspect = val
+                aspect = val.strip()
             elif key == "C":
-                colorspace = val
+                colorspace = val.strip()
                 assert (
                     colorspace in itools_common.Y4M_COLORSPACES.keys()
                 ), f"error: invalid colorspace: {colorspace}"
             elif key == "X":
                 key2, val2 = val.split("=")
                 if key2 == "COLORRANGE":
-                    colorrange = val2
+                    colorrange = val2.strip()
                     assert (
                         colorrange in self.VALID_COLORRANGES
                     ), f"error: invalid colorrange: {colorrange}"
@@ -191,7 +197,7 @@ class Y4MFileReader:
         self.chroma_subsample = itools_common.Y4M_COLORSPACES[self.colorspace][
             "chroma_subsample"
         ]
-        self.input_colordepth = itools_common.Y4M_COLORSPACES[self.colorspace]["depth"]
+        self.colordepth = itools_common.Y4M_COLORSPACES[self.colorspace]["depth"]
         if self.debug > 0:
             print(
                 f"debug: y4m frame read with input_colorrange: {self.input_colorrange.name}",
@@ -201,7 +207,7 @@ class Y4MFileReader:
             "y4m:broken": 0,
             "colorrange_input": self.input_colorrange,
             "colorrange": self.output_colorrange.name,
-            "colordepth": self.input_colordepth,
+            "colordepth": self.colordepth,
         }
 
     def get_frame_size(self):
@@ -214,35 +220,34 @@ class Y4MFileReader:
             return self.width * self.height * 3
         raise f"only support 420, 422, 444 colorspaces (not {self.colorspace})"
 
-    @classmethod
-    def get_raw_buffer_size(cls, width, height, chroma_subsample, colordepth):
+    def get_size_info(self):
         # 2.1. get the number of pixels
-        luma_size_pixels = width * height
+        luma_size_pixels = self.width * self.height
         # process chroma subsampling
-        if chroma_subsample == itools_common.ChromaSubsample.chroma_420:
-            chroma_w_pixels = width >> 1
-            chroma_h_pixels = height >> 1
-        elif chroma_subsample == itools_common.ChromaSubsample.chroma_422:
-            chroma_w_pixels = width >> 1
-            chroma_h_pixels = height
-        elif chroma_subsample == itools_common.ChromaSubsample.chroma_444:
-            chroma_w_pixels = width
-            chroma_h_pixels = height
-        elif chroma_subsample == itools_common.ChromaSubsample.chroma_400:
-            chroma_w_pixels = 0
-            chroma_h_pixels = 0
-        chroma_size_pixels = chroma_w_pixels * chroma_h_pixels
+        if self.chroma_subsample == itools_common.ChromaSubsample.chroma_420:
+            self.chroma_w_pixels = self.width >> 1
+            self.chroma_h_pixels = self.height >> 1
+        elif self.chroma_subsample == itools_common.ChromaSubsample.chroma_422:
+            self.chroma_w_pixels = self.width >> 1
+            self.chroma_h_pixels = self.height
+        elif self.chroma_subsample == itools_common.ChromaSubsample.chroma_444:
+            self.chroma_w_pixels = self.width
+            self.chroma_h_pixels = self.height
+        elif self.chroma_subsample == itools_common.ChromaSubsample.chroma_400:
+            self.chroma_w_pixels = 0
+            self.chroma_h_pixels = 0
+        chroma_size_pixels = self.chroma_w_pixels * self.chroma_h_pixels
         # 2.2. get the pixel depth
-        if colordepth == itools_common.ColorDepth.depth_8:
+        if self.colordepth == itools_common.ColorDepth.depth_8:
             dt = np.dtype(np.uint8)
-            luma_size = luma_size_pixels
-            chroma_size = chroma_size_pixels
+            self.luma_size_bytes = luma_size_pixels
+            self.chroma_size_bytes = chroma_size_pixels
         else:
             dt = np.dtype(np.uint16)
-            luma_size = 2 * luma_size_pixels
-            chroma_size = 2 * chroma_size_pixels
-        total_size = luma_size + 2 * chroma_size
-        return total_size
+            self.luma_size_bytes = 2 * luma_size_pixels
+            self.chroma_size_bytes = 2 * chroma_size_pixels
+        self.frame_size_pixels = luma_size_pixels + 2 * chroma_size_pixels
+        self.frame_size_bytes = self.luma_size_bytes + 2 * self.chroma_size_bytes
 
     # returns the next frame, as a raw buffer
     def read_frame_raw(self):
@@ -254,25 +259,25 @@ class Y4MFileReader:
         assert (
             frame_line == FRAME_INDICATOR
         ), f"error: invalid frame indicator: '{frame_line}'"
-        # 2. get the exact frame size
-        total_size = self.get_raw_buffer_size(
-            self.width, self.height, self.chroma_subsample, self.input_colordepth
-        )
-        # 3. read the exact frame size
-        buf = self.fin.read(total_size)
+        # 2. read the exact frame size
+        buf = self.fin.read(self.frame_size_bytes)
         return buf
 
     # returns the next frame, in YVU format (OpenCV-preferred)
     def read_frame(self):
         # 1. read the raw buffer
         buf_raw = self.read_frame_raw()
-        buf = np.frombuffer(buf_raw, dtype=dt, count=total_size)
+        if buf_raw is None:
+            return None
+        buf = np.frombuffer(buf_raw, dtype=self.dtype, count=self.frame_size_pixels)
         # 2. slice the buffer
-        ya = buf[0:luma_size].reshape(self.height, self.width)
-        ua = buf[luma_size : luma_size + chroma_size].reshape(
-            chroma_h_pixels, chroma_w_pixels
+        ya = buf[0 : self.luma_size_bytes].reshape(self.height, self.width)
+        ua = buf[
+            self.luma_size_bytes : self.luma_size_bytes + self.chroma_size_bytes
+        ].reshape(self.chroma_h_pixels, self.chroma_w_pixels)
+        va = buf[self.luma_size_bytes + self.chroma_size_bytes :].reshape(
+            self.chroma_h_pixels, self.chroma_w_pixels
         )
-        va = buf[luma_size + chroma_size :].reshape(chroma_h_pixels, chroma_w_pixels)
         # 3. undo chroma subsample in order to combine same-size matrices
         ua_full = itools_common.chroma_subsample_reverse(ya, ua, self.colorspace)
         va_full = itools_common.chroma_subsample_reverse(ya, va, self.colorspace)
@@ -292,7 +297,7 @@ class Y4MFileReader:
                 self.colorspace,
             )
             status.update(tmp_status)
-        # 7. stack the components
+        # 5. stack the components
         if self.chroma_subsample == itools_common.ChromaSubsample.chroma_400:
             return ya
         # note that OpenCV conversions use YCrCb (YVU) instead of YCbCr (YUV)
@@ -366,7 +371,10 @@ class Y4MFileWriter:
         header = self.get_header()
         self.fout.write(header)
 
-    def write_frame(self, outyvu):
+    # writes a OpenCV yvu -3 planes, each a binary string
+    # @ref outyvu: WxHx3 numpy array
+    def write_frame_cv2_yvu(self, outyvu):
+
         if self.colorspace in itools_common.MONO_COLORSPACES:
             # write grayscale only
             self.write_frame_raw(outyvu.flatten())
@@ -385,8 +393,12 @@ class Y4MFileWriter:
                 va = itools_common.chroma_subsample_direct(va_full, self.colorspace)
             elif self.colorspace in ("444", "444p10"):
                 va = va_full
-            self.write_frame_raw.write(ya.flatten(), ua.flatten(), va.flatten())
+            self.write_frame_raw(ya.flatten(), ua.flatten(), va.flatten())
 
+    # writes 1-3 planes (y, u, v), each a binary string
+    # @ref y: WxH-sized binary string
+    # @ref u: W'xH'-sized binary string (or None)
+    # @ref v: W'xH'-sized binary string (or None)
     def write_frame_raw(self, y, u=None, v=None):
         # 1. write frame line
         self.fout.write(FRAME_INDICATOR)
@@ -416,4 +428,4 @@ def write_y4m_image(
         height, width, colorspace, colorrange, outfile, extension_dict, debug
     )
     # 3. write frame
-    y4m_file_writer.write_frame(outyvu)
+    y4m_file_writer.write_frame_cv2_yvu(outyvu)
