@@ -211,7 +211,14 @@ Y4M_COLORSPACES = {
 }
 
 
-def get_colorspace(y4m_colorspace):
+def get_y4m_depth(y4m_colorspace):
+    try:
+        return Y4M_COLORSPACES[y4m_colorspace]["depth"]
+    except:
+        raise
+
+
+def get_y4m_colorspace(y4m_colorspace):
     try:
         return Y4M_COLORSPACES[y4m_colorspace]["chroma_subsample"]
     except:
@@ -219,19 +226,19 @@ def get_colorspace(y4m_colorspace):
 
 
 def is_mono_colorspace(y4m_colorspace):
-    return get_colorspace(y4m_colorspace) == ChromaSubsample.chroma_400
+    return get_y4m_colorspace(y4m_colorspace) == ChromaSubsample.chroma_400
 
 
 def is_444_colorspace(y4m_colorspace):
-    return get_colorspace(y4m_colorspace) == ChromaSubsample.chroma_444
+    return get_y4m_colorspace(y4m_colorspace) == ChromaSubsample.chroma_444
 
 
 def is_422_colorspace(y4m_colorspace):
-    return get_colorspace(y4m_colorspace) == ChromaSubsample.chroma_422
+    return get_y4m_colorspace(y4m_colorspace) == ChromaSubsample.chroma_422
 
 
 def is_420_colorspace(y4m_colorspace):
-    return get_colorspace(y4m_colorspace) == ChromaSubsample.chroma_420
+    return get_y4m_colorspace(y4m_colorspace) == ChromaSubsample.chroma_420
 
 
 class ImageInfo:
