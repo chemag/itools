@@ -75,7 +75,7 @@ class ComponentType(enum.Enum):
 def rfun_planar(data, pix_fmt, width, height, debug):
     order = get_order(pix_fmt)
     depth = get_depth(pix_fmt)
-    dtype = get_dtype(depth)
+    dtype = itools_common.get_dtype(depth)
     # TODO(chema): check this
     element_size_bytes = 1 if depth == 8 else 2
     # read the planes
@@ -1294,10 +1294,6 @@ def get_canonical_output_pix_fmt(o_pix_fmt):
         raise AssertionError(f"error: unknown output pix_fmt: {o_pix_fmt}")
 
 
-def get_dtype(depth):
-    return np.uint16 if depth > 8 else np.uint8
-
-
 def get_depth(pix_fmt):
     pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
     return BAYER_FORMATS[pix_fmt]["depth"]
@@ -1365,7 +1361,7 @@ def bayer_plane_demosaic(plane, mask):
 
 
 def bayer_packed_to_rgb_cv2_packed(bayer_packed, order, depth):
-    st_dtype = get_dtype(depth)
+    st_dtype = itools_common.get_dtype(depth)
     bayer_planar = bayer_packed_to_bayer_planar(bayer_packed, order)
     height, width = bayer_planar["R"].shape
     row_slices = [
@@ -1432,7 +1428,7 @@ def bayer_packed_to_rgb_cv2_packed_cv2(bayer_packed, order, depth):
 # remosaic image
 # Note: OpenCV does not provide functions to remosaic an image
 def rgb_cv2_packed_to_bayer_packed(rgb_cv2_packed, depth, order="RGgB"):
-    st_dtype = get_dtype(depth)
+    st_dtype = itools_common.get_dtype(depth)
     height, width, _ = rgb_cv2_packed.shape
     bayer_packed = np.zeros((height, width), dtype=st_dtype)
     # RGGB pattern
@@ -1683,7 +1679,7 @@ def yuv_upsample_planar(yuv_subsampled_planar):
 # In the 10-bit case, we clip the bits [a..p].
 def clip_positive(arr, depth, check=True):
     max_value = 2**depth - 1
-    st_dtype = get_dtype(depth)
+    st_dtype = itools_common.get_dtype(depth)
     # check for values outside the valid range
     if check and np.any((arr < 0) | (arr > max_value)):
         raise ValueError("Array contains values outside the valid range")
@@ -1710,7 +1706,7 @@ def clip_integer_and_scale(arr, depth, check=True):
     max_value = 2**depth - 1
     min_value = -max_value
     shift = 2 ** (depth - 1)
-    st_dtype = get_dtype(depth)
+    st_dtype = itools_common.get_dtype(depth)
     # check for values outside the valid range
     if check and np.any((arr < min_value) | (arr > max_value)):
         raise ValueError("Array contains values outside the valid range")
@@ -2040,7 +2036,7 @@ class BayerImage:
         # do the conversion directly
         # convert file buffer to packed
         # create bayer packed image
-        dtype = get_dtype(self.depth)
+        dtype = itools_common.get_dtype(self.depth)
         packed = np.zeros((self.height, self.width), dtype=dtype)
         # fill it up
         row = 0
@@ -2468,7 +2464,7 @@ class BayerImage:
     # depth-aware planar copy
     def CopyPlanar(self, i_planar, i_depth, o_depth):
         o_planar = i_planar.copy()
-        o_dtype = get_dtype(o_depth)
+        o_dtype = itools_common.get_dtype(o_depth)
         if i_depth > o_depth:
             o_planar = {
                 k: (v >> (i_depth - o_depth)).astype(o_dtype)

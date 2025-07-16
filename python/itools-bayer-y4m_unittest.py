@@ -1073,7 +1073,7 @@ class MainTest(itools_unittest.TestCase):
         self, expected_buffer, bayer_image, absolute_tolerance, test_name, label
     ):
         buffer = bayer_image.GetBuffer()
-        dtype = itools_bayer.get_dtype(bayer_image.depth)
+        dtype = itools_common.get_dtype(bayer_image.depth)
         self.compareBuffer(
             buffer,
             expected_buffer,
@@ -1357,7 +1357,7 @@ class MainTest(itools_unittest.TestCase):
             )
 
         # ensure no more frames to read
-        dtype = itools_bayer.get_dtype(bayer_image.depth)
+        dtype = itools_common.get_dtype(bayer_image.depth)
         bayer_image = bayer_video_reader.GetFrame()
         assert bayer_image is None, f"error: found added frames"
         del bayer_video_writer

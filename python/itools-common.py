@@ -143,6 +143,10 @@ def get_mono_colorspace(color_depth):
         return "mono16"
 
 
+def get_dtype(depth):
+    return np.uint16 if depth > 8 else np.uint8
+
+
 MONO_COLORSPACES = [get_mono_colorspace(color_depth) for color_depth in ColorDepth]
 
 

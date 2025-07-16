@@ -16,6 +16,7 @@ import string
 import sys
 import tempfile
 
+itools_common = importlib.import_module("itools-common")
 itools_bayer = importlib.import_module("itools-bayer")
 itools_unittest = importlib.import_module("itools-unittest")
 
@@ -1677,7 +1678,7 @@ class MainTest(itools_unittest.TestCase):
                 bayer_planar, order
             )
             expected_bayer_packed = test_case["bayer_packed"]
-            dtype = itools_bayer.get_dtype(depth)
+            dtype = itools_common.get_dtype(depth)
             self.compareBuffer(
                 bayer_packed,
                 expected_bayer_packed,
