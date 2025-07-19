@@ -1007,6 +1007,65 @@ readVideoY4MTestCases = [
 ]
 
 
+convertRawImageFileTestCases = [
+    {
+        "name": "bayer_rggb8-bayer_rggb8",
+        "debug": 0,
+        "width": 4,
+        "height": 4,
+        "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
+        "i_pix_fmt": "bayer_rggb8",
+        "colorrange": itools_common.ColorRange.full,
+        "o_pix_fmt": "bayer_rggb8",
+        "output": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono XCOLORRANGE=FULL XEXTCS=bayer_rggb8\nFRAME\n\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
+    },
+    {
+        "name": "bayer_rggb8-yuv444p8",
+        "debug": 0,
+        "width": 4,
+        "height": 4,
+        "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
+        "i_pix_fmt": "bayer_rggb8",
+        "colorrange": itools_common.ColorRange.full,
+        "o_pix_fmt": "yuv444p8",
+        "output": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 C444 XCOLORRANGE=FULL XEXTCS=yuv444p8\nFRAME\n\x03\x02\x03\x04\x05\x06\x07\x07\x09\x0a\x0b\x0c\x0c\x0c\x0e\x0d\x81\x82\x82\x82\x80\x80\x80\x80\x80\x80\x80\x80\x81\x81\x80\x81\x7e\x80\x80\x7f\x80\x80\x80\x80\x80\x80\x80\x7f\x7d\x7e\x7d\x7e",
+    },
+    {
+        "name": "bayer_rggb8-yuv444p8.mono",
+        "debug": 0,
+        "width": 4,
+        "height": 4,
+        "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
+        "i_pix_fmt": "bayer_rggb8",
+        "colorrange": itools_common.ColorRange.full,
+        "o_pix_fmt": "yuv444p8.mono",
+        "output": b"YUV4MPEG2 W4 H12 F25:1 Ip A0:0 Cmono XCOLORRANGE=FULL XEXTCS=yuv444p8.mono\nFRAME\n\x03\x02\x03\x04\x05\x06\x07\x07\x09\x0a\x0b\x0c\x0c\x0c\x0e\x0d\x81\x82\x82\x82\x80\x80\x80\x80\x80\x80\x80\x80\x81\x81\x80\x81\x7e\x80\x80\x7f\x80\x80\x80\x80\x80\x80\x80\x7f\x7d\x7e\x7d\x7e",
+    },
+    {
+        "name": "bayer_rggb8-rgb8.planar",
+        "debug": 0,
+        "width": 4,
+        "height": 4,
+        "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
+        "i_pix_fmt": "bayer_rggb8",
+        "colorrange": itools_common.ColorRange.full,
+        "o_pix_fmt": "rgb8.planar",
+        "output": b"YUV4MPEG2 W4 H12 F25:1 Ip A0:0 Cmono XCOLORRANGE=FULL XEXTCS=rgb8.planar\nFRAME\n\x01\x02\x03\x03\x05\x06\x07\x07\x09\x0a\x0b\x0b\x09\x0a\x0b\x0b\x03\x02\x03\x04\x05\x06\x07\x07\x09\x0a\x0b\x0c\x0d\x0d\x0f\x0d\x06\x06\x07\x08\x06\x06\x07\x08\n\n\x0b\x0c\x0e\x0e\x0f\x10",
+    },
+    {
+        "name": "bayer_rggb8-ydgcocg8.planar",
+        "debug": 0,
+        "width": 4,
+        "height": 4,
+        "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
+        "i_pix_fmt": "bayer_rggb8",
+        "colorrange": itools_common.ColorRange.full,
+        "o_pix_fmt": "ydgcocg8.planar",
+        "output": b"YUV4MPEG2 W2 H8 F25:1 Ip A0:0 Cmono XCOLORRANGE=FULL XEXTCS=ydgcocg8.planar\nFRAME\n\x02\x04\x0a\x0c\x81\x81\x81\x81\x7d\x7d\x7d\x7d\x80\x80\x80\x80",
+    },
+]
+
+
 class MainTest(itools_unittest.TestCase):
 
     def testVideoY4M(self):
@@ -1369,6 +1428,53 @@ class MainTest(itools_unittest.TestCase):
         self.doTestY4MOutputFile(
             expected_output, output, dtype, absolute_tolerance, test_name
         )
+
+    def testConvertRawImageFile(self):
+        """video reading test."""
+        function_name = "testConvertRawImageFile"
+
+        for test_case in self.getTestCases(function_name, convertRawImageFileTestCases):
+            print(f"...running \"{function_name}.{test_case['name']}\"")
+            # prepare input file
+            infile = tempfile.NamedTemporaryFile(
+                prefix="itools-bayer_unittest.infile.", suffix=".bin"
+            ).name
+            with open(infile, "wb") as f:
+                f.write(test_case["input"])
+            # prepare output file(s)
+            outfile = tempfile.NamedTemporaryFile(
+                prefix="itools-bayer_unittest.outfile.", suffix=".y4m"
+            ).name
+            # prepare parameters
+            i_pix_fmt = test_case["i_pix_fmt"]
+            colorrange = test_case["colorrange"]
+            width = test_case["width"]
+            height = test_case["height"]
+            o_pix_fmt = test_case["o_pix_fmt"]
+            debug = test_case["debug"]
+
+            # 1. convert input image
+            itools_bayer_y4m.convert_raw_image_file(
+                infile,
+                i_pix_fmt,
+                colorrange,
+                width,
+                height,
+                outfile,
+                o_pix_fmt,
+                debug,
+            )
+
+            # 2. check output file
+            with open(outfile, "rb") as f:
+                output = f.read()
+            # check the values
+            expected_output = test_case["output"]
+            self.assertEqual(
+                output,
+                expected_output,
+                f"error on output write test {test_case['name']}",
+            )
 
 
 if __name__ == "__main__":

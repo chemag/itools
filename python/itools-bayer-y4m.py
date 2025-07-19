@@ -31,7 +31,11 @@ itools_bayer = importlib.import_module("itools-bayer")
 default_values = {
     "debug": 0,
     "dry_run": False,
+    "i_pix_fmt": None,
+    "colorrange": itools_common.ColorRange.full,
     "o_pix_fmt": None,
+    "width": 0,
+    "height": 0,
     "infile": None,
     "outfile": None,
 }
@@ -301,6 +305,20 @@ def get_options(argv):
         const=-1,
         help="Zero verbosity",
     )
+    input_choices_str = " | ".join(itools_bayer.I_PIX_FMT_LIST)
+    parser.add_argument(
+        "--i_pix_fmt",
+        action="store",
+        type=str,
+        dest="i_pix_fmt",
+        default=default_values["i_pix_fmt"],
+        choices=itools_bayer.I_PIX_FMT_LIST
+        + [
+            None,
+        ],
+        metavar=f"[{input_choices_str}]",
+        help="input pixel format",
+    )
     output_choices_str = " | ".join(itools_bayer.O_PIX_FMT_LIST)
     parser.add_argument(
         "--o_pix_fmt",
@@ -311,6 +329,50 @@ def get_options(argv):
         choices=itools_bayer.O_PIX_FMT_LIST,
         metavar=f"[{output_choices_str}]",
         help="output pixel format",
+    )
+    input_choices_str = " | ".join(itools_common.ColorRange.list())
+    parser.add_argument(
+        "--colorrange",
+        action="store",
+        type=str,
+        dest="colorrange",
+        default=default_values["colorrange"],
+        choices=itools_common.ColorRange.list()
+        + [
+            None,
+        ],
+        metavar=f"[{input_choices_str}]",
+        help="input colorrange",
+    )
+    # 2-parameter setter using argparse.Action
+    parser.add_argument(
+        "--width",
+        action="store",
+        type=int,
+        dest="width",
+        default=default_values["width"],
+        metavar="WIDTH",
+        help=("use WIDTH width (default: %i)" % default_values["width"]),
+    )
+    parser.add_argument(
+        "--height",
+        action="store",
+        type=int,
+        dest="height",
+        default=default_values["height"],
+        metavar="HEIGHT",
+        help=("HEIGHT height (default: %i)" % default_values["height"]),
+    )
+
+    class VideoSizeAction(argparse.Action):
+        def __call__(self, parser, namespace, values, option_string=None):
+            namespace.width, namespace.height = [int(v) for v in values[0].split("x")]
+
+    parser.add_argument(
+        "--video-size",
+        action=VideoSizeAction,
+        nargs=1,
+        help="use <width>x<height>",
     )
     parser.add_argument(
         "-i",
@@ -362,6 +424,36 @@ def convert_video_file(infile, outfile, pix_fmt, debug):
         print(f"convert {infile=} {outfile=} {pix_fmt=} {num_frames=}")
 
 
+def convert_raw_image_file(
+    infile,
+    i_pix_fmt,
+    colorrange,
+    width,
+    height,
+    outfile,
+    o_pix_fmt,
+    debug,
+):
+    # 1. read input image file
+    bayer_image = itools_bayer.BayerImage.FromFile(
+        infile, i_pix_fmt, width, height, debug, strict_size_check=False
+    )
+
+    # 2. convert image to new pixel format
+    bayer_image_copy = bayer_image.Copy(o_pix_fmt, debug)
+
+    # 3. create the writer
+    height = bayer_image_copy.height
+    width = bayer_image.width
+    bayer_video_writer = BayerY4MWriter.ToY4MFile(
+        outfile, height, width, colorrange, o_pix_fmt, debug
+    )
+
+    # 4. write converted image into output file
+    bayer_image_copy.ToFile(outfile, debug)
+    bayer_video_writer.AddFrame(bayer_image_copy)
+
+
 def main(argv):
     # parse options
     options = get_options(argv)
@@ -376,6 +468,25 @@ def main(argv):
     # print results
     if options.debug > 0:
         print(f"debug: {options}")
+
+    if (
+        options.height != 0
+        and options.width != 0
+        and options.i_pix_fmt is not None
+        and os.path.splitext(options.infile)[1] != ".y4m"
+    ):
+        # read raw file
+        convert_raw_image_file(
+            options.infile,
+            options.i_pix_fmt,
+            options.colorrange,
+            options.width,
+            options.height,
+            options.outfile,
+            options.o_pix_fmt,
+            options.debug,
+        )
+        return
 
     convert_video_file(
         options.infile,

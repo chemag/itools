@@ -2497,7 +2497,7 @@ class BayerImage:
 
     # factory methods
     @classmethod
-    def FromFile(cls, infile, pix_fmt, width, height, debug=0):
+    def FromFile(cls, infile, pix_fmt, width, height, debug=0, strict_size_check=True):
         # check image resolution
         assert width % 2 == 0, f"error: only accept images with even width {width=}"
         assert height % 2 == 0, f"error: only accept images with even height {height=}"
@@ -2507,9 +2507,18 @@ class BayerImage:
         expected_size = cls.GetBufferSize(pix_fmt, height, width)
         # make sure the dimensions are OK
         file_size = os.stat(infile).st_size
-        assert (
-            expected_size == file_size
-        ), f"error: invalid dimensions: {width}x{height}, {pix_fmt=}, {expected_size=}, {file_size=}"
+        if strict_size_check:
+            assert (
+                expected_size == file_size
+            ), f"error: invalid dimensions: {width}x{height}, {pix_fmt=}, {expected_size=}, {file_size=}"
+        else:
+            assert (
+                expected_size <= file_size
+            ), f"error: invalid dimensions: {width}x{height}, {pix_fmt=}, {expected_size=}, {file_size=}"
+            if expected_size < file_size:
+                print(
+                    f"warn: file is too big {file_size=} > {expected_size=} ({width}x{height}, {pix_fmt=}"
+                )
 
         # read the file into a buffer
         with open(infile, "rb") as fin:
@@ -2567,7 +2576,7 @@ class BayerImage:
     @classmethod
     def FromRGBPlanar(cls, rgb_planar, pix_fmt, debug=0):
         # get format info
-        height, width = (2 * dim for dim in rgb_planar["r"].shape)
+        height, width = rgb_planar["r"].shape
         pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
         bayer_image = BayerImage("", None, None, None, width, height, pix_fmt, debug)
         bayer_image.rgb_planar = rgb_planar
@@ -2580,8 +2589,7 @@ class BayerImage:
 
     @classmethod
     def FromYUVPlanar(cls, yuv_planar, pix_fmt, debug=0):
-        # get format info
-        height, width = (2 * dim for dim in yuv_planar["y"].shape)
+        height, width = yuv_planar["y"].shape
         pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
         bayer_image = BayerImage("", None, None, None, width, height, pix_fmt, debug)
         bayer_image.yuv_planar = yuv_planar

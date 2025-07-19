@@ -77,6 +77,10 @@ class ColorRange(enum.Enum):
                 return data.value
         return -1
 
+    @classmethod
+    def list(cls):
+        return list(value.name for value in cls if value.name != "TOTAL")
+
 
 class ChromaSubsample(enum.Enum):
     chroma_420 = 0
