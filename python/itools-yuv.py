@@ -56,12 +56,18 @@ def read_yuv(infile, iinfo, cleanup, logfd, debug):
         )
         outv = np.resize(inv, (iinfo.scanline // 2, iinfo.stride // 2))
     # undo the chroma subsample
-    outu_full = itools_common.chroma_subsample_reverse(outu, "420")
-    outv_full = itools_common.chroma_subsample_reverse(outv, "420")
+    height, width = iinfo.height, iinfo.width
+    dtype = iny.dtype
+    outu_full = itools_common.chroma_subsample_reverse(
+        outu, height, width, dtype, itools_common.ChromaSubsample.chroma_420
+    )
+    outv_full = itools_common.chroma_subsample_reverse(
+        outv, height, width, dtype, itools_common.ChromaSubsample.chroma_420
+    )
     # remove the stride and scanline
-    oy = outy[0 : iinfo.height, 0 : iinfo.width]
-    ou = outu_full[0 : iinfo.height, 0 : iinfo.width]
-    ov = outv_full[0 : iinfo.height, 0 : iinfo.width]
+    oy = outy[0:height, 0:width]
+    ou = outu_full[0:height, 0:width]
+    ov = outv_full[0:height, 0:width]
     # stack components
     outyvu = np.stack((oy, ov, ou), axis=2)
     status = {

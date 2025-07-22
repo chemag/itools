@@ -221,12 +221,15 @@ class MainTest(itools_unittest.TestCase):
 
     def testChromaSubsample(self):
         """clip_integer_and_scale test."""
-        for test_case in chromaSubsampleTestCases:
+        function_name = "testChromaSubsample"
+        for test_case in self.getTestCases(function_name, chromaSubsampleTestCases):
             print("...running %s" % test_case["name"])
             # 1. run direct 420 subsampling
             arr = test_case["arr"]
             expected_subsampled_420_arr = test_case["direct_420"]
-            subsampled_420_arr = itools_common.chroma_subsample_direct(arr, "420")
+            subsampled_420_arr = itools_common.chroma_subsample_direct(
+                arr, itools_common.ChromaSubsample.chroma_420
+            )
             np.testing.assert_array_equal(
                 expected_subsampled_420_arr,
                 subsampled_420_arr,
@@ -236,8 +239,14 @@ class MainTest(itools_unittest.TestCase):
             arr = test_case["direct_420"]
             expected_reverse_subsampled_420_arr = test_case["reverse_420"]
             in_luma_matrix = test_case["arr"]
+            height, width = in_luma_matrix.shape
+            dtype = in_luma_matrix.dtype
             reverse_subsampled_420_arr = itools_common.chroma_subsample_reverse(
-                in_luma_matrix, arr, "420"
+                arr,
+                height,
+                width,
+                dtype,
+                itools_common.ChromaSubsample.chroma_420,
             )
             np.testing.assert_array_equal(
                 expected_reverse_subsampled_420_arr,
@@ -247,7 +256,9 @@ class MainTest(itools_unittest.TestCase):
             # 3. run direct 422 subsampling
             arr = test_case["arr"]
             expected_subsampled_422_arr = test_case["direct_422"]
-            subsampled_422_arr = itools_common.chroma_subsample_direct(arr, "422")
+            subsampled_422_arr = itools_common.chroma_subsample_direct(
+                arr, itools_common.ChromaSubsample.chroma_422
+            )
             np.testing.assert_array_equal(
                 expected_subsampled_422_arr,
                 subsampled_422_arr,
@@ -257,8 +268,14 @@ class MainTest(itools_unittest.TestCase):
             arr = test_case["direct_422"]
             expected_reverse_subsampled_422_arr = test_case["reverse_422"]
             in_luma_matrix = test_case["arr"]
+            height, width = in_luma_matrix.shape
+            dtype = in_luma_matrix.dtype
             reverse_subsampled_422_arr = itools_common.chroma_subsample_reverse(
-                in_luma_matrix, arr, "422"
+                arr,
+                height,
+                width,
+                dtype,
+                itools_common.ChromaSubsample.chroma_422,
             )
             np.testing.assert_array_equal(
                 expected_reverse_subsampled_422_arr,

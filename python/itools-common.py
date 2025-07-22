@@ -311,78 +311,74 @@ def run(command, **kwargs):
     return returncode, out, err
 
 
-# converts a chroma-subsampled matrix into a non-chroma subsampled one
+# upsample: convert chroma-subsampled matrix into non-chroma subsampled one
 # Algo is very simple (just dup values)
-def chroma_subsample_reverse(in_luma_matrix, in_chroma_matrix, colorspace):
-    in_h, in_w = in_chroma_matrix.shape
-    chroma_subsample = Y4M_COLORSPACES[colorspace]["chroma_subsample"]
+def chroma_subsample_reverse(ca, height, width, dtype, chroma_subsample):
+    in_h, in_w = ca.shape
     if chroma_subsample == ChromaSubsample.chroma_420:
         out_h = in_h << 1
         out_w = in_w << 1
-        out_chroma_matrix = np.zeros((out_h, out_w), dtype=np.uint8)
-        out_chroma_matrix[::2, ::2] = in_chroma_matrix
-        out_chroma_matrix[1::2, ::2] = in_chroma_matrix
-        out_chroma_matrix[::2, 1::2] = in_chroma_matrix
-        out_chroma_matrix[1::2, 1::2] = in_chroma_matrix
+        ca_full = np.zeros((out_h, out_w), dtype=dtype)
+        ca_full[::2, ::2] = ca
+        ca_full[1::2, ::2] = ca
+        ca_full[::2, 1::2] = ca
+        ca_full[1::2, 1::2] = ca
     elif chroma_subsample == ChromaSubsample.chroma_422:
         out_h = in_h
         out_w = in_w << 1
-        out_chroma_matrix = np.zeros((out_h, out_w), dtype=np.uint8)
-        out_chroma_matrix[::, ::2] = in_chroma_matrix
-        out_chroma_matrix[::, 1::2] = in_chroma_matrix
+        ca_full = np.zeros((out_h, out_w), dtype=dtype)
+        ca_full[::, ::2] = ca
+        ca_full[::, 1::2] = ca
     elif chroma_subsample == ChromaSubsample.chroma_444:
         out_h = in_h
         out_w = in_w
-        out_chroma_matrix = np.zeros((out_h, out_w), dtype=np.uint8)
-        out_chroma_matrix = in_chroma_matrix
+        ca_full = np.zeros((out_h, out_w), dtype=dtype)
+        ca_full = ca
     elif chroma_subsample == ChromaSubsample.chroma_400:
-        in_h, in_w = in_luma_matrix.shape
         out_h = in_h
         out_w = in_w
-        out_chroma_matrix = np.full((out_h, out_w), 128, dtype=np.uint8)
+        # TODO(chema): this needs the depth
+        gray = 128 if dtype == np.uint8 else 128
+        ca_full = np.full((out_h, out_w), gray, dtype=dtype)
     # enforce the luminance size
-    in_h, in_w = in_luma_matrix.shape
-    return out_chroma_matrix[:in_h, :in_w]
+    return ca_full[:height, :width]
 
 
 # converts a non-chroma-subsampled matrix into a chroma subsampled one
 # Algo is very simple (just average values)
-# @ref in_chroma_matrix: WxH numpy array
-def chroma_subsample_direct(in_chroma_matrix, colorspace):
-    in_h, in_w = in_chroma_matrix.shape
-    chroma_subsample = Y4M_COLORSPACES[colorspace]["chroma_subsample"]
+# @ref ca_full: WxH numpy array
+def chroma_subsample_direct(ca_full, chroma_subsample):
+    height, width = ca_full.shape
+    dtype = ca_full.dtype
+    op_dtype = np.uint16 if dtype == np.uint8 else np.uint32
     if chroma_subsample == ChromaSubsample.chroma_420:
-        out_h = (in_h + 1) >> 1
-        out_w = (in_w + 1) >> 1
+        out_h = (height + 1) >> 1
+        out_w = (width + 1) >> 1
         # pad the input chroma matrix to support odd height and width
-        in_chroma_matrix = np.pad(
-            in_chroma_matrix, ((0, in_h % 2), (0, in_w % 2)), mode="edge"
-        )
-        out_chroma_matrix = np.zeros((out_h, out_w), dtype=np.uint16)
-        out_chroma_matrix += in_chroma_matrix[0::2, 0::2]
-        out_chroma_matrix += in_chroma_matrix[1::2, 0::2]
-        out_chroma_matrix += in_chroma_matrix[0::2, 1::2]
-        out_chroma_matrix += in_chroma_matrix[1::2, 1::2]
-        out_chroma_matrix = out_chroma_matrix / 4
-        out_chroma_matrix = out_chroma_matrix.astype(np.uint8)
+        ca_full = np.pad(ca_full, ((0, height % 2), (0, width % 2)), mode="edge")
+        ca = np.zeros((out_h, out_w), dtype=op_dtype)
+        ca += ca_full[0::2, 0::2]
+        ca += ca_full[1::2, 0::2]
+        ca += ca_full[0::2, 1::2]
+        ca += ca_full[1::2, 1::2]
+        ca = ca / 4
+        ca = ca.astype(dtype)
     elif chroma_subsample == ChromaSubsample.chroma_422:
-        out_h = in_h
-        out_w = (in_w + 1) >> 1
+        out_h = height
+        out_w = (width + 1) >> 1
         # pad the input chroma matrix to support odd height and width
-        in_chroma_matrix = np.pad(
-            in_chroma_matrix, ((0, 0), (0, in_w % 2)), mode="edge"
-        )
-        out_chroma_matrix = np.zeros((out_h, out_w), dtype=np.uint16)
-        out_chroma_matrix += in_chroma_matrix[:, 0::2]
-        out_chroma_matrix += in_chroma_matrix[:, 1::2]
-        out_chroma_matrix = out_chroma_matrix / 2
-        out_chroma_matrix = out_chroma_matrix.astype(np.uint8)
+        ca_full = np.pad(ca_full, ((0, 0), (0, width % 2)), mode="edge")
+        ca = np.zeros((out_h, out_w), dtype=op_dtype)
+        ca += ca_full[:, 0::2]
+        ca += ca_full[:, 1::2]
+        ca = ca / 2
+        ca = ca.astype(dtype)
     elif chroma_subsample == ChromaSubsample.chroma_444:
-        out_h = in_h
-        out_w = in_w
-        out_chroma_matrix = np.zeros((out_h, out_w), dtype=np.uint8)
-        out_chroma_matrix = in_chroma_matrix
-    return out_chroma_matrix
+        out_h = height
+        out_w = width
+        ca = np.zeros((out_h, out_w), dtype=dtype)
+        ca = ca_full
+    return ca
 
 
 # PSNR calculation
