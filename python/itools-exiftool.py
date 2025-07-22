@@ -48,7 +48,10 @@ def get_exiftool(infile, short, config_dict, cleanup, logfd, debug):
     exiftool_dict = exiftool_info[0]
     status = {}
     for key in exiftool_dict:
-        assert key in EXIFTOOL_KEYS, f"error: exiftool key {key} not in known key list"
+        if not key in EXIFTOOL_KEYS:
+            print(f"warn: exiftool key {key} not in known key list")
+            # ignore this dictionary
+            continue
         val = EXIFTOOL_KEYS[key]
         if val == "ignore":
             # ignore this dictionary
