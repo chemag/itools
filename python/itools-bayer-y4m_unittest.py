@@ -1179,6 +1179,28 @@ convertRawImageFileTestCases = [
         "o_pix_fmt": "ydgcocg8.planar",
         "output": b"YUV4MPEG2 W2 H8 F25:1 Ip A0:0 Cmono XCOLORRANGE=FULL XEXTCS=ydgcocg8.planar\nFRAME\n\x02\x04\x0a\x0c\x81\x81\x81\x81\x7d\x7d\x7d\x7d\x80\x80\x80\x80",
     },
+    {
+        "name": "yuv420p8-yuv420p8.mono",
+        "debug": 0,
+        "width": 4,
+        "height": 4,
+        "input": b"\x03\x02\x03\x04\x05\x06\x07\x07\x09\x0a\x0b\x0c\x0c\x0c\x0e\x0d\x80\x81\x82\x83\x7f\x7e\x7d\x7c",
+        "i_pix_fmt": "yuv420p8",
+        "colorrange": itools_common.ColorRange.full,
+        "o_pix_fmt": "yuv420p8.mono",
+        "output": b"YUV4MPEG2 W4 H6 F25:1 Ip A0:0 Cmono XCOLORRANGE=FULL XEXTCS=yuv420p8.mono\nFRAME\n\x03\x02\x03\x04\x05\x06\x07\x07\x09\x0a\x0b\x0c\x0c\x0c\x0e\x0d\x80\x81\x82\x83\x7f\x7e\x7d\x7c",
+    },
+    {
+        "name": "yuv420p8.mono-yuv420p8",
+        "debug": 0,
+        "width": 4,
+        "height": 4,
+        "input": b"\x03\x02\x03\x04\x05\x06\x07\x07\x09\x0a\x0b\x0c\x0c\x0c\x0e\x0d\x80\x81\x82\x83\x7f\x7e\x7d\x7c",
+        "i_pix_fmt": "yuv420p8.mono",
+        "colorrange": itools_common.ColorRange.full,
+        "o_pix_fmt": "yuv420p8",
+        "output": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 C420 XCOLORRANGE=FULL XEXTCS=yuv420p8\nFRAME\n\x03\x02\x03\x04\x05\x06\x07\x07\x09\x0a\x0b\x0c\x0c\x0c\x0e\x0d\x80\x81\x82\x83\x7f\x7e\x7d\x7c",
+    },
 ]
 
 

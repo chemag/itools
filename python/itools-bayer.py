@@ -2466,19 +2466,46 @@ class BayerImage:
     @classmethod
     def GetBufferSize(cls, pix_fmt, width, height, plane=None):
         layout = BAYER_FORMATS[pix_fmt]["layout"]
-        if layout == LayoutType.packed:
-            clen = BAYER_FORMATS[pix_fmt]["clen"]
-            blen = BAYER_FORMATS[pix_fmt]["blen"]
-            # make sure the width is OK
-            # for Bayer pixel formats, only the width is important
-            assert (
-                width % clen == 0
-            ), f"error: invalid width ({width}) as clen: {clen} for {pix_fmt}"
-            expected_size = int((width * height * blen) / clen)
-        elif layout == LayoutType.planar:
+        component_type = get_component_type(pix_fmt)
+        if component_type in (ComponentType.bayer, ComponentType.ydgcocg):
+            if layout == LayoutType.packed:
+                clen = BAYER_FORMATS[pix_fmt]["clen"]
+                blen = BAYER_FORMATS[pix_fmt]["blen"]
+                # make sure the width is OK
+                # for Bayer pixel formats, only the width is important
+                assert (
+                    width % clen == 0
+                ), f"error: invalid width ({width}) as clen: {clen} for {pix_fmt}"
+                expected_size = int((width * height * blen) / clen)
+            elif layout == LayoutType.planar:
+                depth = get_depth(pix_fmt)
+                element_size_bytes = 1 if depth == 8 else 2
+                expected_size = height * width * element_size_bytes
+        elif component_type == ComponentType.rgb:
             depth = get_depth(pix_fmt)
             element_size_bytes = 1 if depth == 8 else 2
-            expected_size = height * width * element_size_bytes
+            expected_size = 3 * height * width * element_size_bytes
+        elif component_type == ComponentType.yuv:
+            subsample = get_subsample(pix_fmt)
+            depth = get_depth(pix_fmt)
+            element_size_bytes = 1 if depth == 8 else 2
+            luma_size_pixels = height * width
+            if subsample == itools_common.ChromaSubsample.chroma_444:
+                c_height = height
+                c_width = width
+            elif subsample == itools_common.ChromaSubsample.chroma_422:
+                c_height = height
+                c_width = (width + 1) >> 1
+            elif subsample == itools_common.ChromaSubsample.chroma_420:
+                c_height = (height + 1) >> 1
+                c_width = (width + 1) >> 1
+            elif subsample == itools_common.ChromaSubsample.chroma_400:
+                c_height = 0
+                c_width = 0
+            chroma_size_pixels = c_height * c_width
+            expected_size = (
+                luma_size_pixels + 2 * chroma_size_pixels
+            ) * element_size_bytes
         return expected_size
 
     # factory methods
