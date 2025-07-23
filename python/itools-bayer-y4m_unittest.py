@@ -1098,6 +1098,26 @@ readVideoY4MTestCases = [
         ),
         "output": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 C420 XCOLORRANGE=FULL XEXTCS=yuv420p8\nFRAME\n\x03\x02\x03\x04\x05\x06\x07\x07\x09\x0a\x0b\x0c\x0c\x0c\x0e\x0d\x7e\x7e\x7d\x7d\x83\x83\x82\x82",
     },
+    {
+        "name": "yuv420p8-SRGGB8",
+        "debug": 0,
+        "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 C420 XCOLORRANGE=FULL XEXTCS=yuv420p8\nFRAME\n\x03\x02\x03\x04\x05\x06\x07\x07\x09\x0a\x0b\x0c\x0c\x0c\x0e\x0d\x7e\x7e\x7d\x7d\x83\x83\x82\x82",
+        "num_frames": 1,
+        "absolute_tolerance": 4,
+        "i_pix_fmt": "yuv420p8",
+        "o_pix_fmt": "SRGGB8",
+        "output": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono XCOLORRANGE=FULL XEXTCS=bayer_rggb8\nFRAME\n\x06\x01\x06\x03\x04\x02\x06\x03\x0b\x0a\x0d\x0c\x0c\x06\x0e\x07",
+    },
+    {
+        "name": "yuv420p10-SRGGB10",
+        "debug": 0,
+        "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 C420p10 XCOLORRANGE=FULL XEXTCS=yuv420p10\nFRAME\n\x46\x00\x45\x00\x46\x00\x47\x00\x47\x00\x47\x00\x47\x00\x47\x00\x47\x00\x48\x00\x47\x00\x48\x00\x47\x00\x47\x00\x47\x00\x48\x00\xf5\x01\xef\x01\xee\x01\xf2\x01\xf0\x01\xef\x01\xef\x01\xf0\x01",
+        "num_frames": 1,
+        "absolute_tolerance": 4,
+        "i_pix_fmt": "yuv420p10",
+        "o_pix_fmt": "SRGGB10",
+        "output": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono10 XCOLORRANGE=FULL XEXTCS=RG10\nFRAME\n\x33\x00\x52\x00\x32\x00\x57\x00\x54\x00\x30\x00\x57\x00\x24\x00\x33\x00\x58\x00\x34\x00\x56\x00\x57\x00\x22\x00\x55\x00\x2b\x00",
+    },
 ]
 
 

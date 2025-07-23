@@ -140,7 +140,7 @@ class Y4MFile:
 
     def get_size_info(self):
         # 1. get the number of pixels
-        luma_size_pixels = self.width * self.height
+        self.luma_size_pixels = self.width * self.height
         # process chroma subsampling
         if self.chroma_subsample == itools_common.ChromaSubsample.chroma_420:
             self.chroma_w_pixels = self.width >> 1
@@ -154,26 +154,26 @@ class Y4MFile:
         elif self.chroma_subsample == itools_common.ChromaSubsample.chroma_400:
             self.chroma_w_pixels = 0
             self.chroma_h_pixels = 0
-        chroma_size_pixels = self.chroma_w_pixels * self.chroma_h_pixels
+        self.chroma_size_pixels = self.chroma_w_pixels * self.chroma_h_pixels
         # get the pixel depth
         if self.colordepth == itools_common.ColorDepth.depth_8:
             dt = np.dtype(np.uint8)
-            self.luma_size_bytes = luma_size_pixels
-            self.chroma_size_bytes = chroma_size_pixels
+            luma_size_bytes = self.luma_size_pixels
+            chroma_size_bytes = self.chroma_size_pixels
         else:
             dt = np.dtype(np.uint16)
-            self.luma_size_bytes = 2 * luma_size_pixels
-            self.chroma_size_bytes = 2 * chroma_size_pixels
-        self.frame_size_pixels = luma_size_pixels + 2 * chroma_size_pixels
-        self.frame_size_bytes = self.luma_size_bytes + 2 * self.chroma_size_bytes
+            luma_size_bytes = 2 * self.luma_size_pixels
+            chroma_size_bytes = 2 * self.chroma_size_pixels
+        self.frame_size_pixels = self.luma_size_pixels + 2 * self.chroma_size_pixels
+        self.frame_size_bytes = luma_size_bytes + 2 * chroma_size_bytes
 
     def buffer_to_array(self, buffer):
         arr = np.frombuffer(buffer, dtype=self.dtype, count=self.frame_size_pixels)
-        ya = arr[0 : self.luma_size_bytes].reshape(self.height, self.width)
+        ya = arr[0 : self.luma_size_pixels].reshape(self.height, self.width)
         ua = arr[
-            self.luma_size_bytes : self.luma_size_bytes + self.chroma_size_bytes
+            self.luma_size_pixels : self.luma_size_pixels + self.chroma_size_pixels
         ].reshape(self.chroma_h_pixels, self.chroma_w_pixels)
-        va = arr[self.luma_size_bytes + self.chroma_size_bytes :].reshape(
+        va = arr[self.luma_size_pixels + self.chroma_size_pixels :].reshape(
             self.chroma_h_pixels, self.chroma_w_pixels
         )
         return ya, ua, va
