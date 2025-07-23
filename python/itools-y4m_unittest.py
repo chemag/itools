@@ -159,6 +159,32 @@ y4mReadWriteTestCases = [
         ),
     },
     {
+        "name": "422",
+        "debug": 0,
+        "contents": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 C422 XCOLORRANGE=FULL\nFRAME\n\x03\x02\x03\x04\x05\x06\x07\x07\x09\x0a\x0b\x0c\x0c\x0c\x0e\x0d\x7f\x7f\x7f\x7f\x7e\x7d\x7d\x7d\x82\x84\x84\x83\x84\x84\x84\x83FRAME\n\x13\x12\x13\x14\x15\x16\x17\x17\x19\x1a\x1b\x1c\x1c\x1c\x1e\x1d\x7f\x7f\x7f\x7f\x7e\x7d\x7d\x7d\x82\x84\x84\x83\x84\x84\x84\x83",
+        "num_frames": 2,
+        "frames": (
+            np.array(
+                [
+                    [[3, 130, 127], [2, 130, 127], [3, 132, 127], [4, 132, 127]],
+                    [[5, 132, 127], [6, 132, 127], [7, 131, 127], [7, 131, 127]],
+                    [[9, 132, 126], [10, 132, 126], [11, 132, 125], [12, 132, 125]],
+                    [[12, 132, 125], [12, 132, 125], [14, 131, 125], [13, 131, 125]],
+                ],
+                dtype=np.uint8,
+            ),
+            np.array(
+                [
+                    [[19, 130, 127], [18, 130, 127], [19, 132, 127], [20, 132, 127]],
+                    [[21, 132, 127], [22, 132, 127], [23, 131, 127], [23, 131, 127]],
+                    [[25, 132, 126], [26, 132, 126], [27, 132, 125], [28, 132, 125]],
+                    [[28, 132, 125], [28, 132, 125], [30, 131, 125], [29, 131, 125]],
+                ],
+                dtype=np.uint8,
+            ),
+        ),
+    },
+    {
         "name": "444",
         "debug": 0,
         "contents": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 C444 XCOLORRANGE=FULL\nFRAME\n\x03\x02\x03\x04\x05\x06\x07\x07\x09\x0a\x0b\x0c\x0c\x0c\x0e\x0d\x7f\x7f\x7f\x7f\x7e\x7d\x7d\x7e\x7e\x7d\x7d\x7d\x7e\x7e\x7e\x7f\x82\x84\x84\x83\x84\x84\x84\x84\x84\x84\x84\x83\x81\x82\x81\x82FRAME\n\x13\x12\x13\x14\x15\x16\x17\x17\x19\x1a\x1b\x1c\x1c\x1c\x1e\x1d\x7f\x7f\x7f\x7f\x7e\x7d\x7d\x7e\x7e\x7d\x7d\x7d\x7e\x7e\x7e\x7f\x82\x84\x84\x83\x84\x84\x84\x84\x84\x84\x84\x83\x81\x82\x81\x82",

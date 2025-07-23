@@ -337,9 +337,11 @@ class Y4MFileWriter(Y4MFile):
     SUPPORTED_COLORSPACES = (
         "mono",
         "420",
+        "422",
         "444",
         "mono10",
         "420p10",
+        "422p10",
         "444p10",
         "mono12",
         "mono14",

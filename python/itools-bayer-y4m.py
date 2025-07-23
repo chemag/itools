@@ -177,6 +177,8 @@ class BayerY4MReader:
             "mono16",
             "420",
             "420p10",
+            "422",
+            "422p10",
             "444",
             "444p10",
         ), f"error: invalid y4m colorspace: {self.y4m_file_reader.colorspace}"

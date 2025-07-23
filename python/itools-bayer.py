@@ -1175,6 +1175,26 @@ BAYER_FORMATS = {
         "ffmpeg": False,
         "y4m": "420p10",
     },
+    "yuv422p8": {
+        "layout": LayoutType.planar,
+        "order": "yuv",
+        "subsample": itools_common.ChromaSubsample.chroma_422,
+        "depth": 8,
+        "rfun": rfun_planar,
+        "wfun": wfun_planar,
+        "ffmpeg": False,
+        "y4m": "422",
+    },
+    "yuv422p10": {
+        "layout": LayoutType.planar,
+        "order": "yuv",
+        "subsample": itools_common.ChromaSubsample.chroma_422,
+        "depth": 10,
+        "rfun": rfun_planar,
+        "wfun": wfun_planar,
+        "ffmpeg": False,
+        "y4m": "422p10",
+    },
     "yuv444p8": {
         "layout": LayoutType.planar,
         "order": "yuv",
@@ -1209,6 +1229,26 @@ BAYER_FORMATS = {
         "layout": LayoutType.planar,
         "order": "yuv",
         "subsample": itools_common.ChromaSubsample.chroma_420,
+        "depth": 10,
+        "rfun": rfun_planar,
+        "wfun": wfun_planar,
+        "ffmpeg": False,
+        "y4m": "mono10",
+    },
+    "yuv422p8.mono": {
+        "layout": LayoutType.planar,
+        "order": "yuv",
+        "subsample": itools_common.ChromaSubsample.chroma_422,
+        "depth": 8,
+        "rfun": rfun_planar,
+        "wfun": wfun_planar,
+        "ffmpeg": False,
+        "y4m": "mono",
+    },
+    "yuv422p10.mono": {
+        "layout": LayoutType.planar,
+        "order": "yuv",
+        "subsample": itools_common.ChromaSubsample.chroma_422,
         "depth": 10,
         "rfun": rfun_planar,
         "wfun": wfun_planar,
@@ -1791,7 +1831,7 @@ class BayerImage:
             if subsample == itools_common.ChromaSubsample.chroma_444:
                 return width, height
             elif subsample == itools_common.ChromaSubsample.chroma_422:
-                return (width, height) if c == "y" else (width, height >> 1)
+                return (width, height) if c == "y" else (width >> 1, height)
             elif subsample == itools_common.ChromaSubsample.chroma_420:
                 return (width, height) if c == "y" else (width >> 1, height >> 1)
             elif subsample == itools_common.ChromaSubsample.chroma_400:

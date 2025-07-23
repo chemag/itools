@@ -327,8 +327,8 @@ def chroma_subsample_reverse(ca, height, width, dtype, chroma_subsample):
         out_h = in_h
         out_w = in_w << 1
         ca_full = np.zeros((out_h, out_w), dtype=dtype)
-        ca_full[::, ::2] = ca
-        ca_full[::, 1::2] = ca
+        ca_full[:, 0::2] = ca
+        ca_full[:, 1::2] = ca
     elif chroma_subsample == ChromaSubsample.chroma_444:
         out_h = in_h
         out_w = in_w
