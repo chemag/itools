@@ -37,12 +37,14 @@ def read_image_file(
     if infile_extension == ".y4m":
         y4m_file_reader = itools_y4m.Y4MFileReader(
             infile,
-            output_colorrange=itools_common.ColorRange.full,
+            colorrange=itools_common.ColorRange.full,
             debug=debug,
         )
         status = y4m_file_reader.status
         if status is not None and status.get("broken", False):
             print(f"error: file {infile} is broken")
+        outyvu = y4m_file_reader.read_frame()
+        status.update(y4m_file_reader.status)
 
     elif infile_extension in (".yuv", ".YUV420NV12"):
         outyvu, status = itools_yuv.read_yuv(infile, iinfo, cleanup, logfd, debug)
