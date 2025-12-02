@@ -289,9 +289,14 @@ SOF_ID_STR = {
 
 
 COMPONENT_ID_STR = {
+    # traditional jpeg
     1: "Y",
     2: "Cb",
     3: "Cr",
+    # guetzli
+    0: "Y",
+    # 1: "Cb",
+    # 2: "Cr",
     4: "I",
     5: "Q",
     # JCS_BG_YCC
