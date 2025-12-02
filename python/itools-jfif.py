@@ -285,6 +285,7 @@ SOF_ID_STR = {
     13: "sequential DCT, differential, arithmetic-coding frames",
     14: "progressive DCT, differential, arithmetic-coding frames",
     15: "lossless (sequential), differential, arithmetic-coding frames",
+    55: "JPEG-LS (lossless/near-lossless)",
 }
 
 
@@ -388,7 +389,10 @@ def parse_sof(sof_id, blob):
     for _ in range(number_of_components_in_frame):
         component = collections.OrderedDict()
         component["component_id"] = blob[idx]
-        component["component_id_str"] = COMPONENT_ID_STR[component["component_id"]]
+        if component["component_id"] in COMPONENT_ID_STR:
+            component["component_id_str"] = COMPONENT_ID_STR[component["component_id"]]
+        else:
+            component["component_id_str"] = f"Unknown({component['component_id']})"
         idx += 1
         the_byte = blob[idx]
         idx += 1
@@ -434,6 +438,10 @@ def parse_jpg(blob):
     return parse_unimplemented(0xFFC8, blob)
 
 
+def parse_jpg7(blob):
+    return parse_sof(55, blob)
+
+
 def parse_dac(blob):
     return parse_unimplemented(0xFFCC, blob)
 
@@ -471,6 +479,7 @@ MARKER_MAP = {
     0xFFEB: ("APP11", parse_app11),
     0xFFED: ("APP13", parse_app13),
     0xFFEE: ("APP14", parse_app14),
+    0xFFF7: ("JPG7", parse_jpg7),
     0xFFFE: ("COM", parse_com),
 }
 
