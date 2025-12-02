@@ -190,26 +190,37 @@ def parse_com(blob):
 
 def parse_dqt(blob):
     contents = collections.OrderedDict()
-    # DQT length: 1 byte (Pq/Tq) + 64 values (8-bit if Pq=0, 16-bit if Pq=1)
-    # Expected length: 65 bytes (Pq=0) or 129 bytes (Pq=1)
+    # DQT can contain multiple quantization tables
+    # Each table: 1 byte (Pq/Tq) + 64 values (8-bit if Pq=0, 16-bit if Pq=1)
+    # Expected length per table: 65 bytes (Pq=0) or 129 bytes (Pq=1)
     idx = 0
-    first_byte = blob[idx]
-    idx += 1
-    Pq = first_byte >> 4
-    contents["Pq"] = Pq
-    Tq = first_byte & 0x0F
-    contents["Tq"] = Tq
-    Q = []
-    for _ in range(64):
-        if Pq == 0:
-            # 8-bit quantization table element
-            Q.append(blob[idx])
-            idx += 1
-        else:  # Pq == 1
-            # 16-bit quantization table element
-            Q.append(struct.unpack(">H", blob[idx : idx + 2])[0])
-            idx += 2
-    contents["Q"] = Q
+    tables = []
+
+    # Parse all tables in the DQT marker segment
+    while idx < len(blob):
+        table = collections.OrderedDict()
+        first_byte = blob[idx]
+        idx += 1
+        Pq = first_byte >> 4
+        table["Pq"] = Pq
+        Tq = first_byte & 0x0F
+        table["Tq"] = Tq
+        Q = []
+        for _ in range(64):
+            if Pq == 0:
+                # 8-bit quantization table element
+                Q.append(blob[idx])
+                idx += 1
+            else:  # Pq == 1
+                # 16-bit quantization table element
+                Q.append(struct.unpack(">H", blob[idx : idx + 2])[0])
+                idx += 2
+        table["Q"] = Q
+        tables.append(table)
+
+    # store table(s) as a list
+    contents["tables"] = tables
+
     return contents
 
 
