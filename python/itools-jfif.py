@@ -190,7 +190,8 @@ def parse_com(blob):
 
 def parse_dqt(blob):
     contents = collections.OrderedDict()
-    # assert len(blob) == 65, f"invalid DQT length: {len(blob)} [should be 65]"
+    # DQT length: 1 byte (Pq/Tq) + 64 values (8-bit if Pq=0, 16-bit if Pq=1)
+    # Expected length: 65 bytes (Pq=0) or 129 bytes (Pq=1)
     idx = 0
     first_byte = blob[idx]
     idx += 1
@@ -200,8 +201,14 @@ def parse_dqt(blob):
     contents["Tq"] = Tq
     Q = []
     for _ in range(64):
-        Q.append(blob[idx])
-        idx += 1
+        if Pq == 0:
+            # 8-bit quantization table element
+            Q.append(blob[idx])
+            idx += 1
+        else:  # Pq == 1
+            # 16-bit quantization table element
+            Q.append(struct.unpack(">H", blob[idx : idx + 2])[0])
+            idx += 2
     contents["Q"] = Q
     return contents
 
