@@ -636,6 +636,7 @@ MARKER_MAP = {
 
 def parse_jfif_file(infile, logfd, debug):
     marker_list = []
+    is_jpegls = False  # Track if this is a JPEG-LS file
     # parse input file
     with open(infile, "rb") as fin:
         while True:
@@ -659,6 +660,11 @@ def parse_jfif_file(infile, logfd, debug):
             marker_str, marker_parser = MARKER_MAP[marker]
             if debug > 0:
                 print("debug: marker: 0x%04x (%s)" % (marker, marker_str), file=logfd)
+
+            # Check if this is a JPEG-LS file (SOF55 marker)
+            if marker == 0xFFF7:
+                is_jpegls = True
+
             if marker_parser is not None:
                 contents = marker_parser(blob)
 
@@ -685,9 +691,17 @@ def parse_jfif_file(infile, logfd, debug):
                     # check if this is 0xff
                     if byte == b"\xff":
                         byte2 = fin.read(1)
-                        if byte2 != b"\x00":
-                            # new marker
-                            break
+                        if is_jpegls:
+                            # JPEG-LS: marker only if byte2 has MSB=1 (>= 0x80)
+                            if byte2 and ord(byte2) >= 0x80:
+                                # new marker
+                                break
+                            # Otherwise it's data, continue
+                        else:
+                            # Standard JPEG: marker if byte2 != 0x00
+                            if byte2 != b"\x00":
+                                # new marker
+                                break
                     compressed_data_length += 1
                 if byte:
                     # there is another marker
