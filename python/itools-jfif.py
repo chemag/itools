@@ -722,36 +722,38 @@ def parse_jfif_file(infile, logfd, debug):
 
 
 def print_marker_list(marker_list, outfile, debug):
+    out = ""
+    for (
+        _marker,
+        marker_str,
+        offset,
+        length,
+        contents,
+    ) in marker_list:
+        out += f"marker: {marker_str}\n"
+        out += f"  offset: 0x{offset:08x}\n"
+        out += f"  marker_id: 0x{_marker:04x}\n"
+        out += f"  length: {length}\n"
+        for k, v in contents.items():
+            if (
+                isinstance(v, (list, tuple))
+                and v
+                and isinstance(v[0], collections.OrderedDict)
+            ):
+                for i, d in enumerate(v):
+                    out += f"    {i}:"
+                    for k2, v2 in d.items():
+                        out += f" {k2}: {v2}"
+                    out += "\n"
+                continue
+            elif isinstance(v, (list, tuple)):
+                v_str = "[" + ",".join(list(str(element) for element in v)) + "]"
+            else:
+                v_str = str(v)
+            out += f"  {k}: {v}\n"
     # dump contents into output file
     with open(outfile, "w") as fout:
-        for (
-            _marker,
-            marker_str,
-            offset,
-            length,
-            contents,
-        ) in marker_list:
-            fout.write(f"marker: {marker_str}\n")
-            fout.write(f"  offset: 0x{offset:08x}\n")
-            fout.write(f"  marker_id: 0x{_marker:04x}\n")
-            fout.write(f"  length: {length}\n")
-            for k, v in contents.items():
-                if (
-                    isinstance(v, (list, tuple))
-                    and v
-                    and isinstance(v[0], collections.OrderedDict)
-                ):
-                    for i, d in enumerate(v):
-                        fout.write(f"    {i}:")
-                        for k2, v2 in d.items():
-                            fout.write(f" {k2}: {v2}")
-                        fout.write("\n")
-                    continue
-                elif isinstance(v, (list, tuple)):
-                    v_str = "[" + ",".join(list(str(element) for element in v)) + "]"
-                else:
-                    v_str = str(v)
-                fout.write(f"  {k}: {v}\n")
+        fout.write(out)
 
 
 def extract_marker(marker_list, marker_name, outfile, debug):
