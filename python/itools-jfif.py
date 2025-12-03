@@ -472,6 +472,118 @@ def parse_jpg7(blob):
     return parse_sof(55, blob)
 
 
+def parse_lse(blob):
+    """Parse JPEG-LS Extension (LSE) marker.
+
+    Structure (ITU-T T.87 / ISO/IEC 14495-1 C.2.4):
+    - ID type (1 byte): determines the extension type
+    - Type-specific data (variable)
+
+    LSE Types:
+    - Type 1: Preset coding parameters (MAXVAL, T1, T2, T3, RESET)
+    - Type 2: Mapping table specification
+    - Type 3: Mapping table continuation
+    - Type 4: Oversize image dimensions (Wxy for >65535 dimensions)
+    """
+    contents = collections.OrderedDict()
+    if len(blob) == 0:
+        contents["error"] = "empty LSE marker"
+        return contents
+
+    idx = 0
+    lse_id = blob[idx]
+    contents["lse_id"] = lse_id
+    idx += 1
+
+    if lse_id == 1:
+        # LSE_PARAMS: Preset coding parameters
+        contents["type"] = "Preset coding parameters"
+        if len(blob) < 11:
+            contents["error"] = (
+                f"invalid length for LSE type 1: {len(blob)} (expected 11)"
+            )
+            return contents
+        maxval = struct.unpack(">H", blob[idx : idx + 2])[0]
+        contents["MAXVAL"] = maxval
+        idx += 2
+        t1 = struct.unpack(">H", blob[idx : idx + 2])[0]
+        contents["T1"] = t1
+        idx += 2
+        t2 = struct.unpack(">H", blob[idx : idx + 2])[0]
+        contents["T2"] = t2
+        idx += 2
+        t3 = struct.unpack(">H", blob[idx : idx + 2])[0]
+        contents["T3"] = t3
+        idx += 2
+        reset = struct.unpack(">H", blob[idx : idx + 2])[0]
+        contents["RESET"] = reset
+        idx += 2
+
+    elif lse_id == 2:
+        # LSE_MAPTABLE: Mapping table specification
+        contents["type"] = "Mapping table specification"
+        if len(blob) < 3:
+            contents["error"] = (
+                f"invalid length for LSE type 2: {len(blob)} (expected >= 3)"
+            )
+            return contents
+        tid = blob[idx]
+        contents["table_id"] = tid
+        idx += 1
+        wt = blob[idx]
+        contents["entry_width"] = wt
+        idx += 1
+        if wt not in (1, 2, 3):
+            contents["error"] = f"invalid entry width: {wt} (must be 1, 2, or 3)"
+            return contents
+        # Remaining bytes are table data
+        table_data_len = len(blob) - idx
+        num_entries = table_data_len // wt
+        contents["num_entries"] = num_entries
+        # Don't parse all entries to avoid bloating output, just note the count
+
+    elif lse_id == 3:
+        # LSE_MAPTABLE_CONTINUATION: Mapping table continuation
+        contents["type"] = "Mapping table continuation"
+        if len(blob) < 2:
+            contents["error"] = (
+                f"invalid length for LSE type 3: {len(blob)} (expected >= 2)"
+            )
+            return contents
+        tid = blob[idx]
+        contents["table_id"] = tid
+        idx += 1
+        entry_size = blob[idx]
+        contents["entry_size"] = entry_size
+        idx += 1
+        table_data_len = len(blob) - idx
+        contents["table_data_len"] = table_data_len
+
+    elif lse_id == 4:
+        # Oversize image dimensions (for images > 65535 in width or height)
+        contents["type"] = "Oversize image dimensions"
+        if len(blob) < 9:
+            contents["error"] = (
+                f"invalid length for LSE type 4: {len(blob)} (expected 9)"
+            )
+            return contents
+        wxy = blob[idx]
+        contents["Wxy"] = wxy
+        idx += 1
+        height = struct.unpack(">I", blob[idx : idx + 4])[0]
+        contents["height"] = height
+        idx += 4
+        width = struct.unpack(">I", blob[idx : idx + 4])[0]
+        contents["width"] = width
+        idx += 4
+
+    else:
+        contents["type"] = f"Unknown LSE type"
+        contents["error"] = f"unsupported LSE type: {lse_id}"
+
+    return contents
+
+
 def parse_dac(blob):
     return parse_unimplemented(0xFFCC, blob)
 
@@ -517,6 +629,7 @@ MARKER_MAP = {
     0xFFEE: ("APP14", parse_app14),
     0xFFEF: ("APP15", parse_app15),
     0xFFF7: ("JPG7", parse_jpg7),
+    0xFFF8: ("LSE", parse_lse),
     0xFFFE: ("COM", parse_com),
 }
 
