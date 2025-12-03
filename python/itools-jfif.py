@@ -23,7 +23,9 @@ default_values = {
 
 
 def parse_unimplemented(marker_id, blob):
-    return "unimplemented (0x%04x)" % marker_id, 0
+    contents = collections.OrderedDict()
+    contents["status"] = "unimplemented (0x%04x)" % marker_id
+    return contents
 
 
 def parse_app0(blob):
