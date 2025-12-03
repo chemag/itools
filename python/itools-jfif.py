@@ -144,8 +144,32 @@ def parse_app5(blob):
     return parse_unimplemented(0xFFE5, blob)
 
 
+def parse_app6(blob):
+    return parse_unimplemented(0xFFE6, blob)
+
+
+def parse_app7(blob):
+    return parse_unimplemented(0xFFE7, blob)
+
+
+def parse_app8(blob):
+    return parse_unimplemented(0xFFE8, blob)
+
+
+def parse_app9(blob):
+    return parse_unimplemented(0xFFE9, blob)
+
+
+def parse_app10(blob):
+    return parse_unimplemented(0xFFEA, blob)
+
+
 def parse_app11(blob):
     return parse_unimplemented(0xFFEB, blob)
+
+
+def parse_app12(blob):
+    return parse_unimplemented(0xFFEC, blob)
 
 
 # https://dev.exiv2.org/projects/exiv2/wiki/The_Metadata_in_JPEG_files
@@ -180,6 +204,10 @@ def parse_app14(blob):
     ColorTransformStr = ADOBE_COLOR_TRANSFORM[ColorTransform]
     contents["ColorTransformStr"] = ColorTransformStr
     return contents
+
+
+def parse_app15(blob):
+    return parse_unimplemented(0xFFEF, blob)
 
 
 def parse_com(blob):
@@ -478,9 +506,16 @@ MARKER_MAP = {
     0xFFE3: ("APP3", parse_app3),
     0xFFE4: ("APP4", parse_app4),
     0xFFE5: ("APP5", parse_app5),
+    0xFFE6: ("APP6", parse_app6),
+    0xFFE7: ("APP7", parse_app7),
+    0xFFE8: ("APP8", parse_app8),
+    0xFFE9: ("APP9", parse_app9),
+    0xFFEA: ("APP10", parse_app10),
     0xFFEB: ("APP11", parse_app11),
+    0xFFEC: ("APP12", parse_app12),
     0xFFED: ("APP13", parse_app13),
     0xFFEE: ("APP14", parse_app14),
+    0xFFEF: ("APP15", parse_app15),
     0xFFF7: ("JPG7", parse_jpg7),
     0xFFFE: ("COM", parse_com),
 }
