@@ -3,6 +3,7 @@
 
 import argparse
 import collections
+import json
 import struct
 import sys
 
@@ -19,6 +20,7 @@ default_values = {
     "infile": None,
     "outfile": None,
     "logfile": None,
+    "format": "text",
 }
 
 
@@ -721,7 +723,28 @@ def parse_jfif_file(infile, logfd, debug):
     return marker_list
 
 
-def print_marker_list(marker_list, outfile, debug):
+def make_json_serializable(obj):
+    """Convert an object to a JSON-serializable format."""
+    if isinstance(obj, set):
+        return list(obj)
+    elif isinstance(obj, bytes):
+        # Try to decode as string, otherwise convert to hex
+        try:
+            return obj.decode("utf-8")
+        except UnicodeDecodeError:
+            return obj.hex()
+    elif isinstance(obj, collections.OrderedDict):
+        return {k: make_json_serializable(v) for k, v in obj.items()}
+    elif isinstance(obj, dict):
+        return {k: make_json_serializable(v) for k, v in obj.items()}
+    elif isinstance(obj, (list, tuple)):
+        return [make_json_serializable(item) for item in obj]
+    else:
+        return obj
+
+
+def print_marker_list_text(marker_list, outfile, debug):
+    """Print marker list in text format."""
     out = ""
     for (
         _marker,
@@ -754,6 +777,42 @@ def print_marker_list(marker_list, outfile, debug):
     # dump contents into output file
     with open(outfile, "w") as fout:
         fout.write(out)
+
+
+def print_marker_list_json(marker_list, outfile, debug):
+    """Print marker list in JSON format."""
+    # Build JSON structure
+    markers = []
+    for (
+        _marker,
+        marker_str,
+        offset,
+        length,
+        contents,
+    ) in marker_list:
+        marker_dict = {
+            "marker": marker_str,
+            "offset": f"0x{offset:08x}",
+            "marker_id": f"0x{_marker:04x}",
+            "length": length,
+        }
+        # Add contents to marker_dict and make them JSON-serializable
+        for k, v in contents.items():
+            marker_dict[k] = make_json_serializable(v)
+        markers.append(marker_dict)
+
+    # Write JSON output
+    with open(outfile, "w") as fout:
+        json.dump(markers, fout, indent=2)
+        fout.write("\n")
+
+
+def print_marker_list(marker_list, outfile, debug, format="text"):
+    """Print marker list in the specified format."""
+    if format == "json":
+        print_marker_list_json(marker_list, outfile, debug)
+    else:
+        print_marker_list_text(marker_list, outfile, debug)
 
 
 def extract_marker(marker_list, marker_name, outfile, debug):
@@ -859,6 +918,23 @@ def get_options(argv):
         metavar="log-file",
         help="log file",
     )
+    # output format options (mutually exclusive)
+    format_group = parser.add_mutually_exclusive_group()
+    format_group.add_argument(
+        "--text",
+        action="store_const",
+        dest="format",
+        const="text",
+        help="output in text format (default)",
+    )
+    format_group.add_argument(
+        "--json",
+        action="store_const",
+        dest="format",
+        const="json",
+        help="output in JSON format",
+    )
+    parser.set_defaults(format=default_values["format"])
     # do the parsing
     options = parser.parse_args(argv[1:])
     return options
@@ -883,7 +959,7 @@ def main(argv):
     # do something
     marker_list = parse_jfif_file(options.infile, logfd, options.debug)
     if options.func == "parse":
-        print_marker_list(marker_list, options.outfile, options.debug)
+        print_marker_list(marker_list, options.outfile, options.debug, options.format)
     elif options.func == "extract":
         extract_marker(marker_list, options.marker, options.outfile, options.debug)
 
