@@ -81,9 +81,16 @@ class BayerY4M:
                 y4m_width = width >> 1
                 y4m_height = height << 1
             elif component_type == itools_bayer.ComponentType.ydgcocg:
-                # YDgCoCg planes: 4x, half-width, half-height, vertical layout
-                y4m_width = width >> 1
-                y4m_height = height << 1
+                # YDgCoCg planes: vertical layout
+                subsample = itools_bayer.get_subsample(pix_fmt)
+                if subsample == itools_common.ChromaSubsample.chroma_420:
+                    # Y(w/2 x h/2) + D(w/2 x h/2) + Co(w/4 x h/4) + Cg(w/4 x h/4)
+                    # total pixels = 5*w*h/8, at width w/2 => height = 5*h/4
+                    y4m_width = width >> 1
+                    y4m_height = (5 * height) >> 2
+                else:
+                    y4m_width = width >> 1
+                    y4m_height = height << 1
             elif component_type == itools_bayer.ComponentType.rgb:
                 # RGB planes: 3x, full-width, full-height, vertical layout
                 y4m_width = width
@@ -122,9 +129,14 @@ class BayerY4M:
                 width = y4m_width << 1
                 height = y4m_height >> 1
             elif component_type == itools_bayer.ComponentType.ydgcocg:
-                # YDgCoCg planes: 4x, half-width, half-height, vertical layout
-                width = y4m_width << 1
-                height = y4m_height >> 1
+                # YDgCoCg planes: vertical layout
+                subsample = itools_bayer.get_subsample(pix_fmt)
+                if subsample == itools_common.ChromaSubsample.chroma_420:
+                    width = y4m_width << 1
+                    height = (4 * y4m_height) // 5
+                else:
+                    width = y4m_width << 1
+                    height = y4m_height >> 1
             elif component_type == itools_bayer.ComponentType.rgb:
                 # RGB planes: 3x, full-width, full-height, vertical layout
                 width = y4m_width

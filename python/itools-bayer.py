@@ -100,6 +100,58 @@ def wfun_planar(planar, order, debug):
     return buffer
 
 
+# YDgCoCg 4:2:0 read/write functions.
+# The layout is:
+#   +-------------+
+#   |      Y      |   (width/2) x (height/2)
+#   +-------------+
+#   |      Dg     |   (width/2) x (height/2)
+#   +------+------+
+#   |  Co  |  Cg  |   each (width/4) x (height/4), side-by-side
+#   +------+------+
+def rfun_planar_ydgcocg420(data, pix_fmt, width, height, debug):
+    depth = get_depth(pix_fmt)
+    dtype = itools_common.get_dtype(depth)
+    element_size_bytes = 1 if depth == 8 else 2
+    half_w = width >> 1
+    half_h = height >> 1
+    quarter_w = width >> 2
+    quarter_h = height >> 2
+    plane_size = half_w * half_h * element_size_bytes
+    # Y and D are sequential, full half-resolution planes
+    offset = 0
+    Y = np.frombuffer(data[offset : offset + plane_size], dtype=dtype).reshape(
+        (half_h, half_w)
+    )
+    offset += plane_size
+    D = np.frombuffer(data[offset : offset + plane_size], dtype=dtype).reshape(
+        (half_h, half_w)
+    )
+    offset += plane_size
+    # Co and Cg are side-by-side: each row is Co_row(quarter_w) + Cg_row(quarter_w)
+    cocg_row_bytes = half_w * element_size_bytes
+    cocg_total = cocg_row_bytes * quarter_h
+    cocg = np.frombuffer(data[offset : offset + cocg_total], dtype=dtype).reshape(
+        (quarter_h, half_w)
+    )
+    Co = cocg[:, :quarter_w].copy()
+    Cg = cocg[:, quarter_w:].copy()
+    return {"Y": Y, "D": D, "C": Co, "c": Cg}
+
+
+def wfun_planar_ydgcocg420(planar, order, debug):
+    buffer = b""
+    # Y and D are written sequentially
+    buffer += planar["Y"].tobytes()
+    buffer += planar["D"].tobytes()
+    # Co and Cg are written side-by-side
+    Co = planar["C"]
+    Cg = planar["c"]
+    cocg = np.concatenate([Co, Cg], axis=1)
+    buffer += cocg.tobytes()
+    return buffer
+
+
 # component read/write functions
 
 
@@ -1136,6 +1188,25 @@ BAYER_FORMATS = {
         "ffmpeg": False,
         "y4m": "mono10",
     },
+    "ydgcocg420p8.planar": {
+        "layout": LayoutType.planar,
+        "order": "YDCc",
+        "subsample": itools_common.ChromaSubsample.chroma_420,
+        "depth": 8,
+        "rfun": rfun_planar_ydgcocg420,
+        "wfun": wfun_planar_ydgcocg420,
+        "ffmpeg": False,
+    },
+    "ydgcocg420p10.planar": {
+        "layout": LayoutType.planar,
+        "order": "YDCc",
+        "subsample": itools_common.ChromaSubsample.chroma_420,
+        "depth": 10,
+        "rfun": rfun_planar_ydgcocg420,
+        "wfun": wfun_planar_ydgcocg420,
+        "ffmpeg": False,
+        "y4m": "mono10",
+    },
     # RGB representations
     "rgb8.planar": {
         "layout": LayoutType.planar,
@@ -1701,11 +1772,35 @@ def yuv_upsample_planar(yuv_subsampled_planar, chroma_subsample):
     return yuv_planar
 
 
+def ydgcocg_subsample_planar(ydgcocg_planar, chroma_subsample):
+    ya = ydgcocg_planar["Y"]
+    da = ydgcocg_planar["D"]
+    coa_full = ydgcocg_planar["C"]
+    cga_full = ydgcocg_planar["c"]
+    _, coa, cga = itools_common.planar_subsample(
+        ya, coa_full, cga_full, chroma_subsample
+    )
+    return {"Y": ya, "D": da, "C": coa, "c": cga}
+
+
+def ydgcocg_upsample_planar(ydgcocg_planar, chroma_subsample):
+    ya = ydgcocg_planar["Y"]
+    da = ydgcocg_planar["D"]
+    coa = ydgcocg_planar["C"]
+    cga = ydgcocg_planar["c"]
+    _, coa_full, cga_full = itools_common.planar_upsample(
+        ya, coa, cga, chroma_subsample
+    )
+    return {"Y": ya, "D": da, "C": coa_full, "c": cga_full}
+
+
 def planar_upsample(planar, i_pix_fmt):
     i_subsample = get_subsample(i_pix_fmt)
     i_component_type = get_component_type(i_pix_fmt)
     if i_component_type == ComponentType.yuv:
         return yuv_upsample_planar(planar, i_subsample)
+    elif i_component_type == ComponentType.ydgcocg:
+        return ydgcocg_upsample_planar(planar, i_subsample)
     raise AssertionError(f"error: invalid planar_upsample: {i_pix_fmt=}")
 
 
@@ -1714,6 +1809,8 @@ def planar_subsample(planar, i_pix_fmt):
     i_component_type = get_component_type(i_pix_fmt)
     if i_component_type == ComponentType.yuv:
         return yuv_subsample_planar(planar, i_subsample)
+    elif i_component_type == ComponentType.ydgcocg:
+        return ydgcocg_subsample_planar(planar, i_subsample)
     raise AssertionError(f"error: invalid planar_subsample: {i_pix_fmt=}")
 
 
@@ -1822,8 +1919,18 @@ class BayerImage:
     @classmethod
     def GetPlaneResolution(cls, pix_fmt, width, height, c):
         component_type = get_component_type(pix_fmt)
-        if component_type in (ComponentType.bayer, ComponentType.ydgcocg):
+        if component_type == ComponentType.bayer:
             return width >> 1, height >> 1
+        elif component_type == ComponentType.ydgcocg:
+            subsample = get_subsample(pix_fmt)
+            if subsample == itools_common.ChromaSubsample.chroma_420:
+                if c in ("Y", "D"):
+                    return width >> 1, height >> 1
+                else:  # Co ("C") and Cg ("c")
+                    return width >> 2, height >> 2
+            else:
+                # chroma_444 (existing behavior): all planes equal
+                return width >> 1, height >> 1
         elif component_type == ComponentType.rgb:
             return width, height
         elif component_type == ComponentType.yuv:
@@ -2090,8 +2197,9 @@ class BayerImage:
 
     def GetPlanarFromBuffer(self):
         assert self.layout == LayoutType.planar, f"error: invalid call"
-        # do the conversion directly
-        planar = rfun_planar(
+        # do the conversion using the format-specific rfun
+        rfun = BAYER_FORMATS[self.pix_fmt]["rfun"]
+        planar = rfun(
             self.buffer, self.pix_fmt, self.width, self.height, self.debug
         )
         return planar
@@ -2126,7 +2234,8 @@ class BayerImage:
     def GetBufferFromPlanar(self, planar):
         assert self.layout == LayoutType.planar, f"error: invalid call"
         order = get_order(self.pix_fmt)
-        buffer = wfun_planar(planar, order, self.debug)
+        wfun = BAYER_FORMATS[self.pix_fmt]["wfun"]
+        buffer = wfun(planar, order, self.debug)
         return buffer
 
     # converters: Bayer-Buffer
@@ -2507,7 +2616,7 @@ class BayerImage:
     def GetBufferSize(cls, pix_fmt, width, height, plane=None):
         layout = BAYER_FORMATS[pix_fmt]["layout"]
         component_type = get_component_type(pix_fmt)
-        if component_type in (ComponentType.bayer, ComponentType.ydgcocg):
+        if component_type == ComponentType.bayer:
             if layout == LayoutType.packed:
                 clen = BAYER_FORMATS[pix_fmt]["clen"]
                 blen = BAYER_FORMATS[pix_fmt]["blen"]
@@ -2521,6 +2630,26 @@ class BayerImage:
                 depth = get_depth(pix_fmt)
                 element_size_bytes = 1 if depth == 8 else 2
                 expected_size = height * width * element_size_bytes
+        elif component_type == ComponentType.ydgcocg:
+            if layout == LayoutType.packed:
+                clen = BAYER_FORMATS[pix_fmt]["clen"]
+                blen = BAYER_FORMATS[pix_fmt]["blen"]
+                # make sure the width is OK
+                # for Bayer pixel formats, only the width is important
+                assert (
+                    width % clen == 0
+                ), f"error: invalid width ({width}) as clen: {clen} for {pix_fmt}"
+                expected_size = int((width * height * blen) / clen)
+            elif layout == LayoutType.planar:
+                depth = get_depth(pix_fmt)
+                element_size_bytes = 1 if depth == 8 else 2
+                subsample = get_subsample(pix_fmt)
+                if subsample == itools_common.ChromaSubsample.chroma_420:
+                    yd_size = 2 * (width >> 1) * (height >> 1)
+                    cocg_size = 2 * (width >> 2) * (height >> 2)
+                    expected_size = (yd_size + cocg_size) * element_size_bytes
+                else:
+                    expected_size = height * width * element_size_bytes
         elif component_type == ComponentType.rgb:
             depth = get_depth(pix_fmt)
             element_size_bytes = 1 if depth == 8 else 2
