@@ -98,6 +98,7 @@ FILTER_DICT = {
         description="diff 2 frames",
         proc_color=[
             "yvu",
+            "bgr",
         ],
     ),
     "mse": Filter(
