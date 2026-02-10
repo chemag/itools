@@ -365,7 +365,7 @@ class Y4MFileWriter(Y4MFile):
             colorspace in self.SUPPORTED_COLORSPACES
         ), f"error: unsupported {colorspace=}"
         self.colorspace = colorspace
-        self.colorrange = colorrange
+        self.colorrange = itools_common.ColorRange.parse(colorrange)
         self.outfile = outfile
         self.extension_dict = extension_dict
         self.debug = debug
