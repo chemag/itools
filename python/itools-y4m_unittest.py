@@ -225,14 +225,14 @@ class MainTest(itools_unittest.TestCase):
             debug = test_case["debug"]
 
             # prepare input/output files
-            infile = tempfile.NamedTemporaryFile(
+            _, infile = tempfile.mkstemp(
                 prefix="itools-y4m_unittest.infile.", suffix=".y4m"
-            ).name
+            )
             with open(infile, "wb") as f:
                 f.write(test_case["contents"])
-            outfile = tempfile.NamedTemporaryFile(
+            _, outfile = tempfile.mkstemp(
                 prefix="itools-y4m_unittest.outfile.", suffix=".y4m"
-            ).name
+            )
             # open input file
             y4m_file_reader = itools_y4m.Y4MFileReader(
                 infile, colorrange=None, debug=debug

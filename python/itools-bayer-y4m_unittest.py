@@ -1566,14 +1566,14 @@ class MainTest(itools_unittest.TestCase):
         debug,
     ):
         # prepare input/output files
-        infile = tempfile.NamedTemporaryFile(
+        _, infile = tempfile.mkstemp(
             prefix="itools-bayer_unittest.infile.", suffix=".y4m"
-        ).name
+        )
         with open(infile, "wb") as f:
             f.write(test_input)
-        outfile = tempfile.NamedTemporaryFile(
+        _, outfile = tempfile.mkstemp(
             prefix="itools-bayer_unittest.outfile.", suffix=".y4m"
-        ).name
+        )
         # read y4m file
         bayer_video_reader = itools_bayer_y4m.BayerY4MReader.FromY4MFile(infile, debug)
         bayer_video_writer = None
@@ -1647,15 +1647,15 @@ class MainTest(itools_unittest.TestCase):
         for test_case in self.getTestCases(function_name, convertRawImageFileTestCases):
             print(f"...running \"{function_name}.{test_case['name']}\"")
             # prepare input file
-            infile = tempfile.NamedTemporaryFile(
+            _, infile = tempfile.mkstemp(
                 prefix="itools-bayer_unittest.infile.", suffix=".bin"
-            ).name
+            )
             with open(infile, "wb") as f:
                 f.write(test_case["input"])
             # prepare output file(s)
-            outfile = tempfile.NamedTemporaryFile(
+            _, outfile = tempfile.mkstemp(
                 prefix="itools-bayer_unittest.outfile.", suffix=".y4m"
-            ).name
+            )
             # prepare parameters
             i_pix_fmt = test_case["i_pix_fmt"]
             colorrange = test_case["colorrange"]

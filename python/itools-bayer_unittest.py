@@ -1387,15 +1387,15 @@ class MainTest(itools_unittest.TestCase):
         for test_case in self.getTestCases(function_name, convertImageFormatTestCases):
             print(f"...running \"{function_name}.{test_case['name']}\"")
             # prepare input file
-            infile = tempfile.NamedTemporaryFile(
+            _, infile = tempfile.mkstemp(
                 prefix="itools-bayer_unittest.infile.", suffix=".bin"
-            ).name
+            )
             with open(infile, "wb") as f:
                 f.write(test_case["input"])
             # prepare output file(s)
-            outfile = tempfile.NamedTemporaryFile(
+            _, outfile = tempfile.mkstemp(
                 prefix="itools-bayer_unittest.outfile.", suffix=".bin"
-            ).name
+            )
             # prepare parameters
             i_pix_fmt = test_case["i_pix_fmt"]
             width = test_case["width"]
@@ -1486,9 +1486,9 @@ class MainTest(itools_unittest.TestCase):
         for test_case in self.getTestCases(function_name, processColorConversions):
             print(f"...running \"{function_name}.{test_case['name']}\"")
             # prepare input file
-            infile = tempfile.NamedTemporaryFile(
+            _, infile = tempfile.mkstemp(
                 prefix="itools-bayer_unittest.", suffix=".bin"
-            ).name
+            )
             with open(infile, "wb") as f:
                 f.write(test_case["input"])
             # prepare output file(s)
