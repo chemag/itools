@@ -1456,7 +1456,40 @@ def rgb_planar_to_bayer_planar(rgb_planar, depth, order="RGgB"):
     return bayer_planar
 
 
-def bayer_plane_demosaic(plane, mask):
+# Demosaics a single Bayer color plane using (naive) bilinear
+# interpolation.
+#
+# In Bayer plane, each color (R, G, B) is only sampled at a subset of
+# pixel positions.
+#   R G R G R G ...
+#   G B G B G B ...
+#   R G R G R G ...
+#   G B G B G B ...
+#   ...
+#
+# Bilinear demosaicing interpolates the missing values # from the
+# known neighbors:
+# - For G (1/2 of pixels missing): interpolate from the direct (cardinal)
+#   neighbors, which are 2, 3, or 4 depending on position (edges/corners).
+# - For R (3/4 of pixels missing): 2 possible cases
+#   - at B position, interpolate from the 4 diagonal neighbors;
+#   - at G positions, interpolate from 2 neighbors (horizontal on R-rows,
+#     vertical on B-rows).
+# - For G (3/4 of pixels missing): same than R
+#
+# This function handles all cases with a single uniform 8-neighbor kernel.
+# It works because the mask ensures only valid sample positions contribute:
+# the convolution sums all 8 neighbors' values, but the mask-based count
+# means only the positions where samples actually exist affect the average.
+# The Bayer pattern naturally places valid neighbors exactly where the
+# textbook algorithm expects them, so the result is identical to using
+# separate per-case kernels.
+#
+# Args:
+#   plane: full-resolution grid with known sample values at their positions
+#       and zeros elsewhere.
+#   mask: binary array, 1 at known sample positions, 0 elsewhere.
+def bayer_plane_demosaic_bilinear(plane, mask):
     kernel = np.array([[1, 1, 1], [1, 0, 1], [1, 1, 1]], dtype=np.uint8)
     # prevent integer truncation
     plane_float32 = plane.astype(np.float32)
