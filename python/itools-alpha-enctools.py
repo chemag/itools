@@ -17,7 +17,6 @@ import numpy as np
 import os
 import pandas as pd
 import PIL
-import pillow_heif
 import re
 import shutil
 import sys
