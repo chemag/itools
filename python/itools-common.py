@@ -51,6 +51,9 @@ class ColorRange(enum.Enum):
     def parse(cls, val):
         if val is None:
             return cls.unspecified
+        # already a ColorRange object
+        if isinstance(val, cls):
+            return val
         # map value (int)/name (str) to object
         for data in cls:
             if (type(val) is int and val == data.value) or (

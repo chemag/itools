@@ -71,6 +71,23 @@ class ComponentType(enum.Enum):
     yuv = 3
 
 
+class DemosaicType(enum.Enum):
+    bilinear = 0
+    bilinear_rb_gradient_g = 1
+    cv2 = 2
+
+    @classmethod
+    def list(cls):
+        return list(value.name for value in cls)
+
+    @classmethod
+    def get_default(cls):
+        return cls.bilinear
+
+
+DEFAULT_DEMOSAIC_TYPE = DemosaicType.bilinear
+
+
 # planar read/write functions
 def rfun_planar(data, pix_fmt, width, height, debug):
     order = get_order(pix_fmt)
@@ -1438,11 +1455,11 @@ def get_width_adjustment(pix_fmt):
 
 # 1. color conversions (Bayer-RGB)
 # demosaic image
-def bayer_planar_to_rgb_planar(bayer_planar, depth, order="RGgB"):
+def bayer_planar_to_rgb_planar(bayer_planar, depth, order="RGgB", demosaic_type=None):
     if BayerImage.GetComponentType(order) != ComponentType.bayer:
         order = "RGgB"
     bayer_packed = bayer_planar_to_bayer_packed(bayer_planar, order)
-    rgb_cv2_packed = bayer_packed_to_rgb_cv2_packed(bayer_packed, order, depth)
+    rgb_cv2_packed = bayer_packed_to_rgb_cv2_packed(bayer_packed, order, depth, demosaic_type)
     rgb_planar = rgb_cv2_packed_to_rgb_planar(rgb_cv2_packed)
     return rgb_planar
 
@@ -1504,7 +1521,62 @@ def bayer_plane_demosaic_bilinear(plane, mask):
     return result.astype(plane.dtype)
 
 
-def bayer_packed_to_rgb_cv2_packed(bayer_packed, order, depth):
+# Demosaics the G plane using gradient-adaptive interpolation.
+# Unlike the bilinear approach which always averages all cardinal neighbors,
+# this method computes horizontal and vertical gradients at each missing
+# G position (i.e. at R and B sites) and chooses the interpolation direction
+# with the smaller gradient, reducing edge/zipper artifacts.
+# - If horizontal gradient < vertical: interpolate from left and right only.
+# - If vertical gradient < horizontal: interpolate from top and bottom only.
+# - If equal: average all 4 cardinal neighbors (same as bilinear).
+# R and B planes are unaffected by this and should still use
+# bayer_plane_demosaic_bilinear, since the C++ reference implementation
+# uses bilinear interpolation for R and B.
+#
+# Args:
+#   plane: full-resolution grid with known G values at their positions
+#       and zeros elsewhere.
+#   mask: binary array, 1 at known G sample positions, 0 elsewhere.
+def bayer_plane_demosaic_g_gradient(plane, mask):
+    plane_float32 = plane.astype(np.float32)
+    # horizontal and vertical interpolation kernels
+    h_kernel = np.array([[0, 0, 0], [1, 0, 1], [0, 0, 0]], dtype=np.uint8)
+    v_kernel = np.array([[0, 1, 0], [0, 0, 0], [0, 1, 0]], dtype=np.uint8)
+    mask_float32 = mask.astype(np.float32)
+    h_sum = scipy.ndimage.convolve(plane_float32, h_kernel, mode="nearest")
+    h_count = scipy.ndimage.convolve(mask_float32, h_kernel, mode="nearest")
+    v_sum = scipy.ndimage.convolve(plane_float32, v_kernel, mode="nearest")
+    v_count = scipy.ndimage.convolve(mask_float32, v_kernel, mode="nearest")
+    # compute gradients: |left - right| and |top - bottom|
+    left_kernel = np.array([[0, 0, 0], [1, 0, 0], [0, 0, 0]], dtype=np.uint8)
+    right_kernel = np.array([[0, 0, 0], [0, 0, 1], [0, 0, 0]], dtype=np.uint8)
+    top_kernel = np.array([[0, 1, 0], [0, 0, 0], [0, 0, 0]], dtype=np.uint8)
+    bottom_kernel = np.array([[0, 0, 0], [0, 0, 0], [0, 1, 0]], dtype=np.uint8)
+    h_grad = np.abs(
+        scipy.ndimage.convolve(plane_float32, left_kernel, mode="nearest")
+        - scipy.ndimage.convolve(plane_float32, right_kernel, mode="nearest")
+    )
+    v_grad = np.abs(
+        scipy.ndimage.convolve(plane_float32, top_kernel, mode="nearest")
+        - scipy.ndimage.convolve(plane_float32, bottom_kernel, mode="nearest")
+    )
+    # interpolation for each case
+    with np.errstate(divide="ignore", invalid="ignore"):
+        h_interp = h_sum / np.maximum(h_count, 1)
+        v_interp = v_sum / np.maximum(v_count, 1)
+        all_interp = (h_sum + v_sum) / np.maximum(h_count + v_count, 1)
+    # select based on gradient direction
+    interpolated = np.where(
+        h_grad < v_grad,
+        h_interp,
+        np.where(v_grad < h_grad, v_interp, all_interp),
+    )
+    # keep original values where mask is 1
+    result = np.where(mask == 1, plane_float32, interpolated)
+    return result.astype(plane.dtype)
+
+
+def bayer_packed_to_rgb_cv2_packed_itools(bayer_packed, order, depth, demosaic_type):
     st_dtype = itools_common.get_dtype(depth)
     bayer_planar = bayer_packed_to_bayer_planar(bayer_packed, order)
     height, width = bayer_planar["R"].shape
@@ -1541,12 +1613,33 @@ def bayer_packed_to_rgb_cv2_packed(bayer_packed, order, depth):
             mask[plane_id][
                 row_slices[order.index("g")], col_slices[order.index("g")]
             ] = 1
-        bayer_plane[plane_id] = bayer_plane_demosaic(plane[plane_id], mask[plane_id])
+        # use gradient-adaptive interpolation for G when requested
+        if (
+            demosaic_type == DemosaicType.bilinear_rb_gradient_g
+            and plane_id == "G"
+        ):
+            bayer_plane[plane_id] = bayer_plane_demosaic_g_gradient(
+                plane[plane_id], mask[plane_id]
+            )
+        else:
+            bayer_plane[plane_id] = bayer_plane_demosaic_bilinear(
+                plane[plane_id], mask[plane_id]
+            )
     # stack the planes
     rgb_packed = np.stack(
         [bayer_plane["R"], bayer_plane["G"], bayer_plane["B"]], axis=-1
     )
     return rgb_packed
+
+
+def bayer_packed_to_rgb_cv2_packed(bayer_packed, order, depth, demosaic_type=None):
+    if demosaic_type is None:
+        demosaic_type = DEFAULT_DEMOSAIC_TYPE
+    if demosaic_type == DemosaicType.cv2:
+        return bayer_packed_to_rgb_cv2_packed_cv2(bayer_packed, order, depth)
+    return bayer_packed_to_rgb_cv2_packed_itools(
+        bayer_packed, order, depth, demosaic_type
+    )
 
 
 def bayer_packed_to_rgb_cv2_packed_cv2(bayer_packed, order, depth):
@@ -2128,14 +2221,14 @@ class BayerImage:
             self.ydgcocg_packed = self.GetYDgCoCgPackedFromYDgCoCgPlanar()
         return self.ydgcocg_packed
 
-    def GetRGBPlanar(self):
+    def GetRGBPlanar(self, demosaic_type=None):
         if self.rgb_planar is not None:
             return self.rgb_planar
         if self.component_type == ComponentType.rgb and self.buffer is not None:
             self.rgb_planar = self.GetRGBPlanarFromBuffer()
             return self.rgb_planar
         if self.component_type == ComponentType.bayer:
-            rgb_cv2_packed = self.GetRGBCV2Packed()
+            rgb_cv2_packed = self.GetRGBCV2Packed(demosaic_type)
             self.rgb_planar = rgb_cv2_packed_to_rgb_planar(rgb_cv2_packed)
         elif self.component_type == ComponentType.ydgcocg:
             self.ydgcocg_planar = self.GetYDgCoCgPlanar()
@@ -2143,7 +2236,7 @@ class BayerImage:
                 self.ydgcocg_planar, self.depth
             )
             self.rgb_planar = bayer_planar_to_rgb_planar(
-                self.bayer_planar, self.depth, self.order
+                self.bayer_planar, self.depth, self.order, demosaic_type
             )
         elif self.component_type == ComponentType.yuv:
             yuv_planar_full = self.GetYUVPlanar()
@@ -2154,12 +2247,12 @@ class BayerImage:
             self.bayer_planar = self.GetBayerPlanar()
         return self.rgb_planar
 
-    def GetRGBCV2Packed(self):
+    def GetRGBCV2Packed(self, demosaic_type=None):
         if self.rgb_cv2_packed is not None:
             return self.rgb_cv2_packed
         bayer_packed = self.GetBayerPacked()
         self.rgb_cv2_packed = bayer_packed_to_rgb_cv2_packed(
-            bayer_packed, self.order, self.depth
+            bayer_packed, self.order, self.depth, demosaic_type
         )
         return self.rgb_cv2_packed
 
@@ -2504,9 +2597,9 @@ class BayerImage:
         )
         return self.bayer_planar
 
-    def GetRGBPlanarFromBayerPlanar(self):
+    def GetRGBPlanarFromBayerPlanar(self, demosaic_type=None):
         self.rgb_planar = bayer_planar_to_rgb_planar(
-            self.bayer_planar, self.depth, self.order
+            self.bayer_planar, self.depth, self.order, demosaic_type
         )
         return self.rgb_planar
 
@@ -2542,7 +2635,7 @@ class BayerImage:
             fout.write(self.GetBuffer())
 
     # create a new BayerImage from a depth-aware copy of another
-    def Copy(self, o_pix_fmt, debug):
+    def Copy(self, o_pix_fmt, debug, demosaic_type=None):
         # 1. select the input plane
         i_component_type = self.component_type
         if i_component_type == ComponentType.bayer:
@@ -2573,7 +2666,7 @@ class BayerImage:
             if o_component_type == ComponentType.ydgcocg:
                 o_planar = bayer_planar_to_ydgcocg_planar(o_planar, o_depth)
             else:
-                o_planar = bayer_planar_to_rgb_planar(o_planar, o_depth, i_order)
+                o_planar = bayer_planar_to_rgb_planar(o_planar, o_depth, i_order, demosaic_type)
                 if o_component_type == ComponentType.rgb:
                     pass
                 elif o_component_type == ComponentType.yuv:
@@ -2605,7 +2698,7 @@ class BayerImage:
             if o_component_type == ComponentType.bayer:
                 pass
             else:
-                o_planar = bayer_planar_to_rgb_planar(o_planar, o_depth)
+                o_planar = bayer_planar_to_rgb_planar(o_planar, o_depth, demosaic_type=demosaic_type)
                 if o_component_type == ComponentType.rgb:
                     pass
                 elif o_component_type == ComponentType.yuv:

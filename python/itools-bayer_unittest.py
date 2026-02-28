@@ -1334,8 +1334,9 @@ convertRg1g2bToRgbTestCases = [
 
 demosaicTestCases = [
     {
-        "name": "bayer_rggb8-bayer_rggb8",
+        "name": "bayer_bggr8-bilinear",
         "i_pix_fmt": "bayer_bggr8",
+        "demosaic_type": itools_bayer.DemosaicType.bilinear,
         "bayer_packed": np.array(
             [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]],
             dtype=np.uint8,
@@ -1371,6 +1372,94 @@ demosaicTestCases = [
                     [4, 5, 6, 6],
                     [8, 9, 10, 10],
                     [8, 9, 10, 10],
+                ],
+                dtype=np.uint8,
+            ),
+        },
+    },
+    {
+        "name": "bayer_bggr8-bilinear_rb_gradient_g",
+        "i_pix_fmt": "bayer_bggr8",
+        "demosaic_type": itools_bayer.DemosaicType.bilinear_rb_gradient_g,
+        "bayer_packed": np.array(
+            [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]],
+            dtype=np.uint8,
+        ),
+        "bayer_planar": {
+            "B": np.array([[0, 2], [8, 10]], dtype=np.uint8),
+            "G": np.array([[1, 3], [9, 11]], dtype=np.uint8),
+            "g": np.array([[4, 6], [12, 14]], dtype=np.uint8),
+            "R": np.array([[5, 7], [13, 15]], dtype=np.uint8),
+        },
+        "rgb_planar": {
+            "r": np.array(
+                [
+                    [5, 5, 6, 7],
+                    [5, 5, 6, 7],
+                    [9, 9, 10, 11],
+                    [13, 13, 14, 15],
+                ],
+                dtype=np.uint8,
+            ),
+            "g": np.array(
+                [
+                    [1, 1, 2, 3],
+                    [4, 5, 6, 6],
+                    [8, 9, 10, 11],
+                    [12, 13, 14, 11],
+                ],
+                dtype=np.uint8,
+            ),
+            "b": np.array(
+                [
+                    [0, 1, 2, 2],
+                    [4, 5, 6, 6],
+                    [8, 9, 10, 10],
+                    [8, 9, 10, 10],
+                ],
+                dtype=np.uint8,
+            ),
+        },
+    },
+    {
+        "name": "bayer_bggr8-cv2",
+        "i_pix_fmt": "bayer_bggr8",
+        "demosaic_type": itools_bayer.DemosaicType.cv2,
+        "bayer_packed": np.array(
+            [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]],
+            dtype=np.uint8,
+        ),
+        "bayer_planar": {
+            "B": np.array([[0, 2], [8, 10]], dtype=np.uint8),
+            "G": np.array([[1, 3], [9, 11]], dtype=np.uint8),
+            "g": np.array([[4, 6], [12, 14]], dtype=np.uint8),
+            "R": np.array([[5, 7], [13, 15]], dtype=np.uint8),
+        },
+        "rgb_planar": {
+            "r": np.array(
+                [
+                    [5, 5, 6, 6],
+                    [5, 5, 6, 6],
+                    [9, 9, 10, 10],
+                    [9, 9, 10, 10],
+                ],
+                dtype=np.uint8,
+            ),
+            "g": np.array(
+                [
+                    [5, 5, 6, 6],
+                    [5, 5, 6, 6],
+                    [9, 9, 10, 10],
+                    [9, 9, 10, 10],
+                ],
+                dtype=np.uint8,
+            ),
+            "b": np.array(
+                [
+                    [5, 5, 6, 6],
+                    [5, 5, 6, 6],
+                    [9, 9, 10, 10],
+                    [9, 9, 10, 10],
                 ],
                 dtype=np.uint8,
             ),
@@ -1653,14 +1742,18 @@ class MainTest(itools_unittest.TestCase):
                 bayer_planar, expected_bayer_planar, absolute_tolerance, "bayer_planar"
             )
             # 1.3. convert to rgb planar
+            demosaic_type = test_case["demosaic_type"]
             rgb_cv2_packed = itools_bayer.bayer_packed_to_rgb_cv2_packed(
-                bayer_packed, order, depth
+                bayer_packed, order, depth, demosaic_type
             )
             rgb_planar = itools_bayer.rgb_cv2_packed_to_rgb_planar(rgb_cv2_packed)
             expected_rgb_planar = test_case["rgb_planar"]
             self.comparePlanar(
                 rgb_planar, expected_rgb_planar, absolute_tolerance, "rgb_planar"
             )
+            # 2. backward (remosaic) test: only valid for bilinear mode
+            if demosaic_type != itools_bayer.DemosaicType.bilinear:
+                continue
             print(f"...running backward \"{function_name}.{test_case['name']}\"")
             # 2.1. read rgb planar
             bayer_packed = test_case["bayer_packed"]

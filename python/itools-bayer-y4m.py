@@ -33,6 +33,7 @@ default_values = {
     "dry_run": False,
     "i_pix_fmt": None,
     "colorrange": itools_common.ColorRange.full,
+    "demosaic_type": None,
     "o_pix_fmt": None,
     "width": 0,
     "height": 0,
@@ -143,9 +144,17 @@ class BayerY4M:
                 height = int(y4m_height / 3)
             elif component_type == itools_bayer.ComponentType.yuv:
                 if itools_common.is_mono_colorspace(y4m_colorspace):
-                    # YUV planes: 3x, full-width, full-height, vertical layout
+                    # YUV planes in mono: vertical layout, height depends on subsample
                     width = y4m_width
-                    height = int(y4m_height / 3)
+                    subsample = itools_bayer.get_subsample(pix_fmt)
+                    if subsample == itools_common.ChromaSubsample.chroma_444:
+                        height = int(y4m_height / 3)
+                    elif subsample == itools_common.ChromaSubsample.chroma_422:
+                        height = int(y4m_height / 2)
+                    elif subsample == itools_common.ChromaSubsample.chroma_420:
+                        height = int(y4m_height * 2 / 3)
+                    elif subsample == itools_common.ChromaSubsample.chroma_400:
+                        height = y4m_height
                 else:
                     width = y4m_width
                     height = y4m_height
@@ -294,9 +303,9 @@ class BayerY4MWriter:
             debug,
         )
 
-    def AddFrame(self, bayer_image):
+    def AddFrame(self, bayer_image, demosaic_type=None):
         # convert input frame to the write pixel format
-        bayer_image_copy = bayer_image.Copy(self.pix_fmt, self.debug)
+        bayer_image_copy = bayer_image.Copy(self.pix_fmt, self.debug, demosaic_type)
         # get the image buffer
         buffer = bayer_image_copy.GetBuffer()
         # write the image buffer to the file
@@ -381,6 +390,26 @@ def get_options(argv):
         metavar=f"[{input_choices_str}]",
         help="input colorrange",
     )
+    demosaic_choices_str = " | ".join(itools_bayer.DemosaicType.list())
+    parser.add_argument(
+        "--use-demosaic",
+        action="store",
+        type=str,
+        dest="demosaic_type",
+        default=default_values["demosaic_type"],
+        choices=itools_bayer.DemosaicType.list()
+        + [
+            None,
+        ],
+        metavar=f"[{demosaic_choices_str}]",
+        help="demosaic algorithm",
+    )
+    parser.add_argument(
+        "--list-demosaic-options",
+        action="store_true",
+        default=False,
+        help="list available demosaic options",
+    )
     # 2-parameter setter using argparse.Action
     parser.add_argument(
         "--width",
@@ -437,7 +466,7 @@ def get_options(argv):
     return options
 
 
-def convert_video_file(infile, outfile, pix_fmt, debug):
+def convert_video_file(infile, outfile, pix_fmt, debug, demosaic_type=None):
     bayer_video_reader = BayerY4MReader.FromY4MFile(infile, debug)
     bayer_video_writer = None
     num_frames = 0
@@ -455,7 +484,7 @@ def convert_video_file(infile, outfile, pix_fmt, debug):
                 outfile, height, width, colorrange, pix_fmt, debug
             )
         # write the frame
-        bayer_video_writer.AddFrame(bayer_image)
+        bayer_video_writer.AddFrame(bayer_image, demosaic_type)
         num_frames += 1
     if debug > 0:
         print(f"convert {infile=} {outfile=} {pix_fmt=} {num_frames=}")
@@ -470,13 +499,14 @@ def convert_raw_image_file(
     outfile,
     o_pix_fmt,
     debug,
+    demosaic_type=None,
 ):
     # 1. read input image file
     bayer_image = itools_bayer.BayerImage.FromFile(
         infile, i_pix_fmt, width, height, debug, strict_size_check=False
     )
     # 2. convert image to new pixel format
-    bayer_image_copy = bayer_image.Copy(o_pix_fmt, debug)
+    bayer_image_copy = bayer_image.Copy(o_pix_fmt, debug, demosaic_type)
     # 3. create the writer
     height = bayer_image_copy.height
     width = bayer_image_copy.width
@@ -493,6 +523,16 @@ def main(argv):
     if options.version:
         print("version: %s" % __version__)
         sys.exit(0)
+    if options.list_demosaic_options:
+        print("available demosaic options:")
+        for name in itools_bayer.DemosaicType.list():
+            default_marker = " (default)" if name == itools_bayer.DemosaicType.get_default().name else ""
+            print(f"  {name}{default_marker}")
+        sys.exit(0)
+    # convert demosaic_type string to enum
+    demosaic_type = None
+    if options.demosaic_type is not None:
+        demosaic_type = itools_bayer.DemosaicType[options.demosaic_type]
     # get infile/outfile
     if options.infile == "-" or options.infile is None:
         options.infile = "/dev/fd/0"
@@ -518,6 +558,7 @@ def main(argv):
             options.outfile,
             options.o_pix_fmt,
             options.debug,
+            demosaic_type,
         )
         return
 
@@ -526,6 +567,7 @@ def main(argv):
         options.outfile,
         options.o_pix_fmt,
         options.debug,
+        demosaic_type,
     )
 
 
