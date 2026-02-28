@@ -526,7 +526,11 @@ def main(argv):
     if options.list_demosaic_options:
         print("available demosaic options:")
         for name in itools_bayer.DemosaicType.list():
-            default_marker = " (default)" if name == itools_bayer.DemosaicType.get_default().name else ""
+            default_marker = (
+                " (default)"
+                if name == itools_bayer.DemosaicType.get_default().name
+                else ""
+            )
             print(f"  {name}{default_marker}")
         sys.exit(0)
     # convert demosaic_type string to enum

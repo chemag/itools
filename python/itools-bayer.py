@@ -1459,7 +1459,9 @@ def bayer_planar_to_rgb_planar(bayer_planar, depth, order="RGgB", demosaic_type=
     if BayerImage.GetComponentType(order) != ComponentType.bayer:
         order = "RGgB"
     bayer_packed = bayer_planar_to_bayer_packed(bayer_planar, order)
-    rgb_cv2_packed = bayer_packed_to_rgb_cv2_packed(bayer_packed, order, depth, demosaic_type)
+    rgb_cv2_packed = bayer_packed_to_rgb_cv2_packed(
+        bayer_packed, order, depth, demosaic_type
+    )
     rgb_planar = rgb_cv2_packed_to_rgb_planar(rgb_cv2_packed)
     return rgb_planar
 
@@ -1614,10 +1616,7 @@ def bayer_packed_to_rgb_cv2_packed_itools(bayer_packed, order, depth, demosaic_t
                 row_slices[order.index("g")], col_slices[order.index("g")]
             ] = 1
         # use gradient-adaptive interpolation for G when requested
-        if (
-            demosaic_type == DemosaicType.bilinear_rb_gradient_g
-            and plane_id == "G"
-        ):
+        if demosaic_type == DemosaicType.bilinear_rb_gradient_g and plane_id == "G":
             bayer_plane[plane_id] = bayer_plane_demosaic_g_gradient(
                 plane[plane_id], mask[plane_id]
             )
@@ -2325,9 +2324,7 @@ class BayerImage:
         assert self.layout == LayoutType.planar, f"error: invalid call"
         # do the conversion using the format-specific rfun
         rfun = BAYER_FORMATS[self.pix_fmt]["rfun"]
-        planar = rfun(
-            self.buffer, self.pix_fmt, self.width, self.height, self.debug
-        )
+        planar = rfun(self.buffer, self.pix_fmt, self.width, self.height, self.debug)
         return planar
 
     def GetBufferFromPacked(self, packed):
@@ -2666,7 +2663,9 @@ class BayerImage:
             if o_component_type == ComponentType.ydgcocg:
                 o_planar = bayer_planar_to_ydgcocg_planar(o_planar, o_depth)
             else:
-                o_planar = bayer_planar_to_rgb_planar(o_planar, o_depth, i_order, demosaic_type)
+                o_planar = bayer_planar_to_rgb_planar(
+                    o_planar, o_depth, i_order, demosaic_type
+                )
                 if o_component_type == ComponentType.rgb:
                     pass
                 elif o_component_type == ComponentType.yuv:
@@ -2698,7 +2697,9 @@ class BayerImage:
             if o_component_type == ComponentType.bayer:
                 pass
             else:
-                o_planar = bayer_planar_to_rgb_planar(o_planar, o_depth, demosaic_type=demosaic_type)
+                o_planar = bayer_planar_to_rgb_planar(
+                    o_planar, o_depth, demosaic_type=demosaic_type
+                )
                 if o_component_type == ComponentType.rgb:
                     pass
                 elif o_component_type == ComponentType.yuv:

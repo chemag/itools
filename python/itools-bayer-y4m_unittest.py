@@ -395,7 +395,7 @@ readVideoY4MTestCases = [
     {
         "name": "RG10-ydgcocg10.packed",
         "debug": 0,
-        "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono10 XCOLORRANGE=FULL XEXTCS=RG10\nFRAME\n\x00\x00\x00\x01\x40\x00\xC0\x00\x00\x02\xff\x03\x40\x02\xC0\x03\x80\x00\x80\x00\xC0\x00\x40\x00\x80\x02\x80\x03\xC0\x02\x40\x03",
+        "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono10 XCOLORRANGE=FULL XEXTCS=RG10\nFRAME\n\x00\x00\x00\x01\x40\x00\xc0\x00\x00\x02\xff\x03\x40\x02\xc0\x03\x80\x00\x80\x00\xc0\x00\x40\x00\x80\x02\x80\x03\xc0\x02\x40\x03",
         "i_pix_fmt": "RG10",
         "i_bayer_packed": (
             np.array(
@@ -450,7 +450,7 @@ readVideoY4MTestCases = [
         "name": "RG10-ydgcocg10.planar",
         "absolute_tolerance": 2,
         "debug": 0,
-        "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono10 XCOLORRANGE=FULL XEXTCS=RG10\nFRAME\n\x00\x00\x00\x01\x40\x00\xC0\x00\x00\x02\xff\x03\x40\x02\xC0\x03\x80\x00\x80\x00\xC0\x00\x40\x00\x80\x02\x80\x03\xC0\x02\x40\x03",
+        "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono10 XCOLORRANGE=FULL XEXTCS=RG10\nFRAME\n\x00\x00\x00\x01\x40\x00\xc0\x00\x00\x02\xff\x03\x40\x02\xc0\x03\x80\x00\x80\x00\xc0\x00\x40\x00\x80\x02\x80\x03\xc0\x02\x40\x03",
         "i_pix_fmt": "RG10",
         "num_frames": 1,
         "i_frames": (
@@ -553,7 +553,7 @@ readVideoY4MTestCases = [
     {
         "name": "RG10-rgb10.planar",
         "debug": 0,
-        "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono10 XCOLORRANGE=FULL XEXTCS=RG10\nFRAME\n\x00\x00\x00\x01\x40\x00\xC0\x00\x00\x02\xff\x03\x40\x02\xC0\x03\x80\x00\x80\x00\xC0\x00\x40\x00\x80\x02\x80\x03\xC0\x02\x40\x03",
+        "input": b"YUV4MPEG2 W4 H4 F25:1 Ip A0:0 Cmono10 XCOLORRANGE=FULL XEXTCS=RG10\nFRAME\n\x00\x00\x00\x01\x40\x00\xc0\x00\x00\x02\xff\x03\x40\x02\xc0\x03\x80\x00\x80\x00\xc0\x00\x40\x00\x80\x02\x80\x03\xc0\x02\x40\x03",
         "i_pix_fmt": "RG10",
         "i_bayer_packed": (
             np.array(
