@@ -1261,7 +1261,7 @@ convertRawImageFileTestCases = [
         "i_pix_fmt": "yuv422p8",
         "colorrange": itools_common.ColorRange.full,
         "o_pix_fmt": "yuv422p8.mono",
-        "output": b"YUV4MPEG2 W4 H6 F25:1 Ip A0:0 Cmono XCOLORRANGE=FULL XEXTCS=yuv422p8.mono\nFRAME\n\x03\x02\x03\x04\x05\x06\x07\x07\x09\x0a\x0b\x0c\x0c\x0c\x0e\x0d\x80\x81\x82\x83\x7f\x7e\x7d\x7c",
+        "output": b"YUV4MPEG2 W4 H8 F25:1 Ip A0:0 Cmono XCOLORRANGE=FULL XEXTCS=yuv422p8.mono\nFRAME\n\x03\x02\x03\x04\x05\x06\x07\x07\x09\x0a\x0b\x0c\x0c\x0c\x0e\x0d\x80\x81\x82\x83\x80\x81\x82\x83\x7f\x7e\x7d\x7c\x7f\x7e\x7d\x7c",
     },
     {
         "name": "yuv422p8.mono-yuv420p8",
