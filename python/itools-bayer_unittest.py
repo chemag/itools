@@ -1422,6 +1422,13 @@ demosaicTestCases = [
         },
     },
     {
+        # Note: R==G==B here because the 0-15 linear ramp input has values
+        # at R, G, and B CFA positions that are too close together. After
+        # OpenCV's interpolation and integer rounding, all three channels
+        # collapse to the same result. This is a degenerate case that only
+        # verifies cv2 runs without error. The "bayer_bggr8-color-cv2"
+        # test below uses distinct per-channel values to actually exercise
+        # the Bayer pattern code mapping.
         "name": "bayer_bggr8-cv2",
         "i_pix_fmt": "bayer_bggr8",
         "demosaic_type": itools_bayer.DemosaicType.cv2,
@@ -1460,6 +1467,156 @@ demosaicTestCases = [
                     [5, 5, 6, 6],
                     [9, 9, 10, 10],
                     [9, 9, 10, 10],
+                ],
+                dtype=np.uint8,
+            ),
+        },
+    },
+    # The following 3 test cases use spatially-uniform, per-channel-distinct
+    # values (B=200, G=100, R=50) to verify that each demosaic algorithm
+    # correctly separates the color channels.
+    {
+        "name": "bayer_bggr8-color-bilinear",
+        "i_pix_fmt": "bayer_bggr8",
+        "demosaic_type": itools_bayer.DemosaicType.bilinear,
+        "bayer_packed": np.array(
+            [
+                [200, 100, 200, 100],
+                [100, 50, 100, 50],
+                [200, 100, 200, 100],
+                [100, 50, 100, 50],
+            ],
+            dtype=np.uint8,
+        ),
+        "bayer_planar": {
+            "B": np.array([[200, 200], [200, 200]], dtype=np.uint8),
+            "G": np.array([[100, 100], [100, 100]], dtype=np.uint8),
+            "g": np.array([[100, 100], [100, 100]], dtype=np.uint8),
+            "R": np.array([[50, 50], [50, 50]], dtype=np.uint8),
+        },
+        "rgb_planar": {
+            "r": np.array(
+                [
+                    [50, 50, 50, 50],
+                    [50, 50, 50, 50],
+                    [50, 50, 50, 50],
+                    [50, 50, 50, 50],
+                ],
+                dtype=np.uint8,
+            ),
+            "g": np.array(
+                [
+                    [100, 100, 100, 100],
+                    [100, 100, 100, 100],
+                    [100, 100, 100, 100],
+                    [100, 100, 100, 100],
+                ],
+                dtype=np.uint8,
+            ),
+            "b": np.array(
+                [
+                    [200, 200, 200, 200],
+                    [200, 200, 200, 200],
+                    [200, 200, 200, 200],
+                    [200, 200, 200, 200],
+                ],
+                dtype=np.uint8,
+            ),
+        },
+    },
+    {
+        "name": "bayer_bggr8-color-bilinear_rb_gradient_g",
+        "i_pix_fmt": "bayer_bggr8",
+        "demosaic_type": itools_bayer.DemosaicType.bilinear_rb_gradient_g,
+        "bayer_packed": np.array(
+            [
+                [200, 100, 200, 100],
+                [100, 50, 100, 50],
+                [200, 100, 200, 100],
+                [100, 50, 100, 50],
+            ],
+            dtype=np.uint8,
+        ),
+        "bayer_planar": {
+            "B": np.array([[200, 200], [200, 200]], dtype=np.uint8),
+            "G": np.array([[100, 100], [100, 100]], dtype=np.uint8),
+            "g": np.array([[100, 100], [100, 100]], dtype=np.uint8),
+            "R": np.array([[50, 50], [50, 50]], dtype=np.uint8),
+        },
+        "rgb_planar": {
+            "r": np.array(
+                [
+                    [50, 50, 50, 50],
+                    [50, 50, 50, 50],
+                    [50, 50, 50, 50],
+                    [50, 50, 50, 50],
+                ],
+                dtype=np.uint8,
+            ),
+            "g": np.array(
+                [
+                    [100, 100, 100, 100],
+                    [100, 100, 100, 100],
+                    [100, 100, 100, 100],
+                    [100, 100, 100, 100],
+                ],
+                dtype=np.uint8,
+            ),
+            "b": np.array(
+                [
+                    [200, 200, 200, 200],
+                    [200, 200, 200, 200],
+                    [200, 200, 200, 200],
+                    [200, 200, 200, 200],
+                ],
+                dtype=np.uint8,
+            ),
+        },
+    },
+    {
+        "name": "bayer_bggr8-color-cv2",
+        "i_pix_fmt": "bayer_bggr8",
+        "demosaic_type": itools_bayer.DemosaicType.cv2,
+        "bayer_packed": np.array(
+            [
+                [200, 100, 200, 100],
+                [100, 50, 100, 50],
+                [200, 100, 200, 100],
+                [100, 50, 100, 50],
+            ],
+            dtype=np.uint8,
+        ),
+        "bayer_planar": {
+            "B": np.array([[200, 200], [200, 200]], dtype=np.uint8),
+            "G": np.array([[100, 100], [100, 100]], dtype=np.uint8),
+            "g": np.array([[100, 100], [100, 100]], dtype=np.uint8),
+            "R": np.array([[50, 50], [50, 50]], dtype=np.uint8),
+        },
+        "rgb_planar": {
+            "r": np.array(
+                [
+                    [50, 50, 50, 50],
+                    [50, 50, 50, 50],
+                    [50, 50, 50, 50],
+                    [50, 50, 50, 50],
+                ],
+                dtype=np.uint8,
+            ),
+            "g": np.array(
+                [
+                    [100, 100, 100, 100],
+                    [100, 100, 100, 100],
+                    [100, 100, 100, 100],
+                    [100, 100, 100, 100],
+                ],
+                dtype=np.uint8,
+            ),
+            "b": np.array(
+                [
+                    [200, 200, 200, 200],
+                    [200, 200, 200, 200],
+                    [200, 200, 200, 200],
+                    [200, 200, 200, 200],
                 ],
                 dtype=np.uint8,
             ),
