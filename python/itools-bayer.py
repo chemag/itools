@@ -1523,7 +1523,12 @@ def bayer_plane_demosaic_bilinear(plane, mask):
     return result.astype(plane.dtype)
 
 
-# Demosaics the G plane using gradient-adaptive interpolation.
+# Demosaics the G plane using gradient-adaptive interpolation, commonly
+# known as Laroche-Prescott demosaicing, after C.A. Laroche and M.A.
+# Prescott who proposed it in their 1994 paper "Apparatus and method for
+# adaptively interpolating a full color image utilizing chrominance
+# gradients" (US Patent 5,373,322, also presented at SPIE).
+#
 # Unlike the bilinear approach which always averages all cardinal neighbors,
 # this method computes horizontal and vertical gradients at each missing
 # G position (i.e. at R and B sites) and chooses the interpolation direction
