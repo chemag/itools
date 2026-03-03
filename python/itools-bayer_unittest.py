@@ -955,6 +955,44 @@ convertImageFormatTestCases = [
         },
         "output": b"\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff\xff\xff\xff\xff\xff\xff\x00\x00\x00\x00\xff\xff\xff\xff\x00\x00\x00\x00\xff\xff\xff\xff\x00\x00\xff\xff\x00\x00\xff\xff\x00\x00\xff\xff\x00\x00\xff\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff",
     },
+    # (d.3) YDgCoCg 4:2:0
+    # even half-width (4x4): half_w=2, quarter_w=1
+    {
+        "name": "ydgcocg420p8.planar-ydgcocg420p8.planar-even",
+        "width": 4,
+        "height": 4,
+        "i_pix_fmt": "ydgcocg420p8.planar",
+        "o_pix_fmt": "ydgcocg420p8.planar",
+        "debug": 0,
+        # Y(2x2) + Dg(2x2) + CoCg(2x1): 4+4+2 = 10 bytes
+        "input": b"\x0a\x14\x1e\x28\x32\x3c\x46\x50\x80\x8c",
+        "ydgcocg_planar": {
+            "Y": np.array([[0x0A, 0x14], [0x1E, 0x28]], dtype=np.uint8),
+            "D": np.array([[0x32, 0x3C], [0x46, 0x50]], dtype=np.uint8),
+            "C": np.array([[0x80]], dtype=np.uint8),
+            "c": np.array([[0x8C]], dtype=np.uint8),
+        },
+        "output": b"\x0a\x14\x1e\x28\x32\x3c\x46\x50\x80\x8c",
+    },
+    # odd half-width (6x4): half_w=3, quarter_w=1, Cg gets 2 cols
+    {
+        "name": "ydgcocg420p8.planar-ydgcocg420p8.planar-odd",
+        "width": 6,
+        "height": 4,
+        "i_pix_fmt": "ydgcocg420p8.planar",
+        "o_pix_fmt": "ydgcocg420p8.planar",
+        "debug": 0,
+        # Y(3x2) + Dg(3x2) + CoCg(3x1): 6+6+3 = 15 bytes
+        "input": b"\x0a\x14\x1e\x28\x32\x3c\x46\x50\x5a\x64\x6e\x78\x80\x82\x8c",
+        "ydgcocg_planar": {
+            "Y": np.array([[0x0A, 0x14, 0x1E], [0x28, 0x32, 0x3C]], dtype=np.uint8),
+            "D": np.array([[0x46, 0x50, 0x5A], [0x64, 0x6E, 0x78]], dtype=np.uint8),
+            # Co is padded from 1 col to 2 cols (edge replication)
+            "C": np.array([[0x80, 0x80]], dtype=np.uint8),
+            "c": np.array([[0x82, 0x8C]], dtype=np.uint8),
+        },
+        "output": b"\x0a\x14\x1e\x28\x32\x3c\x46\x50\x5a\x64\x6e\x78\x80\x82\x8c",
+    },
 ]
 
 

@@ -145,7 +145,7 @@ def rfun_planar_ydgcocg420(data, pix_fmt, width, height, debug):
         (half_h, half_w)
     )
     offset += plane_size
-    # Co and Cg are side-by-side: each row is Co_row(quarter_w) + Cg_row(quarter_w)
+    # Co and Cg are side-by-side: each row is Co_row(quarter_w) + Cg_row(half_w - quarter_w)
     cocg_row_bytes = half_w * element_size_bytes
     cocg_total = cocg_row_bytes * quarter_h
     cocg = np.frombuffer(data[offset : offset + cocg_total], dtype=dtype).reshape(
@@ -153,6 +153,10 @@ def rfun_planar_ydgcocg420(data, pix_fmt, width, height, debug):
     )
     Co = cocg[:, :quarter_w].copy()
     Cg = cocg[:, quarter_w:].copy()
+    # When half_w is odd, Co is one column narrower than Cg.
+    # Pad Co to match Cg width for consistent downstream processing.
+    if Co.shape[1] < Cg.shape[1]:
+        Co = np.pad(Co, ((0, 0), (0, Cg.shape[1] - Co.shape[1])), mode="edge")
     return {"Y": Y, "D": D, "C": Co, "c": Cg}
 
 
@@ -161,10 +165,15 @@ def wfun_planar_ydgcocg420(planar, order, debug):
     # Y and D are written sequentially
     buffer += planar["Y"].tobytes()
     buffer += planar["D"].tobytes()
-    # Co and Cg are written side-by-side
+    # Co and Cg are written side-by-side into half_w-wide rows
     Co = planar["C"]
     Cg = planar["c"]
-    cocg = np.concatenate([Co, Cg], axis=1)
+    half_w = planar["Y"].shape[1]
+    quarter_w = half_w >> 1
+    quarter_h = Co.shape[0]
+    cocg = np.zeros((quarter_h, half_w), dtype=Co.dtype)
+    cocg[:, :quarter_w] = Co[:, :quarter_w]
+    cocg[:, quarter_w:] = Cg[:, : half_w - quarter_w]
     buffer += cocg.tobytes()
     return buffer
 
@@ -2777,8 +2786,11 @@ class BayerImage:
                 element_size_bytes = 1 if depth == 8 else 2
                 subsample = get_subsample(pix_fmt)
                 if subsample == itools_common.ChromaSubsample.chroma_420:
-                    yd_size = 2 * (width >> 1) * (height >> 1)
-                    cocg_size = 2 * (width >> 2) * (height >> 2)
+                    half_w = width >> 1
+                    half_h = height >> 1
+                    quarter_h = height >> 2
+                    yd_size = 2 * half_w * half_h
+                    cocg_size = half_w * quarter_h
                     expected_size = (yd_size + cocg_size) * element_size_bytes
                 else:
                     expected_size = height * width * element_size_bytes
@@ -2818,7 +2830,7 @@ class BayerImage:
         # check image pix_fmt
         pix_fmt = get_canonical_input_pix_fmt(pix_fmt)
         # get file size
-        expected_size = cls.GetBufferSize(pix_fmt, height, width)
+        expected_size = cls.GetBufferSize(pix_fmt, width, height)
         # make sure the dimensions are OK
         file_size = os.stat(infile).st_size
         if strict_size_check:
