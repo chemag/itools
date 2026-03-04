@@ -781,6 +781,8 @@ convertImageFormatTestCases = [
             ),
         },
         "output": b"\x00\x3f\x3f\x7e\x3f\x7e\x7e\xbd\x3f\x7e\x7e\xbd\x7e\xbd\xbd\xfc\x80\x80\xff\xff\x00\x00\x80\x80\x80\x80\xff\xff\x00\x00\x80\x80\x80\x00\x80\x00\x80\x00\x80\x00\xff\x80\xff\x80\xff\x80\xff\x80\x80\x40\xbf\x80\xbf\x80\xff\xbf\x40\x01\x80\x40\x80\x40\xbf\x80",
+        # YDgCoCg round-trip at 8-bit clips at 0/255 boundaries (max diff: 3)
+        "round_trip_atol": 3,
     },
     {
         "name": "ydgcocg8.planar-bayer_rggb8.planar-maxmin",
@@ -851,6 +853,8 @@ convertImageFormatTestCases = [
             ),
         },
         "output": b"\x00\x00\xff\x00\x00\x00\xff\x00\xff\x00\xff\xff\xff\x00\xff\xff\x00\xff\x00\xff\x00\x00\x00\x00\xff\xff\xff\xff\x00\xff\x00\xff\x00\x00\x00\x00\x00\xfe\x00\xfe\x00\xfe\x00\xfe\xfe\xff\xfe\xff\xff\x01\x01\x00\xff\x01\x01\x00\xff\xff\xff\x01\xff\xff\xff\x01",
+        # YDgCoCg round-trip at 8-bit clips at 0/255 boundaries (max diff: 3)
+        "round_trip_atol": 3,
     },
     # (d.2) 10-bit
     {
@@ -954,6 +958,8 @@ convertImageFormatTestCases = [
             ),
         },
         "output": b"\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff\xff\xff\xff\xff\xff\xff\x00\x00\x00\x00\xff\xff\xff\xff\x00\x00\x00\x00\xff\xff\xff\xff\x00\x00\xff\xff\x00\x00\xff\xff\x00\x00\xff\xff\x00\x00\xff\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff",
+        # 10-bit to 8-bit quantization plus boundary clipping (max diff: 6)
+        "round_trip_atol": 7,
     },
     # (d.3) YDgCoCg 4:2:0
     # even half-width (4x4): half_w=2, quarter_w=1
@@ -1763,6 +1769,20 @@ class MainTest(itools_unittest.TestCase):
                     expected_output,
                     f"error on forward write test {test_case['name']}",
                 )
+
+                # 8. run round-trip conversion (reverse back to i_pix_fmt)
+                if i_pix_fmt != o_pix_fmt:
+                    round_trip_atol = test_case.get(
+                        "round_trip_atol", absolute_tolerance
+                    )
+                    roundtrip_image = output_image.Copy(i_pix_fmt, debug)
+                    roundtrip_packed = roundtrip_image.GetBayerPacked()
+                    np.testing.assert_allclose(
+                        roundtrip_packed,
+                        input_image.GetBayerPacked(),
+                        atol=round_trip_atol,
+                        err_msg=f"error on round-trip test {test_case['name']}",
+                    )
 
     def testProcessColorConversions(self):
         """Test color conversions."""
