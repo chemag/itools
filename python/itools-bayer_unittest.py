@@ -648,7 +648,7 @@ convertImageFormatTestCases = [
         "output": b"\x6f\x70\x70\x70\xa0\xb0\xc0\xd0\x00\x10\x20\x30\x70\x70\x70\x70",
     },
     {
-        "name": "bayer_rggb8-ydgcocg8.planar",
+        "name": "bayer_rggb8-ydgcocg8.planar 1",
         "width": 4,
         "height": 4,
         "i_pix_fmt": "bayer_rggb8",
@@ -679,7 +679,7 @@ convertImageFormatTestCases = [
         "output": b"\x6f\x70\x70\x70\xa0\xb0\xc0\xd0\x00\x10\x20\x30\x70\x70\x70\x70",
     },
     {
-        "name": "bayer_rggb8-ydgcocg8.planar",
+        "name": "bayer_rggb8-ydgcocg8.planar 2",
         "width": 4,
         "height": 4,
         "i_pix_fmt": "bayer_rggb8",
@@ -711,6 +711,215 @@ convertImageFormatTestCases = [
             dtype=np.uint8,
         ),
         "output": b"\x30\x70\x70\x70\xa0\xb0\xc0\xd0\x80\x10\x20\x30\xb0\x70\x70\x70",
+    },
+    {
+        "name": "bayer_bggr8-ydgcocg8.planar 1",
+        "width": 4,
+        "height": 4,
+        "i_pix_fmt": "bayer_bggr8",
+        "o_pix_fmt": "ydgcocg8.planar",
+        "debug": 0,
+        "input": b"\x00\x40\x10\x30\x80\xff\x90\xf0\x20\x20\x30\x10\xa0\xe0\xb0\xd0",
+        "bayer_packed": np.array(
+            [
+                [0x00, 0x40, 0x10, 0x30],
+                [0x80, 0xFF, 0x90, 0xF0],
+                [0x20, 0x20, 0x30, 0x10],
+                [0xA0, 0xE0, 0xB0, 0xD0],
+            ],
+            dtype=np.uint8,
+        ),
+        "bayer_planar": {
+            "B": np.array([[0x00, 0x10], [0x20, 0x30]], dtype=np.uint8),
+            "G": np.array([[0x40, 0x30], [0x20, 0x10]], dtype=np.uint8),
+            "g": np.array([[0x80, 0x90], [0xA0, 0xB0]], dtype=np.uint8),
+            "R": np.array([[0xFF, 0xF0], [0xE0, 0xD0]], dtype=np.uint8),
+        },
+        "ydgcocg_planar": {
+            "Y": np.array([[0x6F, 0x70], [0x70, 0x70]], dtype=np.uint8),
+            "D": np.array([[0xA0, 0xB0], [0xC0, 0xD0]], dtype=np.uint8),
+            "C": np.array([[0xFF, 0xF0], [0xE0, 0xD0]], dtype=np.uint8),
+            "c": np.array([[0x70, 0x70], [0x70, 0x70]], dtype=np.uint8),
+        },
+        "output": b"\x6f\x70\x70\x70\xa0\xb0\xc0\xd0\xff\xf0\xe0\xd0\x70\x70\x70\x70",
+    },
+    {
+        "name": "bayer_bggr8-ydgcocg8.planar 2",
+        "width": 4,
+        "height": 4,
+        "i_pix_fmt": "bayer_bggr8",
+        "o_pix_fmt": "ydgcocg8.planar",
+        "debug": 0,
+        "input": b"\x00\x40\x10\x30\x80\x00\x90\xf0\x20\x20\x30\x10\xa0\xe0\xb0\xd0",
+        "bayer_packed": np.array(
+            [
+                [0x00, 0x40, 0x10, 0x30],
+                [0x80, 0x00, 0x90, 0xF0],
+                [0x20, 0x20, 0x30, 0x10],
+                [0xA0, 0xE0, 0xB0, 0xD0],
+            ],
+            dtype=np.uint8,
+        ),
+        # Same input as bayer_rggb8 case above. BGGR swaps R and B, so only
+        # Co changes: Co_bggr = 0x100 - Co_rggb (negation around midpoint).
+        "ydgcocg_planar": {
+            "Y": np.array([[0x30, 0x70], [0x70, 0x70]], dtype=np.uint8),
+            "D": np.array([[0xA0, 0xB0], [0xC0, 0xD0]], dtype=np.uint8),
+            "C": np.array([[0x80, 0xF0], [0xE0, 0xD0]], dtype=np.uint8),
+            "c": np.array([[0xB0, 0x70], [0x70, 0x70]], dtype=np.uint8),
+        },
+        "ydgcocg_packed": np.array(
+            [
+                [0x30, 0xA0, 0x70, 0xB0],
+                [0x80, 0xB0, 0xF0, 0x70],
+                [0x70, 0xC0, 0x70, 0xD0],
+                [0xE0, 0x70, 0xD0, 0x70],
+            ],
+            dtype=np.uint8,
+        ),
+        "output": b"\x30\x70\x70\x70\xa0\xb0\xc0\xd0\x80\xf0\xe0\xd0\xb0\x70\x70\x70",
+    },
+    {
+        "name": "bayer_grbg8-ydgcocg8.planar 1",
+        "width": 4,
+        "height": 4,
+        "i_pix_fmt": "bayer_grbg8",
+        "o_pix_fmt": "ydgcocg8.planar",
+        "debug": 0,
+        "input": b"\x00\x40\x10\x30\x80\xff\x90\xf0\x20\x20\x30\x10\xa0\xe0\xb0\xd0",
+        "bayer_packed": np.array(
+            [
+                [0x00, 0x40, 0x10, 0x30],
+                [0x80, 0xFF, 0x90, 0xF0],
+                [0x20, 0x20, 0x30, 0x10],
+                [0xA0, 0xE0, 0xB0, 0xD0],
+            ],
+            dtype=np.uint8,
+        ),
+        "bayer_planar": {
+            "G": np.array([[0x00, 0x10], [0x20, 0x30]], dtype=np.uint8),
+            "R": np.array([[0x40, 0x30], [0x20, 0x10]], dtype=np.uint8),
+            "B": np.array([[0x80, 0x90], [0xA0, 0xB0]], dtype=np.uint8),
+            "g": np.array([[0xFF, 0xF0], [0xE0, 0xD0]], dtype=np.uint8),
+        },
+        # GRBG swaps G1<->R and G2<->B vs RGGB. Compared to RGGB:
+        # - Y unchanged (sum of all 4 is the same)
+        # - Dg changes (G1 and G2 are now in different positions)
+        # - Co changes (R and B are in different positions)
+        # - Cg changes (depends on G1+G2 vs R+B split)
+        "ydgcocg_planar": {
+            "Y": np.array([[0x6F, 0x70], [0x70, 0x70]], dtype=np.uint8),
+            "D": np.array([[0xFF, 0xF0], [0xE0, 0xD0]], dtype=np.uint8),
+            "C": np.array([[0x60, 0x50], [0x40, 0x30]], dtype=np.uint8),
+            "c": np.array([[0x8F, 0x90], [0x90, 0x90]], dtype=np.uint8),
+        },
+        "output": b"\x6f\x70\x70\x70\xff\xf0\xe0\xd0\x60\x50\x40\x30\x8f\x90\x90\x90",
+        # Dg reaches 0xFF, round-trip clips at boundary (max diff: 2)
+        "round_trip_atol": 2,
+    },
+    {
+        "name": "bayer_grbg8-ydgcocg8.planar 2",
+        "width": 4,
+        "height": 4,
+        "i_pix_fmt": "bayer_grbg8",
+        "o_pix_fmt": "ydgcocg8.planar",
+        "debug": 0,
+        "input": b"\x00\x40\x10\x30\x80\x00\x90\xf0\x20\x20\x30\x10\xa0\xe0\xb0\xd0",
+        "bayer_packed": np.array(
+            [
+                [0x00, 0x40, 0x10, 0x30],
+                [0x80, 0x00, 0x90, 0xF0],
+                [0x20, 0x20, 0x30, 0x10],
+                [0xA0, 0xE0, 0xB0, 0xD0],
+            ],
+            dtype=np.uint8,
+        ),
+        "ydgcocg_planar": {
+            "Y": np.array([[0x30, 0x70], [0x70, 0x70]], dtype=np.uint8),
+            "D": np.array([[0x80, 0xF0], [0xE0, 0xD0]], dtype=np.uint8),
+            "C": np.array([[0x60, 0x50], [0x40, 0x30]], dtype=np.uint8),
+            "c": np.array([[0x50, 0x90], [0x90, 0x90]], dtype=np.uint8),
+        },
+        "ydgcocg_packed": np.array(
+            [
+                [0x30, 0x80, 0x70, 0xF0],
+                [0x60, 0x50, 0x50, 0x90],
+                [0x70, 0xE0, 0x70, 0xD0],
+                [0x40, 0x90, 0x30, 0x90],
+            ],
+            dtype=np.uint8,
+        ),
+        "output": b"\x30\x70\x70\x70\x80\xf0\xe0\xd0\x60\x50\x40\x30\x50\x90\x90\x90",
+    },
+    {
+        "name": "bayer_gbrg8-ydgcocg8.planar 1",
+        "width": 4,
+        "height": 4,
+        "i_pix_fmt": "bayer_gbrg8",
+        "o_pix_fmt": "ydgcocg8.planar",
+        "debug": 0,
+        "input": b"\x00\x40\x10\x30\x80\xff\x90\xf0\x20\x20\x30\x10\xa0\xe0\xb0\xd0",
+        "bayer_packed": np.array(
+            [
+                [0x00, 0x40, 0x10, 0x30],
+                [0x80, 0xFF, 0x90, 0xF0],
+                [0x20, 0x20, 0x30, 0x10],
+                [0xA0, 0xE0, 0xB0, 0xD0],
+            ],
+            dtype=np.uint8,
+        ),
+        "bayer_planar": {
+            "G": np.array([[0x00, 0x10], [0x20, 0x30]], dtype=np.uint8),
+            "B": np.array([[0x40, 0x30], [0x20, 0x10]], dtype=np.uint8),
+            "R": np.array([[0x80, 0x90], [0xA0, 0xB0]], dtype=np.uint8),
+            "g": np.array([[0xFF, 0xF0], [0xE0, 0xD0]], dtype=np.uint8),
+        },
+        # GBRG is like GRBG but with R and B swapped, so compared to GRBG:
+        # - Y, Dg, Cg unchanged
+        # - Co negated: Co_gbrg = 0x100 - Co_grbg
+        "ydgcocg_planar": {
+            "Y": np.array([[0x6F, 0x70], [0x70, 0x70]], dtype=np.uint8),
+            "D": np.array([[0xFF, 0xF0], [0xE0, 0xD0]], dtype=np.uint8),
+            "C": np.array([[0xA0, 0xB0], [0xC0, 0xD0]], dtype=np.uint8),
+            "c": np.array([[0x8F, 0x90], [0x90, 0x90]], dtype=np.uint8),
+        },
+        "output": b"\x6f\x70\x70\x70\xff\xf0\xe0\xd0\xa0\xb0\xc0\xd0\x8f\x90\x90\x90",
+        # Dg reaches 0xFF, round-trip clips at boundary (max diff: 2)
+        "round_trip_atol": 2,
+    },
+    {
+        "name": "bayer_gbrg8-ydgcocg8.planar 2",
+        "width": 4,
+        "height": 4,
+        "i_pix_fmt": "bayer_gbrg8",
+        "o_pix_fmt": "ydgcocg8.planar",
+        "debug": 0,
+        "input": b"\x00\x40\x10\x30\x80\x00\x90\xf0\x20\x20\x30\x10\xa0\xe0\xb0\xd0",
+        "bayer_packed": np.array(
+            [
+                [0x00, 0x40, 0x10, 0x30],
+                [0x80, 0x00, 0x90, 0xF0],
+                [0x20, 0x20, 0x30, 0x10],
+                [0xA0, 0xE0, 0xB0, 0xD0],
+            ],
+            dtype=np.uint8,
+        ),
+        "ydgcocg_planar": {
+            "Y": np.array([[0x30, 0x70], [0x70, 0x70]], dtype=np.uint8),
+            "D": np.array([[0x80, 0xF0], [0xE0, 0xD0]], dtype=np.uint8),
+            "C": np.array([[0xA0, 0xB0], [0xC0, 0xD0]], dtype=np.uint8),
+            "c": np.array([[0x50, 0x90], [0x90, 0x90]], dtype=np.uint8),
+        },
+        "ydgcocg_packed": np.array(
+            [
+                [0x30, 0x80, 0x70, 0xF0],
+                [0xA0, 0x50, 0xB0, 0x90],
+                [0x70, 0xE0, 0x70, 0xD0],
+                [0xC0, 0x90, 0xD0, 0x90],
+            ],
+            dtype=np.uint8,
+        ),
+        "output": b"\x30\x70\x70\x70\x80\xf0\xe0\xd0\xa0\xb0\xc0\xd0\x50\x90\x90\x90",
     },
     {
         "name": "bayer_rggb8.planar-ydgcocg8.planar-maxmin",
