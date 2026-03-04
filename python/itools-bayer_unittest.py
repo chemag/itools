@@ -125,31 +125,6 @@ convertImageFormatTestCases = [
         "output": b"\x02\x01\x04\x03\x06\x05\x08\x07\x0a\x09\x0c\x0b\x0e\x0d\x10\x0f",
     },
     {
-        "name": "bayer_bggr8-bayer_gbrg8",
-        "width": 4,
-        "height": 4,
-        "i_pix_fmt": "bayer_bggr8",
-        "o_pix_fmt": "bayer_gbrg8",
-        "debug": 0,
-        "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
-        "bayer_planar": {
-            "B": np.array([[1, 3], [9, 11]], dtype=np.uint8),
-            "G": np.array([[2, 4], [10, 12]], dtype=np.uint8),
-            "g": np.array([[5, 7], [13, 15]], dtype=np.uint8),
-            "R": np.array([[6, 8], [14, 16]], dtype=np.uint8),
-        },
-        "bayer_packed": np.array(
-            [
-                [1, 2, 3, 4],
-                [5, 6, 7, 8],
-                [9, 10, 11, 12],
-                [13, 14, 15, 16],
-            ],
-            dtype=np.uint8,
-        ),
-        "output": b"\x02\x01\x04\x03\x06\x05\x08\x07\x0a\x09\x0c\x0b\x0e\x0d\x10\x0f",
-    },
-    {
         "name": "bayer_bggr8-bayer_grbg8",
         "width": 4,
         "height": 4,
@@ -275,31 +250,6 @@ convertImageFormatTestCases = [
         "output": b"\x01\x02\x03\x04\x06\x05\x08\x07\x09\x0a\x0b\x0c\x0e\x0d\x10\x0f",
     },
     # bayer8->bayer16
-    {
-        "name": "bayer_bggr8-bayer_bggr16be",
-        "width": 4,
-        "height": 4,
-        "i_pix_fmt": "bayer_bggr8",
-        "o_pix_fmt": "bayer_bggr16be",
-        "debug": 0,
-        "input": b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10",
-        "bayer_planar": {
-            "B": np.array([[1, 3], [9, 11]], dtype=np.uint8),
-            "G": np.array([[2, 4], [10, 12]], dtype=np.uint8),
-            "g": np.array([[5, 7], [13, 15]], dtype=np.uint8),
-            "R": np.array([[6, 8], [14, 16]], dtype=np.uint8),
-        },
-        "bayer_packed": np.array(
-            [
-                [1, 2, 3, 4],
-                [5, 6, 7, 8],
-                [9, 10, 11, 12],
-                [13, 14, 15, 16],
-            ],
-            dtype=np.uint8,
-        ),
-        "output": b"\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08\x00\x09\x00\x0a\x00\x0b\x00\x0c\x00\x0d\x00\x0e\x00\x0f\x00\x10\x00",
-    },
     {
         "name": "bayer_bggr8-bayer_bggr16be",
         "width": 4,
